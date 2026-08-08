@@ -1,3 +1,5 @@
+from urllib import response
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from anthropic import Anthropic
@@ -188,8 +190,10 @@ def generate_score(data: ScoringInput):
             }
         ],
     )
-
-    result = json.loads(response.content[0].text)
+    raw = response.content[0].text.strip()
+    start = raw.find("{")
+    end = raw.rfind("}")
+    result = json.loads(raw[start : end + 1])
 
     total = sum(d["score"] for d in result["dimensions"].values())
     result["overall_score"] = round((total / 6) * 100)
