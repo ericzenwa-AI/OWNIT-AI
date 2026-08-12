@@ -1,5 +1,3 @@
-from urllib import response
-
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from anthropic import Anthropic
@@ -150,8 +148,9 @@ class ScoringInput(BaseModel):
     exchanges: list[ExchangeInput]
 
 
-@app.post("/generate-score")
-def generate_score(data: ScoringInput):
+
+@app.post("/generate-report")
+def generate_report(data: ScoringInput):
     # Turn the list of exchanges into readable text for the prompt
     transcript = ""
     for i, exchange in enumerate(data.exchanges, start=1):
@@ -169,33 +168,33 @@ def generate_score(data: ScoringInput):
             {
                 "role": "user",
                 "content": (
-                    "Score whether this student can account for their own essay, "
-                    "based on the transcript below.\n\n"
-                    "Rubric (score each 0-2):\n"
-                    "- understanding_depth: Can they explain their own claims "
-                    "accurately, not just restate them?\n"
-                    "- engagement_with_own_work: Can they account for the choices "
-                    "in their essay - sources, structure, reasoning?\n"
-                    "- articulation_under_probing: Do they respond substantively "
-                    "to follow-ups, or do answers stay thin/evasive?\n\n"
-                    "Return ONLY this JSON, nothing else, no markdown fences:\n"
-                    '{"dimensions": {"understanding_depth": {"score": 0, '
-                    '"justification": "", "evidence": ""}, '
-                    '"engagement_with_own_work": {"score": 0, "justification": "", '
-                    '"evidence": ""}, "articulation_under_probing": {"score": 0, '
-                    '"justification": "", "evidence": ""}}, "summary": ""}\n\n'
+                    "A student submitted the essay below and was asked questions "
+                    "about it. Report what happened, for their teacher.\n\n"
+                    "Rules:\n"
+                    "- Note where the student explained their reasoning in their "
+                    "own terms, including anything they articulated more clearly "
+                    "than the essay itself does.\n"
+                    "- Note where answers restated the essay without adding to it, "
+                    "or did not address what was asked.\n"
+                    "- Quote the student's own words as evidence for each point.\n"
+                    "- Do NOT judge, conclude, or state whether the student wrote "
+                    "the essay. Do NOT score or rate. Report only what they said.\n\n"
+                    "Return ONLY this JSON, nothing else:\n"
+                    '{"accounted_for": [], "gaps": [], "summary": ""}\n\n'
+                    "accounted_for: observations of what they explained in their "
+                    "own terms, each with a quote.\n"
+                    "gaps: observations of where answers stayed thin or missed the "
+                    "question, each with a quote.\n"
+                    "summary: two or three neutral sentences describing the "
+                    "session.\n\n"
                     f"ESSAY:\n{data.essay_text}\n\n"
                     f"TRANSCRIPT:\n{transcript}"
                 ),
             }
         ],
     )
+
     raw = response.content[0].text.strip()
     start = raw.find("{")
     end = raw.rfind("}")
-    result = json.loads(raw[start : end + 1])
-
-    total = sum(d["score"] for d in result["dimensions"].values())
-    result["overall_score"] = round((total / 6) * 100)
-
-    return result
+    return json.loads(raw[start : end + 1])
