@@ -16,6 +16,7 @@ import argparse
 import json
 import random
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from anthropic import Anthropic
@@ -51,6 +52,16 @@ class MultipleChoiceQuestion(BaseModel):
     question: str
     correct_option: str
     distractors: list[Distractor]
+
+
+@dataclass(frozen=True)
+class Answered:
+    """What a student picked, and what picking it means."""
+
+    chosen: str
+    correct: bool
+    # The misconception behind the option they picked. None when they got it right.
+    mistake: str | None
 
 
 # What each kind of skill has to be asked about. These are the three question
@@ -129,8 +140,9 @@ def build_prompt(skill: Skill) -> str:
         "teaches us nothing.\n"
         "- Do not label the options, order them, or say which is correct in "
         "the option text.\n"
-        "- Write maths in plain text: / for division, ^ for powers, sqrt() for "
-        "roots. No LaTeX."
+        "- Write maths in plain ASCII: / for division, ^ for powers, sqrt() "
+        "for roots, * for multiplication. No LaTeX, no non-ASCII symbols, and "
+        "never an escape sequence like \\u00d7 - the student sees the raw text."
     )
 
 
@@ -173,6 +185,52 @@ def generate_question(
     return question
 
 
+# ---- Asking -------------------------------------------------------------
+
+
+LABELS = "ABCD"
+
+
+def shuffled_options(
+    question: MultipleChoiceQuestion,
+) -> list[tuple[str, str | None]]:
+    """The four options in random order, each paired with its mistake.
+
+    The correct one carries None, which is what makes an answer scoreable.
+    """
+    options: list[tuple[str, str | None]] = [(question.correct_option, None)]
+    options += [(d.option, d.mistake) for d in question.distractors]
+    random.shuffle(options)
+    return options
+
+
+def ask_in_terminal(
+    question: MultipleChoiceQuestion,
+    header: str | None = None,
+    input_fn=input,
+) -> Answered:
+    """Put the question to the student, without giving away which one is right."""
+    options = shuffled_options(question)
+
+    if header:
+        print(header)
+    print(question.question)
+    print()
+    for label, (text, _) in zip(LABELS, options):
+        print(f"  {label}) {text}")
+    print()
+
+    valid = LABELS[: len(options)]
+    while True:
+        pick = input_fn(f"Your answer ({'/'.join(valid)}): ").strip().upper()
+        if pick in valid:
+            break
+        print(f"Type one of {', '.join(valid)}.")
+
+    text, mistake = options[valid.index(pick)]
+    return Answered(chosen=text, correct=mistake is None, mistake=mistake)
+
+
 # ---- Command line ---------------------------------------------------------
 
 
@@ -190,11 +248,7 @@ def _print_question(skill: Skill, question: MultipleChoiceQuestion) -> None:
     print()
 
     # Shuffle so the correct answer isn't always first when eyeballing.
-    options = [(question.correct_option, None)]
-    options += [(d.option, d.mistake) for d in question.distractors]
-    random.shuffle(options)
-
-    for label, (text, mistake) in zip("ABCD", options):
+    for label, (text, mistake) in zip(LABELS, shuffled_options(question)):
         print(f"  {label}) {text}")
         print(f"     {'[correct]' if mistake is None else '[wrong] ' + mistake}")
         print()
