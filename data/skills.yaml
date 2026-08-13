@@ -1,0 +1,449 @@
+# A-level differentiation skill graph.
+#
+# The v2 diagnostic walks this graph downward: it starts at the skill the exam
+# question is asking for and follows `needs` until it finds a node the student
+# cannot actually do. That node is the thing to teach.
+
+meta:
+  topic: differentiation
+  syllabus: A-level (UK), spec-agnostic
+  version: 0.1-draft
+  status: hypothesis — not validated against student data
+
+  schema:
+    id: stable snake_case key, used in needs
+    name: human-readable name
+    level: 0 = what an exam question asks for, 4 = assumed floor
+    kind: procedure (a thing they DO) | fact (a thing they RECALL) | concept (a thing they UNDERSTAND)
+    probe: what a question testing THIS node alone must require. Feed this to the question generator.
+    needs: ids of nodes that must be in place first
+    note: optional — observed evidence or a warning about this node
+
+  notes:
+    - Level is a hint for batching, not a strict hierarchy. Follow needs, not level numbers.
+    - "kind matters: 'fact' nodes need recall questions, 'concept' nodes need explain-or-choose questions, 'procedure' nodes need do-it questions. Generating the same question shape for all three is the fastest way to make this useless."
+    - Nodes with many dependents are load-bearing but usually intact. Use as a tiebreaker, not a starting point.
+    - Floor nodes (level 4) recur across every A-level topic. Build them once, reuse across trigonometry, integration, series.
+
+nodes:
+
+  # ---- Level 0: what an exam question actually asks for --------------------
+
+  - id: differentiate_function
+    name: Differentiate a given function
+    level: 0
+    kind: procedure
+    probe: Differentiate an expression requiring at least one named rule.
+    needs: [power_rule, chain_rule, product_rule, quotient_rule, deriv_sin_cos, deriv_exp_e, deriv_ln, simplify_derivative]
+
+  - id: gradient_at_point
+    name: Find the gradient at a point
+    level: 0
+    kind: procedure
+    probe: Differentiate, then evaluate the derivative at a given x.
+    needs: [differentiate_function, substitute_expr, derivative_meaning]
+
+  - id: tangent_equation
+    name: Equation of a tangent
+    level: 0
+    kind: procedure
+    probe: Find the tangent to a curve at a stated point, answer in exact form.
+    needs: [gradient_at_point, straight_line_equation, exact_form]
+
+  - id: normal_equation
+    name: Equation of a normal
+    level: 0
+    kind: procedure
+    probe: Find the normal at a point — requires flipping and negating the tangent gradient.
+    needs: [tangent_equation, perpendicular_gradients]
+
+  - id: find_stationary_points
+    name: Find stationary points
+    level: 0
+    kind: procedure
+    probe: Set the derivative to zero and solve for all x, then find the y-coordinates.
+    needs: [differentiate_function, stationary_definition, solve_quadratic, factorise_common, exp_never_zero]
+
+  - id: classify_stationary
+    name: Classify stationary points
+    level: 0
+    kind: procedure
+    probe: Decide max or min for each stationary point and state the reasoning.
+    needs: [find_stationary_points, second_derivative, gradient_sign]
+
+  - id: increasing_decreasing
+    name: Increasing and decreasing intervals
+    level: 0
+    kind: procedure
+    probe: State the range of x for which a function is increasing.
+    needs: [differentiate_function, gradient_sign, solve_quadratic]
+
+  - id: optimisation
+    name: Optimisation in context
+    level: 0
+    kind: procedure
+    probe: Given a worded or geometric situation, build the function, optimise it, and interpret the answer.
+    needs: [form_expression_from_context, find_stationary_points, classify_stationary]
+
+  - id: connected_rates
+    name: Connected rates of change
+    level: 0
+    kind: procedure
+    probe: Chain two rates together to find a third, e.g. dV/dt from dV/dr and dr/dt.
+    needs: [chain_rule, differentiate_function, form_expression_from_context]
+
+  - id: implicit_diff
+    name: Implicit differentiation
+    level: 0
+    kind: procedure
+    probe: Differentiate an equation not written as y = f(x), and rearrange for dy/dx.
+    needs: [chain_rule, product_rule, algebraic_fractions]
+
+  - id: parametric_diff
+    name: Parametric differentiation
+    level: 0
+    kind: procedure
+    probe: Find dy/dx from x and y both given in terms of a parameter.
+    needs: [chain_rule, differentiate_function, algebraic_fractions]
+
+  # ---- Level 1: the named rules --------------------------------------------
+
+  - id: power_rule
+    name: Power rule
+    level: 1
+    kind: procedure
+    probe: Differentiate a sum of powers including a negative and a fractional index.
+    needs: [deriv_polynomial, rewrite_index_form]
+
+  - id: chain_rule
+    name: Chain rule
+    level: 1
+    kind: procedure
+    probe: Differentiate a function of a function, e.g. a bracket raised to a power.
+    needs: [recognise_composite, deriv_polynomial]
+
+  - id: product_rule
+    name: Product rule
+    level: 1
+    kind: procedure
+    probe: Differentiate two functions multiplied together.
+    needs: [recognise_product, deriv_polynomial]
+
+  - id: quotient_rule
+    name: Quotient rule
+    level: 1
+    kind: procedure
+    probe: Differentiate one function divided by another, and simplify the result.
+    needs: [recognise_quotient, product_rule, algebraic_fractions]
+
+  - id: first_principles
+    name: Differentiation from first principles
+    level: 1
+    kind: procedure
+    probe: Derive the derivative of a simple function using the limit definition.
+    needs: [limit_h_to_zero, expand_brackets, algebraic_fractions]
+
+  - id: second_derivative
+    name: Second derivative
+    level: 1
+    kind: procedure
+    probe: Differentiate a derivative again and state what its sign tells you.
+    needs: [differentiate_function, gradient_sign]
+
+  # ---- Level 2: recognition, standard results, and getting to a usable form -
+
+  - id: recognise_composite
+    name: Spot a function inside a function
+    level: 2
+    kind: concept
+    probe: Given several expressions, pick the ones that are composite and name the inner function.
+    needs: [function_notation]
+
+  - id: recognise_product
+    name: Spot a product
+    level: 2
+    kind: concept
+    probe: Given several expressions, identify which need the product rule and state u and v.
+    needs: [function_notation]
+
+  - id: recognise_quotient
+    name: Spot a quotient
+    level: 2
+    kind: concept
+    probe: Decide whether an expression is better handled as a quotient or rewritten as a product.
+    needs: [function_notation, algebraic_fractions]
+
+  - id: deriv_polynomial
+    name: Derivative of x to the n
+    level: 2
+    kind: fact
+    probe: State the derivative of x to a given power, including negative and fractional.
+    needs: [index_laws, index_notation]
+
+  - id: deriv_sin_cos
+    name: Derivatives of sin and cos
+    level: 2
+    kind: fact
+    probe: State the derivatives of sin x and cos x, and note the radians requirement.
+    needs: [radians]
+
+  - id: deriv_tan
+    name: Derivative of tan
+    level: 2
+    kind: fact
+    probe: State the derivative of tan x.
+    needs: [deriv_sin_cos]
+
+  - id: deriv_exp_e
+    name: Derivative of e to the x
+    level: 2
+    kind: fact
+    probe: State the derivative of e to the x and of e to the kx.
+    needs: [exponential_graph]
+
+  - id: deriv_ln
+    name: Derivative of ln x
+    level: 2
+    kind: fact
+    probe: State the derivative of ln x.
+    needs: [log_laws]
+
+  - id: deriv_a_to_x
+    name: Derivative of a to the x
+    level: 2
+    kind: fact
+    probe: Differentiate an exponential with a base other than e.
+    needs: [deriv_exp_e, log_laws]
+    note: "AQA Nov 2020 Q14b(i): a significant number of students did not know this."
+
+  - id: simplify_derivative
+    name: Tidy a derivative
+    level: 2
+    kind: procedure
+    probe: Take an unsimplified derivative and factorise it into a usable form.
+    needs: [factorise_common, algebraic_fractions]
+
+  - id: limit_h_to_zero
+    name: Limit as h approaches zero
+    level: 2
+    kind: concept
+    probe: Explain what happens to a chord's gradient as the second point moves toward the first.
+    needs: [chord_vs_tangent]
+
+  - id: rewrite_index_form
+    name: Rewrite in index form
+    level: 2
+    kind: procedure
+    probe: Turn roots and fractions such as a square root, or 3 over x squared, into powers of x.
+    needs: [index_laws, surds, algebraic_fractions]
+    note: "Very common hidden blocker — students who 'can't differentiate' often can't get the expression into a differentiable form."
+
+  - id: form_expression_from_context
+    name: Build a function from a situation
+    level: 2
+    kind: procedure
+    probe: Turn a worded or geometric setup into a single-variable expression, eliminating the other variable.
+    needs: [substitute_expr, expand_brackets, solve_linear]
+
+  # ---- Level 3: the algebra and meaning underneath --------------------------
+
+  - id: index_laws
+    name: Laws of indices
+    level: 3
+    kind: fact
+    probe: Simplify expressions using negative, fractional and zero powers.
+    needs: [index_notation, fractions_arith, negatives]
+    note: "AQA Nov 2020 Q5: students treated 3 to the power 0 as 3."
+
+  - id: surds
+    name: Surds
+    level: 3
+    kind: procedure
+    probe: Convert between root form and index form and simplify.
+    needs: [index_laws]
+
+  - id: algebraic_fractions
+    name: Algebraic fractions
+    level: 3
+    kind: procedure
+    probe: Simplify, combine or split a fraction with algebra in the numerator or denominator.
+    needs: [fractions_arith, factorise_common]
+
+  - id: function_notation
+    name: Function notation
+    level: 3
+    kind: concept
+    probe: Interpret f(x), f'(x) and dy/dx, and say what each represents.
+    needs: [substitute_expr]
+
+  - id: derivative_meaning
+    name: What a derivative is
+    level: 3
+    kind: concept
+    probe: Explain in words what dy/dx tells you about a curve at a point.
+    needs: [gradient_straight_line]
+    note: If this is missing, everything above it is being done by rote. Test it early.
+
+  - id: chord_vs_tangent
+    name: Chord versus tangent
+    level: 3
+    kind: concept
+    probe: Distinguish average gradient between two points from gradient at a single point.
+    needs: [gradient_straight_line, derivative_meaning]
+
+  - id: stationary_definition
+    name: What stationary means
+    level: 3
+    kind: concept
+    probe: State the condition for a stationary point without being told to differentiate.
+    needs: [derivative_meaning]
+
+  - id: gradient_sign
+    name: Sign of the gradient
+    level: 3
+    kind: concept
+    probe: Given the sign of a derivative, say whether the function rises or falls.
+    needs: [derivative_meaning, negatives]
+
+  - id: radians
+    name: Radians
+    level: 3
+    kind: fact
+    probe: Convert between degrees and radians and recognise when radians are required.
+    needs: [fractions_arith]
+
+  - id: exponential_graph
+    name: Shape of an exponential graph
+    level: 3
+    kind: concept
+    probe: Describe the shape and behaviour of y equals a to the x.
+    needs: [index_laws]
+
+  - id: exp_never_zero
+    name: An exponential is never zero
+    level: 3
+    kind: fact
+    probe: Given a factorised derivative containing an exponential factor, say which factor can be discarded and why.
+    needs: [exponential_graph]
+    note: Pure fact node. Invisible in a procedural breakdown, but it is where students lose solutions.
+
+  - id: log_laws
+    name: Laws of logarithms
+    level: 3
+    kind: fact
+    probe: Apply the product, quotient and power laws, and reject log of a sum as a sum of logs.
+    needs: [index_laws]
+
+  - id: exact_form
+    name: Exact form
+    level: 3
+    kind: concept
+    probe: Recognise when an answer must be left as a surd, fraction, or in terms of e, rather than rounded.
+    needs: [surds, fractions_arith]
+
+  # ---- Level 4: the assumed floor ------------------------------------------
+
+  - id: negatives
+    name: Negative number arithmetic
+    level: 4
+    kind: procedure
+    probe: Add, subtract and multiply with negatives, including double negatives.
+    needs: []
+
+  - id: fractions_arith
+    name: Fraction arithmetic
+    level: 4
+    kind: procedure
+    probe: Add, multiply and divide fractions.
+    needs: []
+
+  - id: bidmas
+    name: Order of operations
+    level: 4
+    kind: procedure
+    probe: Evaluate an expression where order changes the answer.
+    needs: []
+
+  - id: index_notation
+    name: Index notation
+    level: 4
+    kind: fact
+    probe: Read and write powers, and evaluate small ones.
+    needs: []
+
+  - id: substitute_expr
+    name: Substitution
+    level: 4
+    kind: procedure
+    probe: Put a number, including a negative, into an algebraic expression.
+    needs: [bidmas, negatives]
+
+  - id: coordinates
+    name: Coordinates
+    level: 4
+    kind: procedure
+    probe: Plot and read points on axes.
+    needs: []
+
+  - id: gradient_straight_line
+    name: Gradient of a straight line
+    level: 4
+    kind: concept
+    probe: Find the gradient between two points and say what it means.
+    needs: [coordinates, fractions_arith]
+
+  - id: expand_brackets
+    name: Expanding brackets
+    level: 4
+    kind: procedure
+    probe: Expand a product of two brackets.
+    needs: [negatives]
+
+  - id: solve_linear
+    name: Solving linear equations
+    level: 4
+    kind: procedure
+    probe: Rearrange and solve for x.
+    needs: [negatives]
+
+  - id: factorise_common
+    name: Factorising a common factor
+    level: 4
+    kind: procedure
+    probe: Take the highest common factor out of an expression, including one with powers.
+    needs: [index_notation, expand_brackets]
+
+  - id: factorise_quadratic
+    name: Factorising a quadratic
+    level: 4
+    kind: procedure
+    probe: Factorise a quadratic into two brackets.
+    needs: [expand_brackets]
+
+  - id: null_factor
+    name: Product equals zero
+    level: 4
+    kind: fact
+    probe: Given a product equal to zero, state what follows.
+    needs: []
+
+  - id: solve_quadratic
+    name: Solving quadratics
+    level: 4
+    kind: procedure
+    probe: Solve a quadratic and give both roots.
+    needs: [factorise_quadratic, null_factor]
+
+  - id: straight_line_equation
+    name: Equation of a straight line
+    level: 4
+    kind: procedure
+    probe: Write the line through a given point with a given gradient.
+    needs: [gradient_straight_line, substitute_expr]
+
+  - id: perpendicular_gradients
+    name: Perpendicular gradients
+    level: 4
+    kind: fact
+    probe: Given a gradient, state the gradient perpendicular to it.
+    needs: [gradient_straight_line, fractions_arith]
