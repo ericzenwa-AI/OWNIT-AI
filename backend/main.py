@@ -18,6 +18,30 @@ app = FastAPI(title="OwnIt API")
 # the ANTHROPIC_API_KEY environment variable automatically.
 claude = Anthropic()
 
+# The model every endpoint below uses.
+MODEL = "claude-opus-5"
+
+# Opus 5 thinks before it answers, and max_tokens caps the thinking and the
+# reply together. These prompts produce short replies, so this is headroom for
+# the thinking rather than a target - we're only billed for what it actually
+# generates.
+MAX_TOKENS = 16000
+
+
+# Because it thinks first, response.content can begin with a thinking block
+# instead of the reply, and a thinking block has no .text on it. So we look for
+# the first block that actually is text rather than assuming it's block zero.
+def first_text(response) -> str:
+    for block in response.content:
+        if block.type == "text":
+            return block.text
+
+    # No text anywhere: Claude declined, or ran out of room while thinking.
+    raise HTTPException(
+        status_code=502,
+        detail=f"Claude returned no text (stop_reason: {response.stop_reason}).",
+    )
+
 
 # This is a "route" - it says: when someone visits "/" with a GET request,
 # run this function and send back whatever it returns.
@@ -40,8 +64,8 @@ def generate_questions(data: EssayInput):
     # data.essay_text is the PDF text the frontend sent us.
     # We're building a prompt and sending it to Claude.
     response = claude.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=500,
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
         messages=[
             {
                 "role": "user",
@@ -68,8 +92,8 @@ def generate_questions(data: EssayInput):
     )
 
 
-    # response.content[0].text is Claude's reply, as plain text.
-    questions_text = response.content[0].text
+    # Claude's reply, as plain text.
+    questions_text = first_text(response)
 
     # We package it into a dictionary. FastAPI automatically converts
     # this into JSON before sending it back to the frontend.
@@ -85,8 +109,8 @@ class FollowupInput(BaseModel):
 @app.post("/generate-followup")
 def generate_followup(data: FollowupInput):
     response = claude.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=300,
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
         messages=[
             {
                 "role": "user",
@@ -112,7 +136,7 @@ def generate_followup(data: FollowupInput):
         ],
     )
 
-    return {"followup": response.content[0].text}
+    return {"followup": first_text(response)}
 
 @app.post("/upload-pdf")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -162,8 +186,8 @@ def generate_report(data: ScoringInput):
         )
 
     response = claude.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=1000,
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
         messages=[
             {
                 "role": "user",
@@ -194,7 +218,7 @@ def generate_report(data: ScoringInput):
         ],
     )
 
-    raw = response.content[0].text.strip()
+    raw = first_text(response).strip()
     start = raw.find("{")
     end = raw.rfind("}")
     return json.loads(raw[start : end + 1])
