@@ -3,14 +3,25 @@
 The student is stuck on one question. We take the skill that question asks for
 as the entry node and treat it as failed - being stuck is the premise, not
 something we test. Then we work downward through `needs`, testing prerequisites
-and descending only into the ones that come back wrong, until we reach a skill
-they cannot do whose own prerequisites they can. That skill is the root gap.
+and descending into the first one that comes back wrong, until we reach a skill
+they cannot do whose own prerequisites they can.
+
+That skill is a root gap, not the root gap. The graph forks, so the real gap is
+every broken skill below the break point, and one descent finds one of them.
+Testing the lot costs up to 42 questions from some entry nodes, which no stuck
+student will sit through, so we follow one branch and keep a list of what we
+skipped. The report offers those branches as a follow-up rather than quietly
+dropping them.
 
 An attempt is optional. "I don't know how to start" is the most common case,
 and the students who say it are the ones who need this most. With an attempt we
 can narrow the first round to the branch where the working actually broke;
 without one the first round tests everything on the level below the entry node.
 After that first round the two paths are identical - descend into what failed.
+
+The walk stops early in two cases: it has asked its budget of questions, or the
+student has said "I don't know" three times running, which means they are far
+enough below this question that pinpointing the floor helps nobody.
 """
 
 from __future__ import annotations
@@ -54,14 +65,24 @@ class Diagnosis:
     # Which prerequisites the attempt pointed at, and why. None without one.
     narrowed_to: list[str] | None = None
     narrowed_because: str | None = None
-    # True when that branch held and we had to test the rest of the level after all.
+    # True when that branch held and we tested the rest of the level after all.
     widened: bool = False
     # Every skill we established something about, in the order we did it.
     results: list[SkillResult] = field(default_factory=list)
-    # The skills to actually teach, deepest thing that broke.
+    # A confirmed gap: failed, with every one of its prerequisites held. One
+    # descent finds at most one of these.
     root_gaps: list[str] = field(default_factory=list)
     # Entry node down to each root gap.
     chains: list[list[str]] = field(default_factory=list)
+    # Branches we walked past. These are not cleared skills - they are skills
+    # nobody has asked about, and any of them could hold another gap. The report
+    # offers them as a follow-up.
+    unchecked: list[str] = field(default_factory=list)
+    # Why we stopped short, if we did. None means the descent finished.
+    stopped_early: str | None = None
+    # The lowest skill we saw fail. When we stop early this is the best answer
+    # available, but its own prerequisites were never checked.
+    deepest_failure: str | None = None
 
     def result_for(self, skill_id: str) -> SkillResult | None:
         for result in self.results:
@@ -226,6 +247,23 @@ def check_by_asking(
 
 Check = Callable[[Skill], SkillResult]
 
+# A straight descent uses 5-7 questions before any sibling gets tested, so the
+# budget has to clear that comfortably or it fires on legitimate walks.
+QUESTION_CAP = 15
+
+# Three in a row means the student is well below this question. Grinding down to
+# the arithmetic floor to prove it is slow, and tells them nothing they can use.
+DONT_KNOW_RUN = 3
+
+
+def _most_foundational_first(skill_ids) -> list[str]:
+    """Deepest skills first, so a broken foundation is found before its symptoms.
+
+    Level 4 is the assumed floor and level 0 is what the exam asks for, so a
+    higher level number means more foundational.
+    """
+    return sorted(skill_ids, key=lambda s: (-SKILLS[s].level, s))
+
 
 def diagnose(
     entry_skill_id: str,
@@ -233,6 +271,8 @@ def diagnose(
     *,
     check: Check = check_by_asking,
     client: Anthropic | None = None,
+    cap: int = QUESTION_CAP,
+    dont_know_run: int = DONT_KNOW_RUN,
 ) -> Diagnosis:
     """Find the skill underneath the question that the student is missing."""
     entry = SKILLS.get(entry_skill_id)
@@ -258,53 +298,92 @@ def diagnose(
             diagnosis.presentation_note = presentation.note
 
         narrowing = narrow_to_branch(entry, attempt, client=client)
-        frontier = list(narrowing.branch_skill_ids)
-        diagnosis.narrowed_to = list(frontier)
+        diagnosis.narrowed_to = list(narrowing.branch_skill_ids)
         diagnosis.narrowed_because = narrowing.reason
+
+        # The branch the attempt pointed at goes first. The rest of the level
+        # queues up behind it, so a wrong guess costs questions rather than
+        # ending the walk with nothing.
+        candidates = list(narrowing.branch_skill_ids)
+        candidates += _most_foundational_first(
+            [need for need in entry.needs if need not in candidates]
+        )
     else:
-        frontier = list(entry.needs)
+        candidates = _most_foundational_first(entry.needs)
 
-    for skill_id in frontier:
-        parents[skill_id] = entry.id
+    # Depth first: test siblings until one fails, descend into it, and leave the
+    # rest for a follow-up. `parent` is whatever we most recently descended from,
+    # so when a whole level holds, it is the gap.
+    parent = entry.id
+    asked = 0
+    dont_knows_running = 0
 
-    # Narrowing is a shortcut, not a decision. If the branch it picked turns out
-    # to be held, the guess was wrong, and we owe the student the rest of the
-    # level rather than a shrug.
-    widen_pending = attempt is not None
+    while candidates:
+        broke_into = None
 
-    # Everything from here is the same either way: test the frontier, then
-    # descend into whatever failed.
-    while frontier:
-        failed: list[str] = []
-        for skill_id in frontier:
+        for position, skill_id in enumerate(candidates):
             if skill_id in results:
                 continue
+
+            if asked >= cap:
+                diagnosis.stopped_early = f"asked the maximum of {cap} questions"
+                diagnosis.unchecked += [
+                    later for later in candidates[position:] if later not in results
+                ]
+                break
+
             result = check(SKILLS[skill_id])
             results[skill_id] = result
             diagnosis.results.append(result)
+            parents.setdefault(skill_id, parent)
+            asked += 1
+
+            dont_knows_running = dont_knows_running + 1 if result.dont_know else 0
+
             if not result.held:
-                failed.append(skill_id)
+                diagnosis.deepest_failure = skill_id
+                broke_into = skill_id
+                # Siblings we never got to. Not cleared - just unasked.
+                diagnosis.unchecked += [
+                    later
+                    for later in candidates[position + 1 :]
+                    if later not in results
+                ]
+                break
 
-        next_frontier: list[str] = []
-        for skill_id in failed:
-            for need in SKILLS[skill_id].needs:
-                if need not in results and need not in next_frontier:
-                    parents.setdefault(need, skill_id)
-                    next_frontier.append(need)
+        if diagnosis.stopped_early:
+            break
 
-        if widen_pending and not next_frontier:
-            for need in entry.needs:
-                if need not in results:
-                    parents.setdefault(need, entry.id)
-                    next_frontier.append(need)
-            diagnosis.widened = bool(next_frontier)
+        if dont_knows_running >= dont_know_run:
+            diagnosis.stopped_early = (
+                f"{dont_know_run} 'I don't know' answers in a row"
+            )
+            break
 
-        # Only ever right after the narrowed first round.
-        widen_pending = False
-        frontier = next_frontier
+        # Every sibling held, so nothing below explains it: `parent` is the gap.
+        if broke_into is None:
+            break
 
+        parent = broke_into
+        candidates = _most_foundational_first(
+            [need for need in SKILLS[broke_into].needs if need not in results]
+        )
+
+    # A skill that failed with every prerequisite held is a confirmed gap. Read
+    # off the results rather than the traversal, so this stays true whatever
+    # order we walked in. Stopping early leaves the bottom skill unconfirmed,
+    # which is why this can come back empty.
     diagnosis.root_gaps = _root_gaps(results)
     diagnosis.chains = [_chain_to(gap, entry.id, parents) for gap in diagnosis.root_gaps]
+
+    if diagnosis.narrowed_to is not None:
+        diagnosis.widened = any(
+            result.skill_id in entry.needs
+            and result.skill_id not in diagnosis.narrowed_to
+            for result in diagnosis.results
+            if result.asked
+        )
+
     return diagnosis
 
 
@@ -371,21 +450,45 @@ def _print_diagnosis(diagnosis: Diagnosis) -> None:
             print(f"      {result.mistake}")
 
     print()
-    if not diagnosis.root_gaps:
-        print("No gap found below this question.")
-        return
+    if diagnosis.stopped_early:
+        print(f"Stopped early: {diagnosis.stopped_early}.")
+        lead = diagnosis.deepest_failure
+        # Only unconfirmed when something below it went unasked. A floor node
+        # has nothing below it, so stopping there costs us nothing.
+        if lead and lead not in diagnosis.root_gaps:
+            print(
+                f"  Lowest skill that failed: {SKILLS[lead].name}. Nothing "
+                "underneath it was checked, so treat this as a lead rather "
+                "than a diagnosis."
+            )
+        print()
 
-    print("Teach this:")
-    for gap, chain in zip(diagnosis.root_gaps, diagnosis.chains):
-        result = diagnosis.result_for(gap)
-        if result and result.dont_know:
-            note = "  (nothing there yet - teach it from scratch)"
-        elif result and result.mistake:
-            note = "  (holds a rule, and it is the wrong one - correct it)"
-        else:
-            note = ""
-        print(f"  {SKILLS[gap].name}{note}")
-        print("      " + " -> ".join(SKILLS[step].name for step in chain))
+    if diagnosis.root_gaps:
+        print("Start here:")
+        for gap, chain in zip(diagnosis.root_gaps, diagnosis.chains):
+            result = diagnosis.result_for(gap)
+            if result and result.dont_know:
+                note = "  (nothing there yet - teach it from scratch)"
+            elif result and result.mistake:
+                note = "  (holds a rule, and it is the wrong one - correct it)"
+            else:
+                note = ""
+            print(f"  {SKILLS[gap].name}{note}")
+            print("      " + " -> ".join(SKILLS[step].name for step in chain))
+    elif not diagnosis.stopped_early:
+        print("No gap found below this question.")
+
+    # One descent finds one gap. Anything the walk stepped past is unexamined,
+    # not cleared, and saying so is the difference between a partial answer and
+    # a wrong one.
+    if diagnosis.unchecked:
+        print()
+        print("Not checked - any of these could hold another gap:")
+        for skill_id in diagnosis.unchecked:
+            print(f"  {SKILLS[skill_id].name}")
+        print()
+        print("Check the other branches? Re-run with one of these as the entry:")
+        print(f"  python backend/walk.py {diagnosis.unchecked[0]}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -398,6 +501,12 @@ def main(argv: list[str] | None = None) -> int:
         help="what the student tried, if anything. Leave it out for 'I don't know how to start'.",
     )
     parser.add_argument("--attempt-file", help="read the attempt from a file instead")
+    parser.add_argument(
+        "--cap",
+        type=int,
+        default=QUESTION_CAP,
+        help=f"most questions to ask (default: {QUESTION_CAP})",
+    )
     parser.add_argument("--json", action="store_true", help="print raw JSON instead")
     args = parser.parse_args(argv)
 
@@ -406,7 +515,7 @@ def main(argv: list[str] | None = None) -> int:
         attempt = open(args.attempt_file, encoding="utf-8").read()
 
     try:
-        diagnosis = diagnose(args.entry_skill_id, attempt)
+        diagnosis = diagnose(args.entry_skill_id, attempt, cap=args.cap)
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
         print("run 'python backend/questions.py --list' to see the ids", file=sys.stderr)
