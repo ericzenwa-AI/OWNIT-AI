@@ -39,6 +39,10 @@ class SkillResult:
     mistake: str | None = None
     # False for the entry node, which we take as failed rather than testing.
     asked: bool = True
+    # They said they didn't know. Not held either way, so the walk descends the
+    # same - but the report needs to tell these apart, because a wrong rule gets
+    # corrected and an absent one gets taught from scratch.
+    dont_know: bool = False
 
 
 @dataclass
@@ -209,7 +213,12 @@ def check_by_asking(
     question = generate_question(skill.id, client=client, model=model)
     header = f"\n[{skill.name}]\n"
     answered = ask_in_terminal(question, header=header)
-    return SkillResult(skill.id, held=answered.correct, mistake=answered.mistake)
+    return SkillResult(
+        skill.id,
+        held=answered.correct,
+        mistake=answered.mistake,
+        dont_know=answered.dont_know,
+    )
 
 
 # ---- The walk -------------------------------------------------------------
@@ -351,7 +360,12 @@ def _print_diagnosis(diagnosis: Diagnosis) -> None:
     for result in diagnosis.results:
         if not result.asked:
             continue
-        mark = "held" if result.held else "not held"
+        if result.held:
+            mark = "held"
+        elif result.dont_know:
+            mark = "not held - said they didn't know"
+        else:
+            mark = "not held"
         print(f"  {SKILLS[result.skill_id].name}: {mark}")
         if result.mistake:
             print(f"      {result.mistake}")
@@ -363,7 +377,14 @@ def _print_diagnosis(diagnosis: Diagnosis) -> None:
 
     print("Teach this:")
     for gap, chain in zip(diagnosis.root_gaps, diagnosis.chains):
-        print(f"  {SKILLS[gap].name}")
+        result = diagnosis.result_for(gap)
+        if result and result.dont_know:
+            note = "  (nothing there yet - teach it from scratch)"
+        elif result and result.mistake:
+            note = "  (holds a rule, and it is the wrong one - correct it)"
+        else:
+            note = ""
+        print(f"  {SKILLS[gap].name}{note}")
         print("      " + " -> ".join(SKILLS[step].name for step in chain))
 
 

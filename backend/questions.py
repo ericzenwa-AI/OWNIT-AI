@@ -60,8 +60,14 @@ class Answered:
 
     chosen: str
     correct: bool
-    # The misconception behind the option they picked. None when they got it right.
+    # The misconception behind the option they picked. None when they got it
+    # right, and None when they said they didn't know - there is no wrong rule
+    # to name in that case.
     mistake: str | None
+    # A wrong answer and "I don't know" are both failures, but they are not the
+    # same failure. A wrong answer means the student has a rule in their head
+    # and it is the wrong one. This means there is nothing there to correct yet.
+    dont_know: bool = False
 
 
 # What each kind of skill has to be asked about. These are the three question
@@ -190,11 +196,17 @@ def generate_question(
 
 LABELS = "ABCD"
 
+# Not a distractor. The model never writes this one and never sees it - it is
+# fixed text bolted on at display time, always last, never shuffled in among
+# the others, so a student always knows where to find it.
+DONT_KNOW_LABEL = "E"
+DONT_KNOW_OPTION = "I don't know"
+
 
 def shuffled_options(
     question: MultipleChoiceQuestion,
 ) -> list[tuple[str, str | None]]:
-    """The four options in random order, each paired with its mistake.
+    """The four generated options in random order, each paired with its mistake.
 
     The correct one carries None, which is what makes an answer scoreable.
     """
@@ -211,23 +223,33 @@ def ask_in_terminal(
 ) -> Answered:
     """Put the question to the student, without giving away which one is right."""
     options = shuffled_options(question)
+    labels = LABELS[: len(options)]
 
     if header:
         print(header)
     print(question.question)
     print()
-    for label, (text, _) in zip(LABELS, options):
+    for label, (text, _) in zip(labels, options):
         print(f"  {label}) {text}")
+    print(f"  {DONT_KNOW_LABEL}) {DONT_KNOW_OPTION}")
     print()
 
-    valid = LABELS[: len(options)]
+    valid = labels + DONT_KNOW_LABEL
     while True:
-        pick = input_fn(f"Your answer ({'/'.join(valid)}): ").strip().upper()
+        pick = input_fn(
+            f"Your answer ({labels[0]}-{labels[-1]}, "
+            f"or {DONT_KNOW_LABEL} if you don't know): "
+        ).strip().upper()
         if pick in valid:
             break
         print(f"Type one of {', '.join(valid)}.")
 
-    text, mistake = options[valid.index(pick)]
+    if pick == DONT_KNOW_LABEL:
+        return Answered(
+            chosen=DONT_KNOW_OPTION, correct=False, mistake=None, dont_know=True
+        )
+
+    text, mistake = options[labels.index(pick)]
     return Answered(chosen=text, correct=mistake is None, mistake=mistake)
 
 
@@ -252,6 +274,11 @@ def _print_question(skill: Skill, question: MultipleChoiceQuestion) -> None:
         print(f"  {label}) {text}")
         print(f"     {'[correct]' if mistake is None else '[wrong] ' + mistake}")
         print()
+
+    # Shown so this preview matches what a student actually sees.
+    print(f"  {DONT_KNOW_LABEL}) {DONT_KNOW_OPTION}")
+    print("     [not held, with no mistake to name]")
+    print()
 
 
 def main(argv: list[str] | None = None) -> int:

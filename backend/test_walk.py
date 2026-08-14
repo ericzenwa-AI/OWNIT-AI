@@ -85,6 +85,39 @@ def test_does_not_descend_into_what_held():
     assert "index_laws" not in asked(diagnosis)
 
 
+def test_dont_know_descends_like_any_other_failure():
+    """Not held is not held - the walk does not treat it specially."""
+
+    def check(skill):
+        if skill.id == "surds":
+            return SkillResult(skill.id, held=False, dont_know=True)
+        return SkillResult(skill.id, held=True)
+
+    diagnosis = diagnose(ENTRY, check=check)
+
+    assert "index_laws" in asked(diagnosis)
+    assert diagnosis.root_gaps == ["surds"]
+
+
+def test_dont_know_is_recorded_apart_from_a_wrong_answer():
+    def check(skill):
+        if skill.id == "surds":
+            return SkillResult(skill.id, held=False, dont_know=True)
+        if skill.id == "fractions_arith":
+            return SkillResult(skill.id, held=False, mistake="inverted the divisor")
+        return SkillResult(skill.id, held=True)
+
+    diagnosis = diagnose(ENTRY, check=check)
+
+    blank = diagnosis.result_for("surds")
+    assert blank.dont_know is True
+    assert blank.mistake is None
+
+    wrong = diagnosis.result_for("fractions_arith")
+    assert wrong.dont_know is False
+    assert wrong.mistake == "inverted the divisor"
+
+
 def test_carries_the_mistake_through():
     diagnosis = diagnose(ENTRY, check=student(fails={"surds"}))
     assert diagnosis.result_for("surds").mistake == "muddled surds"
