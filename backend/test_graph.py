@@ -15,7 +15,9 @@ from graph import (
 )
 
 
-def make_skill(skill_id: str, needs: tuple[str, ...] = ()) -> Skill:
+def make_skill(
+    skill_id: str, needs: tuple[str, ...] = (), topic: str | None = None
+) -> Skill:
     """A throwaway node, for building deliberately broken graphs in tests."""
     return Skill(
         id=skill_id,
@@ -24,6 +26,7 @@ def make_skill(skill_id: str, needs: tuple[str, ...] = ()) -> Skill:
         kind="concept",
         probe="probe",
         needs=needs,
+        topic=topic,
     )
 
 
@@ -53,6 +56,47 @@ def test_fields_are_populated():
         assert skill.probe
         assert skill.kind in {"procedure", "fact", "concept"}
         assert isinstance(skill.level, int)
+
+
+# ---- Topics ---------------------------------------------------------------
+
+
+def test_topic_marks_what_a_paper_can_ask_for():
+    from graph import entry_points
+
+    assert {s.id for s in entry_points()} == {
+        s.id for s in SKILLS.values() if s.topic
+    }
+    assert "find_stationary_points" in {s.id for s in entry_points()}
+
+
+def test_shared_skills_belong_to_no_topic():
+    """The whole point: these sit underneath several topics, not inside one."""
+    for shared in ("index_laws", "fractions_arith", "negatives", "factorise_common"):
+        assert SKILLS[shared].topic is None, shared
+
+
+def test_topics_lists_what_we_can_start_from():
+    from graph import topics
+
+    assert topics() == ["differentiation"]
+
+
+def test_a_graph_with_no_topics_is_rejected():
+    """Nothing tagged means no question can ever be placed."""
+    skills = {"a": make_skill("a")}
+    with pytest.raises(SkillGraphError, match="nowhere for a question to start"):
+        validate(skills)
+
+
+def test_topic_is_optional_on_a_node(tmp_path):
+    node = valid_node("a")
+    node["topic"] = "differentiation"
+    path = write_yaml(tmp_path, [node, valid_node("b")])
+    skills = load_skills(path)
+
+    assert skills["a"].topic == "differentiation"
+    assert skills["b"].topic is None
 
 
 # ---- Unknown prerequisite ids ---------------------------------------------
@@ -92,7 +136,7 @@ def test_self_reference_raises():
 def test_diamond_is_not_a_cycle():
     """Two paths to the same node is normal, and must not trip the detector."""
     skills = {
-        "top": make_skill("top", needs=("left", "right")),
+        "top": make_skill("top", needs=("left", "right"), topic="differentiation"),
         "left": make_skill("left", needs=("bottom",)),
         "right": make_skill("right", needs=("bottom",)),
         "bottom": make_skill("bottom"),
@@ -121,7 +165,9 @@ def valid_node(skill_id, needs=None):
 
 
 def test_load_valid_file(tmp_path):
-    path = write_yaml(tmp_path, [valid_node("a", ["b"]), valid_node("b")])
+    entry = valid_node("a", ["b"])
+    entry["topic"] = "differentiation"
+    path = write_yaml(tmp_path, [entry, valid_node("b")])
     skills = load_skills(path)
     assert set(skills) == {"a", "b"}
     assert skills["a"].needs == ("b",)

@@ -13,7 +13,7 @@ from entry import (
     build_prompt,
     confirm_in_terminal,
     describe,
-    entry_skills,
+    entry_points,
     identify_entry,
     is_usable,
 )
@@ -58,16 +58,22 @@ def typing(*answers):
 # ---- What gets offered ----------------------------------------------------
 
 
-def test_only_exam_level_skills_are_entry_points():
-    """A prerequisite is something we descend into, not somewhere to start."""
-    assert all(skill.level == 0 for skill in entry_skills())
-    assert "find_stationary_points" in {s.id for s in entry_skills()}
-    assert "index_laws" not in {s.id for s in entry_skills()}
+def test_carrying_a_topic_is_what_makes_an_entry_point():
+    """Not the level. Level orders siblings; topic says a paper can ask this."""
+    assert all(skill.topic for skill in entry_points())
+    assert "find_stationary_points" in {s.id for s in entry_points()}
+
+
+def test_shared_skills_are_not_entry_points():
+    """index_laws sits under differentiation and integration alike, so it is
+    not a differentiation question and carries no topic at all."""
+    assert SKILLS["index_laws"].topic is None
+    assert "index_laws" not in {s.id for s in entry_points()}
 
 
 def test_every_entry_skill_is_offered_to_claude():
     prompt = build_prompt("Find the stationary points of y = x^3 - 3x")
-    for skill in entry_skills():
+    for skill in entry_points():
         assert skill.id in prompt
 
 
@@ -122,7 +128,7 @@ def test_confirming_returns_the_skill_to_walk_from():
 
 def test_rejecting_lets_the_student_choose_instead():
     """A wrong guess must not dead-end them."""
-    options = entry_skills()
+    options = entry_points()
     chosen = confirm_in_terminal(match(), input_fn=typing("n", "2"))
     assert chosen == options[1].id
 

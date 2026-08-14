@@ -30,6 +30,10 @@ class Skill:
     probe: str
     needs: tuple[str, ...] = ()
     note: str | None = None
+    # The kind of question this is, on the skills a paper can actually ask for.
+    # Shared skills like index laws sit underneath several topics and belong to
+    # none of them, so they carry no topic at all.
+    topic: str | None = None
 
 
 def _parse_nodes(raw_nodes: list) -> dict[str, Skill]:
@@ -61,9 +65,28 @@ def _parse_nodes(raw_nodes: list) -> dict[str, Skill]:
             probe=raw["probe"],
             needs=tuple(needs),
             note=raw.get("note"),
+            topic=raw.get("topic"),
         )
 
     return skills
+
+
+def entry_points(skills: dict[str, Skill] | None = None) -> list[Skill]:
+    """The skills a question can ask for.
+
+    Carrying a topic is what makes a skill an entry point - not its level.
+    Level is a hint for ordering, and the graph's own notes warn against
+    treating it as a strict hierarchy, so whether a paper can ask for something
+    is written down rather than inferred.
+    """
+    skills = SKILLS if skills is None else skills
+    return sorted((s for s in skills.values() if s.topic), key=lambda s: s.id)
+
+
+def topics(skills: dict[str, Skill] | None = None) -> list[str]:
+    """Every kind of question the graph can currently start from."""
+    skills = SKILLS if skills is None else skills
+    return sorted({s.topic for s in skills.values() if s.topic})
 
 
 def _find_unknown_needs(skills: dict[str, Skill]) -> list[str]:
@@ -122,6 +145,14 @@ def validate(skills: dict[str, Skill]) -> dict[str, Skill]:
     cycle = _find_cycle(skills)
     if cycle:
         raise SkillGraphError("Circular dependency: " + " -> ".join(cycle))
+
+    # With nothing tagged, no question can ever be placed and the whole graph is
+    # unreachable, so this is a broken file rather than an empty one.
+    if not entry_points(skills):
+        raise SkillGraphError(
+            "No skill carries a topic, so there is nowhere for a question to "
+            "start. Tag the skills a paper can ask for."
+        )
 
     return skills
 

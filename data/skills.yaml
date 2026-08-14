@@ -14,6 +14,13 @@ meta:
     id: stable snake_case key, used in needs
     name: human-readable name
     level: 0 = what an exam question asks for, 4 = assumed floor
+    topic: >-
+      optional - the kind of question this is (differentiation, integration,
+      trigonometry). Present ONLY on skills a paper can actually ask for, and
+      having one is what makes a skill an entry point. Shared skills such as
+      index laws sit underneath several topics and belong to none of them, so
+      they carry no topic at all. To list a topic's content, walk down from its
+      entry points instead - a derived answer cannot drift out of date.
     kind: procedure (a thing they DO) | fact (a thing they RECALL) | concept (a thing they UNDERSTAND)
     probe: what a question testing THIS node alone must require. Feed this to the question generator.
     needs: ids of nodes that must be in place first
@@ -32,6 +39,7 @@ nodes:
   - id: differentiate_function
     name: Differentiate a given function
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Differentiate an expression requiring at least one named rule.
     needs: [power_rule, chain_rule, product_rule, quotient_rule, deriv_sin_cos, deriv_exp_e, deriv_ln, simplify_derivative]
@@ -39,6 +47,7 @@ nodes:
   - id: gradient_at_point
     name: Find the gradient at a point
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Differentiate, then evaluate the derivative at a given x.
     needs: [differentiate_function, substitute_expr, derivative_meaning]
@@ -46,6 +55,7 @@ nodes:
   - id: tangent_equation
     name: Equation of a tangent
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Find the tangent to a curve at a stated point, answer in exact form.
     needs: [gradient_at_point, straight_line_equation, exact_form]
@@ -53,6 +63,7 @@ nodes:
   - id: normal_equation
     name: Equation of a normal
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Find the normal at a point — requires flipping and negating the tangent gradient.
     needs: [tangent_equation, perpendicular_gradients]
@@ -60,6 +71,7 @@ nodes:
   - id: find_stationary_points
     name: Find stationary points
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Set the derivative to zero and solve for all x, then find the y-coordinates.
     needs: [differentiate_function, stationary_definition, solve_quadratic, factorise_common, exp_never_zero]
@@ -67,6 +79,7 @@ nodes:
   - id: classify_stationary
     name: Classify stationary points
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Decide max or min for each stationary point and state the reasoning.
     needs: [find_stationary_points, second_derivative, gradient_sign]
@@ -74,6 +87,7 @@ nodes:
   - id: increasing_decreasing
     name: Increasing and decreasing intervals
     level: 0
+    topic: differentiation
     kind: procedure
     probe: State the range of x for which a function is increasing.
     needs: [differentiate_function, gradient_sign, solve_quadratic]
@@ -81,6 +95,7 @@ nodes:
   - id: optimisation
     name: Optimisation in context
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Given a worded or geometric situation, build the function, optimise it, and interpret the answer.
     needs: [form_expression_from_context, find_stationary_points, classify_stationary]
@@ -88,6 +103,7 @@ nodes:
   - id: connected_rates
     name: Connected rates of change
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Chain two rates together to find a third, e.g. dV/dt from dV/dr and dr/dt.
     needs: [chain_rule, differentiate_function, form_expression_from_context]
@@ -95,6 +111,7 @@ nodes:
   - id: implicit_diff
     name: Implicit differentiation
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Differentiate an equation not written as y = f(x), and rearrange for dy/dx.
     needs: [chain_rule, product_rule, algebraic_fractions]
@@ -102,6 +119,7 @@ nodes:
   - id: parametric_diff
     name: Parametric differentiation
     level: 0
+    topic: differentiation
     kind: procedure
     probe: Find dy/dx from x and y both given in terms of a parameter.
     needs: [chain_rule, differentiate_function, algebraic_fractions]

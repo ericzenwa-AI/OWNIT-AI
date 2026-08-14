@@ -25,14 +25,9 @@ from typing import Literal
 from anthropic import Anthropic
 from pydantic import BaseModel
 
-from graph import SKILLS, Skill
+from graph import SKILLS, entry_points
 from questions import MAX_TOKENS, MODEL
 from walk import diagnose
-
-# Level 0 is what an exam question actually asks for. Nothing deeper in the
-# graph is a sensible starting point - those are the prerequisites we descend
-# into, not the things a paper asks you to do.
-ENTRY_LEVEL = 0
 
 # A match we are prepared to act on. Anything less and we say so instead of
 # forcing the student down a branch we do not believe in.
@@ -66,14 +61,6 @@ class EntryMatch(BaseModel):
     reason: str
 
 
-def entry_skills() -> list[Skill]:
-    """The skills a real exam question can be asking for."""
-    return sorted(
-        (s for s in SKILLS.values() if s.level == ENTRY_LEVEL),
-        key=lambda s: s.id,
-    )
-
-
 def _image_block(image_path: str | Path) -> dict:
     """Wrap a photo of a question so the API can read it.
 
@@ -102,7 +89,7 @@ def _image_block(image_path: str | Path) -> dict:
 def build_prompt(question: str) -> str:
     """The instructions for matching a question to an entry skill."""
     options = "\n".join(
-        f"- {skill.id}: {skill.name} - {skill.probe}" for skill in entry_skills()
+        f"- {skill.id}: {skill.name} - {skill.probe}" for skill in entry_points()
     )
 
     return (
@@ -178,7 +165,7 @@ def is_usable(match: EntryMatch) -> bool:
     """
     if match.skill_id is None:
         return False
-    if match.skill_id not in {skill.id for skill in entry_skills()}:
+    if match.skill_id not in {skill.id for skill in entry_points()}:
         return False
     return match.confidence in USABLE_CONFIDENCE
 
@@ -217,7 +204,7 @@ def confirm_in_terminal(match: EntryMatch, input_fn=input) -> str | None:
 
 def _pick_by_hand(input_fn=input) -> str | None:
     """We guessed wrong, so let the student say which it is themselves."""
-    options = entry_skills()
+    options = entry_points()
 
     print()
     print("Which of these is it?")
