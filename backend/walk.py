@@ -54,6 +54,21 @@ class SkillResult:
     # same - but the report needs to tell these apart, because a wrong rule gets
     # corrected and an absent one gets taught from scratch.
     dont_know: bool = False
+    # What they were actually asked and what they picked. Kept so the answer can
+    # be stored and looked at later, not used by the walk itself.
+    question: str | None = None
+    chosen: str | None = None
+    confidence: str | None = None
+    seconds: float | None = None
+
+    @property
+    def lucky(self) -> bool:
+        """Right answer, guessed. Reads as a skill they have, and may not be.
+
+        This is the dangerous direction: a held answer stops the descent, so a
+        lucky guess can end the walk on the wrong branch entirely.
+        """
+        return self.held and self.confidence == "guess"
 
 
 @dataclass
@@ -239,6 +254,10 @@ def check_by_asking(
         held=answered.correct,
         mistake=answered.mistake,
         dont_know=answered.dont_know,
+        question=question.question,
+        chosen=answered.chosen,
+        confidence=answered.confidence,
+        seconds=answered.seconds,
     )
 
 
@@ -448,6 +467,8 @@ def _print_diagnosis(diagnosis: Diagnosis) -> None:
         print(f"  {SKILLS[result.skill_id].name}: {mark}")
         if result.mistake:
             print(f"      {result.mistake}")
+        if result.lucky:
+            print("      they guessed this one - the walk stopped here on a coin flip")
 
     print()
     if diagnosis.stopped_early:
@@ -507,6 +528,8 @@ def main(argv: list[str] | None = None) -> int:
         default=QUESTION_CAP,
         help=f"most questions to ask (default: {QUESTION_CAP})",
     )
+    parser.add_argument("--student", help="anonymous reference, e.g. student_7")
+    parser.add_argument("--no-save", action="store_true", help="do not record this walk")
     parser.add_argument("--json", action="store_true", help="print raw JSON instead")
     args = parser.parse_args(argv)
 
@@ -526,7 +549,31 @@ def main(argv: list[str] | None = None) -> int:
     else:
         _print_diagnosis(diagnosis)
 
+    if not args.no_save:
+        save_walk(diagnosis, attempt=attempt, student_ref=args.student)
+
     return 0
+
+
+def save_walk(diagnosis: Diagnosis, **details) -> int | None:
+    """Record a finished walk, without letting a storage problem lose it.
+
+    The diagnosis has already been shown by the time this runs. Failing to file
+    it is worth a warning, not a crash that hides the answer the student waited
+    for.
+    """
+    import store
+
+    try:
+        connection = store.connect()
+        try:
+            session_id = store.save_session(connection, diagnosis, **details)
+        finally:
+            connection.close()
+        return session_id
+    except Exception as error:  # noqa: BLE001 - storage must never lose a result
+        print(f"\n(could not save this walk: {error})", file=sys.stderr)
+        return None
 
 
 if __name__ == "__main__":

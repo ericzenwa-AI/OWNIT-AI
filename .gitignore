@@ -1,5 +1,7 @@
 .env
 venv/
+# Student answers. Never goes to GitHub.
+*.db
 .venv/
 __pycache__/
 .claude/

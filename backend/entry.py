@@ -232,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--image", help="a photo of the question instead")
     parser.add_argument("--attempt", help="what the student tried, if anything")
     parser.add_argument("--attempt-file", help="read the attempt from a file instead")
+    parser.add_argument("--student", help="anonymous reference, e.g. student_7")
+    parser.add_argument("--no-save", action="store_true", help="do not record this walk")
     args = parser.parse_args(argv)
 
     try:
@@ -258,9 +260,22 @@ def main(argv: list[str] | None = None) -> int:
     if args.attempt_file:
         attempt = Path(args.attempt_file).read_text(encoding="utf-8")
 
-    from walk import _print_diagnosis
+    from walk import _print_diagnosis, save_walk
 
-    _print_diagnosis(diagnose(entry_skill_id, attempt))
+    diagnosis = diagnose(entry_skill_id, attempt)
+    _print_diagnosis(diagnosis)
+
+    if not args.no_save:
+        save_walk(
+            diagnosis,
+            question=args.question,
+            attempt=attempt,
+            student_ref=args.student,
+            entry_confidence=match.confidence,
+            # False when they rejected our match and named the skill themselves.
+            entry_confirmed=entry_skill_id == match.skill_id,
+        )
+
     return 0
 
 
