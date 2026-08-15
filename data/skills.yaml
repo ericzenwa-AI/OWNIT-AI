@@ -248,12 +248,20 @@ nodes:
     probe: Explain what happens to a chord's gradient as the second point moves toward the first.
     needs: [chord_vs_tangent]
 
+  - id: recognise_index_form
+    name: Spot that an expression needs rewriting as powers
+    level: 2
+    kind: concept
+    probe: Given several expressions, pick the ones that must be converted to index form before anything else can be done, and say why.
+    needs: [index_laws, surds]
+    note: "Hypothesis, added 2026-08-15 - not yet seen in a student. Mirrors recognise_product and recognise_composite: holding a rule and knowing when to reach for it are separate. Delete this if no student ever fails here while passing index_laws."
+
   - id: rewrite_index_form
     name: Rewrite in index form
     level: 2
     kind: procedure
     probe: Turn roots and fractions such as a square root, or 3 over x squared, into powers of x.
-    needs: [index_laws, surds, algebraic_fractions]
+    needs: [recognise_index_form, index_laws, surds, algebraic_fractions]
     note: "Very common hidden blocker — students who 'can't differentiate' often can't get the expression into a differentiable form."
 
   - id: form_expression_from_context
