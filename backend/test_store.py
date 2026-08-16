@@ -19,7 +19,7 @@ def db(tmp_path):
     connection.close()
 
 
-def answered(skill_id, *, held, mistake=None, dont_know=False, confidence="sure"):
+def answered(skill_id, *, held, mistake=None, dont_know=False):
     return SkillResult(
         skill_id,
         held=held,
@@ -27,7 +27,6 @@ def answered(skill_id, *, held, mistake=None, dont_know=False, confidence="sure"
         dont_know=dont_know,
         question=f"a question about {skill_id}",
         chosen="whatever they picked",
-        confidence=confidence,
         seconds=12.5,
     )
 
@@ -89,7 +88,7 @@ def test_the_entry_node_is_not_stored_as_an_answer(db):
 
 def test_dont_know_is_stored_apart_from_wrong(db):
     store.save_session(
-        db, a_walk([answered("surds", held=False, dont_know=True, confidence="guess")])
+        db, a_walk([answered("surds", held=False, dont_know=True)])
     )
 
     row = db.execute("SELECT * FROM answers WHERE skill_id = 'surds'").fetchone()
@@ -103,30 +102,6 @@ def test_two_walks_do_not_collide(db):
 
     assert first != second
     assert db.execute("SELECT COUNT(*) c FROM sessions").fetchone()["c"] == 2
-
-
-# ---- Lucky answers --------------------------------------------------------
-
-
-def test_a_guessed_right_answer_is_flagged(db):
-    """One in four guesses lands right, and a lucky one stops the walk."""
-    store.save_session(db, a_walk([answered("index_laws", held=True, confidence="guess")]))
-
-    lucky = store.lucky_answers(db)
-    assert len(lucky) == 1
-    assert lucky[0]["skill_id"] == "index_laws"
-
-
-def test_a_confident_right_answer_is_not_flagged(db):
-    store.save_session(db, a_walk([answered("index_laws", held=True, confidence="sure")]))
-    assert store.lucky_answers(db) == []
-
-
-def test_the_walk_knows_a_result_was_lucky():
-    assert answered("index_laws", held=True, confidence="guess").lucky is True
-    assert answered("index_laws", held=True, confidence="sure").lucky is False
-    # Wrong and guessed is not lucky - nothing was gained by it.
-    assert answered("index_laws", held=False, confidence="guess").lucky is False
 
 
 # ---- Reading it back ------------------------------------------------------
@@ -158,7 +133,7 @@ def test_skill_stats_count_each_outcome(db):
         db,
         a_walk(
             [
-                answered("index_laws", held=True, confidence="guess"),
+                answered("index_laws", held=True),
                 answered("surds", held=False, mistake="a mistake"),
             ]
         ),
@@ -168,7 +143,6 @@ def test_skill_stats_count_each_outcome(db):
     stats = {s.skill_id: s for s in store.skill_stats(db)}
     assert stats["index_laws"].asked == 2
     assert stats["index_laws"].held == 2
-    assert stats["index_laws"].lucky == 1
     assert stats["index_laws"].held_rate == 1.0
     assert stats["surds"].wrong == 1
 
@@ -176,7 +150,6 @@ def test_skill_stats_count_each_outcome(db):
 def test_an_empty_store_reads_back_empty(db):
     assert store.skill_stats(db) == []
     assert store.common_misconceptions(db, "index_laws") == []
-    assert store.lucky_answers(db) == []
 
 
 # ---- Feedback -------------------------------------------------------------

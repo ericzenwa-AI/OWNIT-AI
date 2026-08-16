@@ -58,17 +58,7 @@ class SkillResult:
     # be stored and looked at later, not used by the walk itself.
     question: str | None = None
     chosen: str | None = None
-    confidence: str | None = None
     seconds: float | None = None
-
-    @property
-    def lucky(self) -> bool:
-        """Right answer, guessed. Reads as a skill they have, and may not be.
-
-        This is the dangerous direction: a held answer stops the descent, so a
-        lucky guess can end the walk on the wrong branch entirely.
-        """
-        return self.held and self.confidence == "guess"
 
 
 @dataclass
@@ -256,7 +246,6 @@ def check_by_asking(
         dont_know=answered.dont_know,
         question=question.question,
         chosen=answered.chosen,
-        confidence=answered.confidence,
         seconds=answered.seconds,
     )
 
@@ -467,8 +456,6 @@ def _print_diagnosis(diagnosis: Diagnosis) -> None:
         print(f"  {SKILLS[result.skill_id].name}: {mark}")
         if result.mistake:
             print(f"      {result.mistake}")
-        if result.lucky:
-            print("      they guessed this one - the walk stopped here on a coin flip")
 
     print()
     if diagnosis.stopped_early:

@@ -69,12 +69,8 @@ class Answered:
     # same failure. A wrong answer means the student has a rule in their head
     # and it is the wrong one. This means there is nothing there to correct yet.
     dont_know: bool = False
-    # How sure they were: "sure", "think" or "guess". A right answer they
-    # guessed is not the same as one they knew - one in four guesses lands on
-    # the correct option, and a lucky one reads as a skill they have.
-    confidence: str | None = None
-    # How long they took. A two-second answer on a hard question is a slip or a
-    # guess; a slow one is a struggle. Weak on its own, useful in bulk.
+    # How long they took. Recorded because it is free and invisible to the
+    # student; nothing reads it yet.
     seconds: float | None = None
 
 
@@ -210,8 +206,6 @@ LABELS = "ABCD"
 DONT_KNOW_LABEL = "E"
 DONT_KNOW_OPTION = "I don't know"
 
-CONFIDENCE = {"1": "sure", "2": "think", "3": "guess"}
-
 
 def shuffled_options(
     question: MultipleChoiceQuestion,
@@ -258,38 +252,18 @@ def ask_in_terminal(
     seconds = round(time.monotonic() - started, 1)
 
     if pick == DONT_KNOW_LABEL:
-        # No point asking how sure they are - they just told us.
         return Answered(
             chosen=DONT_KNOW_OPTION,
             correct=False,
             mistake=None,
             dont_know=True,
-            confidence="guess",
             seconds=seconds,
         )
 
     text, mistake = options[labels.index(pick)]
     return Answered(
-        chosen=text,
-        correct=mistake is None,
-        mistake=mistake,
-        confidence=_ask_confidence(input_fn),
-        seconds=seconds,
+        chosen=text, correct=mistake is None, mistake=mistake, seconds=seconds
     )
-
-
-def _ask_confidence(input_fn=input) -> str:
-    """One keypress separating knowing from a lucky guess.
-
-    Both directions are worth having. A right answer they guessed is not a
-    skill they hold, and a wrong answer they were sure of is a rule they
-    believe - which is exactly what needs correcting.
-    """
-    while True:
-        pick = input_fn("How sure? (1 sure / 2 think so / 3 guessed): ").strip()
-        if pick in CONFIDENCE:
-            return CONFIDENCE[pick]
-        print("Type 1, 2 or 3.")
 
 
 # ---- Command line ---------------------------------------------------------

@@ -57,7 +57,6 @@ CREATE TABLE IF NOT EXISTS answers (
     chosen        TEXT,
     outcome       TEXT    NOT NULL,
     misconception TEXT,
-    confidence    TEXT,
     seconds       REAL
 );
 
@@ -136,8 +135,8 @@ def save_session(
     asked = [r for r in diagnosis.results if r.asked]
     connection.executemany(
         """INSERT INTO answers (session_id, position, skill_id, question,
-               chosen, outcome, misconception, confidence, seconds)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               chosen, outcome, misconception, seconds)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         [
             (
                 session_id,
@@ -147,7 +146,6 @@ def save_session(
                 result.chosen,
                 _outcome(result),
                 result.mistake,
-                result.confidence,
                 result.seconds,
             )
             for position, result in enumerate(asked, start=1)
@@ -191,7 +189,6 @@ class SkillStats:
     held: int
     wrong: int
     dont_know: int
-    lucky: int  # right, but guessed - held on a coin flip
 
     @property
     def held_rate(self) -> float:
@@ -205,8 +202,7 @@ def skill_stats(connection: sqlite3.Connection) -> list[SkillStats]:
                   COUNT(*)                                          AS asked,
                   SUM(outcome = 'correct')                          AS held,
                   SUM(outcome = 'wrong')                            AS wrong,
-                  SUM(outcome = 'dont_know')                        AS dont_know,
-                  SUM(outcome = 'correct' AND confidence = 'guess') AS lucky
+                  SUM(outcome = 'dont_know')                        AS dont_know
            FROM answers
            GROUP BY skill_id
            ORDER BY asked DESC"""
@@ -219,7 +215,6 @@ def skill_stats(connection: sqlite3.Connection) -> list[SkillStats]:
             held=row["held"] or 0,
             wrong=row["wrong"] or 0,
             dont_know=row["dont_know"] or 0,
-            lucky=row["lucky"] or 0,
         )
         for row in rows
     ]
@@ -244,17 +239,3 @@ def common_misconceptions(
     ).fetchall()
 
     return [(row["misconception"], row["times"]) for row in rows]
-
-
-def lucky_answers(connection: sqlite3.Connection) -> list[sqlite3.Row]:
-    """Right answers the student admitted guessing.
-
-    Each one is a place the walk may have stopped on a coin flip, so these are
-    the diagnoses to distrust first.
-    """
-    return connection.execute(
-        """SELECT session_id, skill_id, chosen, seconds
-           FROM answers
-           WHERE outcome = 'correct' AND confidence = 'guess'
-           ORDER BY session_id"""
-    ).fetchall()

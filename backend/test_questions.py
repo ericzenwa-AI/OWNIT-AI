@@ -50,7 +50,7 @@ def unshuffled(monkeypatch):
 
 
 def test_dont_know_is_shown_last(capsys):
-    ask_in_terminal(QUESTION, input_fn=typing("A", "1"))
+    ask_in_terminal(QUESTION, input_fn=typing("A"))
     lines = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
     option_lines = [line for line in lines if line.strip()[1:3] == ") "]
 
@@ -61,7 +61,7 @@ def test_dont_know_is_shown_last(capsys):
 def test_dont_know_is_never_shuffled(capsys):
     """Its position must not move between questions - students rely on that."""
     for _ in range(20):
-        ask_in_terminal(QUESTION, input_fn=typing("A", "1"))
+        ask_in_terminal(QUESTION, input_fn=typing("A"))
         lines = capsys.readouterr().out.splitlines()
         option_lines = [line for line in lines if line.strip()[1:3] == ") "]
         assert option_lines[-1].strip().startswith(f"{DONT_KNOW_LABEL})")
@@ -98,14 +98,14 @@ def test_a_wrong_answer_is_not_a_dont_know(unshuffled):
     expected = [d.mistake for d in QUESTION.distractors]
 
     for label, mistake in zip("BCD", expected):
-        answered = ask_in_terminal(QUESTION, input_fn=typing(label, "1"))
+        answered = ask_in_terminal(QUESTION, input_fn=typing(label))
         assert answered.correct is False
         assert answered.dont_know is False
         assert answered.mistake == mistake
 
 
 def test_a_correct_answer_carries_no_mistake(unshuffled):
-    answered = ask_in_terminal(QUESTION, input_fn=typing("A", "1"))
+    answered = ask_in_terminal(QUESTION, input_fn=typing("A"))
 
     assert answered.correct is True
     assert answered.mistake is None
@@ -113,40 +113,8 @@ def test_a_correct_answer_carries_no_mistake(unshuffled):
     assert answered.chosen == "2x"
 
 
-# ---- How sure they were ---------------------------------------------------
-
-
-def test_confidence_is_recorded(unshuffled):
-    """A right answer they guessed is not the same as one they knew."""
-    guessed = ask_in_terminal(QUESTION, input_fn=typing("A", "3"))
-    assert guessed.correct is True
-    assert guessed.confidence == "guess"
-
-    known = ask_in_terminal(QUESTION, input_fn=typing("A", "1"))
-    assert known.confidence == "sure"
-
-
-def test_being_sure_and_wrong_is_captured(unshuffled):
-    """The most useful signal there is - a rule they believe and it is wrong."""
-    answered = ask_in_terminal(QUESTION, input_fn=typing("B", "1"))
-    assert answered.correct is False
-    assert answered.confidence == "sure"
-    assert answered.mistake == "dropped the coefficient"
-
-
-def test_dont_know_is_not_asked_how_sure_it_is():
-    """They have already told us. Asking again is friction for no signal."""
-    answered = ask_in_terminal(QUESTION, input_fn=typing(DONT_KNOW_LABEL))
-    assert answered.confidence == "guess"
-
-
-def test_an_unreadable_confidence_is_asked_again(unshuffled):
-    answered = ask_in_terminal(QUESTION, input_fn=typing("A", "9", "2"))
-    assert answered.confidence == "think"
-
-
 def test_how_long_they_took_is_recorded(unshuffled):
-    answered = ask_in_terminal(QUESTION, input_fn=typing("A", "1"))
+    answered = ask_in_terminal(QUESTION, input_fn=typing("A"))
     assert answered.seconds is not None
     assert answered.seconds >= 0
 
