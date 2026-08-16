@@ -79,7 +79,10 @@ def test_shared_skills_belong_to_no_topic():
 def test_topics_lists_what_we_can_start_from():
     from graph import topics
 
-    assert topics() == ["differentiation"]
+    assert "differentiation" in topics()
+    assert "indices and surds" in topics()
+    # Every topic named is one some entry point actually carries.
+    assert set(topics()) == {s.topic for s in SKILLS.values() if s.topic}
 
 
 def test_a_graph_with_no_topics_is_rejected():

@@ -1,11 +1,11 @@
-# A-level differentiation skill graph.
+# A-level maths skill graph.
 #
 # The v2 diagnostic walks this graph downward: it starts at the skill the exam
 # question is asking for and follows `needs` until it finds a node the student
 # cannot actually do. That node is the thing to teach.
 
 meta:
-  topic: differentiation
+  topics: differentiation, indices and surds, exponentials and logarithms, quadratics, coordinate geometry
   syllabus: A-level (UK), spec-agnostic
   version: 0.1-draft
   status: hypothesis — not validated against student data
@@ -453,9 +453,13 @@ nodes:
     probe: Given a product equal to zero, state what follows.
     needs: []
 
+  # Both a doorway and a prerequisite. A paper asks this directly, and finding
+  # stationary points rests on it. Entry points are not a flat layer, which is
+  # why a topic marks them rather than a level number.
   - id: solve_quadratic
     name: Solving quadratics
     level: 4
+    topic: quadratics
     kind: procedure
     probe: Solve a quadratic and give both roots.
     needs: [factorise_quadratic, null_factor]
@@ -473,3 +477,124 @@ nodes:
     kind: fact
     probe: Given a gradient, state the gradient perpendicular to it.
     needs: [gradient_straight_line, fractions_arith]
+
+  # ---- Doorways onto the shared floor --------------------------------------
+  #
+  # Everything below is an entry point for a topic other than differentiation.
+  # Almost none of it needs new foundations: the levels 2-4 skills above are
+  # shared, so a topic costs a handful of doorways rather than a subtree.
+  # Added 2026-08-16, prerequisite links to be checked against real students.
+
+  # ---- Indices and surds ---------------------------------------------------
+
+  - id: equate_indices
+    name: Compare indices on the same base
+    level: 2
+    kind: concept
+    probe: Given an equation with the unknown in the index, say what has to be true of both sides before the indices can be compared, and why.
+    needs: [index_laws, exponential_graph]
+    note: "Missing from the graph until a real student hit it. AQA-style: 1152 x (1/2)^x = 9 needs 9/1152 rewritten as (1/2)^7 before x can be read off."
+
+  - id: simplify_index_expression
+    name: Simplify an expression with roots and powers
+    level: 0
+    topic: indices and surds
+    kind: procedure
+    probe: Turn an expression containing roots, fractions and powers into a single simplified index form.
+    needs: [rewrite_index_form, index_laws, algebraic_fractions]
+
+  - id: evaluate_index
+    name: Evaluate a negative, fractional or zero power
+    level: 0
+    topic: indices and surds
+    kind: procedure
+    probe: Work out the value of a number raised to a negative, fractional or zero index.
+    needs: [index_laws, fractions_arith, negatives]
+
+  - id: solve_index_equation
+    name: Solve an equation with the unknown in the index
+    level: 0
+    topic: indices and surds
+    kind: procedure
+    probe: Solve for x when x appears in the index, by writing both sides to the same base.
+    needs: [equate_indices, index_laws, solve_linear]
+
+  - id: rationalise_denominator
+    name: Clear a surd from a denominator
+    level: 0
+    topic: indices and surds
+    kind: procedure
+    probe: Rewrite a fraction so that no surd is left in the denominator.
+    needs: [surds, algebraic_fractions, expand_brackets]
+
+  # ---- Exponentials and logarithms -----------------------------------------
+
+  - id: solve_exponential_equation
+    name: Solve an exponential equation with logs
+    level: 0
+    topic: exponentials and logarithms
+    kind: procedure
+    probe: Solve an equation with the unknown in the index where the two sides cannot be written to the same base, so logarithms are needed.
+    needs: [log_laws, exponential_graph, solve_linear]
+
+  - id: solve_log_equation
+    name: Solve an equation containing logarithms
+    level: 0
+    topic: exponentials and logarithms
+    kind: procedure
+    probe: Solve for x in an equation where x sits inside a logarithm.
+    needs: [log_laws, index_laws, solve_linear]
+
+  - id: simplify_logs
+    name: Combine or split logarithms
+    level: 0
+    topic: exponentials and logarithms
+    kind: procedure
+    probe: Write several logarithms as a single logarithm, or break one into parts.
+    needs: [log_laws, index_laws]
+
+  # ---- Quadratics ----------------------------------------------------------
+  # solve_quadratic above is the third doorway here - it was already in the
+  # graph as a prerequisite and only needed a topic.
+
+  - id: complete_the_square
+    name: Completing the square
+    level: 0
+    topic: quadratics
+    kind: procedure
+    probe: Write a quadratic in completed-square form and read off the turning point.
+    needs: [expand_brackets, factorise_common, fractions_arith, negatives]
+
+  - id: use_discriminant
+    name: Using the discriminant
+    level: 0
+    topic: quadratics
+    kind: procedure
+    probe: Work out b^2 - 4ac for a quadratic and say how many real roots it has.
+    needs: [substitute_expr, negatives, index_notation]
+
+  # ---- Coordinate geometry -------------------------------------------------
+
+  - id: line_through_two_points
+    name: Equation of a line through two points
+    level: 0
+    topic: coordinate geometry
+    kind: procedure
+    probe: Find the equation of the straight line passing through two given points.
+    needs: [gradient_straight_line, straight_line_equation, fractions_arith]
+
+  - id: perpendicular_line
+    name: Equation of a perpendicular line
+    level: 0
+    topic: coordinate geometry
+    kind: procedure
+    probe: Find the equation of the line perpendicular to a given line through a stated point.
+    needs: [perpendicular_gradients, straight_line_equation, gradient_straight_line]
+
+  - id: midpoint_and_distance
+    name: Midpoint and distance between two points
+    level: 0
+    topic: coordinate geometry
+    kind: procedure
+    probe: Find the midpoint of two points and the distance between them, leaving the distance in exact form.
+    needs: [coordinates, substitute_expr, surds, fractions_arith]

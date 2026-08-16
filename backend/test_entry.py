@@ -145,7 +145,10 @@ def test_unreadable_answers_are_asked_again():
 def test_a_student_is_never_shown_the_skill_list(capsys):
     """Our internal names mean nothing to someone who is stuck."""
     resolve_entry(
-        "some question", role="student", client=fake_client(match()), input_fn=typing("n")
+        "some question",
+        role="student",
+        client=fake_client(match()),
+        input_fn=typing("n", "0"),
     )
     shown = capsys.readouterr().out
     # The matched skill is named in the confirmation, which is the point of it.
@@ -198,16 +201,30 @@ def test_the_student_is_never_asked_what_the_question_means(capsys):
     assert "what is the question asking" not in shown
 
 
-def test_topic_is_not_asked_when_there_is_only_one():
+def test_topic_is_not_asked_when_there_is_only_one(monkeypatch):
     """Narrowing to the only option costs a question and learns nothing."""
-    assert len(topics()) == 1
+    monkeypatch.setattr(entry, "topics", lambda: ["differentiation"])
     assert ask_for_topic(input_fn=typing()) is None
 
 
-def test_topic_narrows_the_options_when_there_are_several():
-    prompt = build_prompt("a question", topic="differentiation")
+def test_topic_is_asked_once_there_are_several():
+    assert len(topics()) > 1
+    assert ask_for_topic(input_fn=typing("1")) == topics()[0]
+
+
+def test_not_sure_about_the_topic_narrows_nothing():
+    assert ask_for_topic(input_fn=typing("0")) is None
+
+
+def test_topic_narrows_which_skills_are_offered():
+    """The whole point: a second pass only considers that topic's doorways."""
+    prompt = build_prompt("a question", topic="indices and surds")
+
     for skill in entry_points():
-        assert skill.id in prompt
+        if skill.topic == "indices and surds":
+            assert skill.id in prompt
+        else:
+            assert skill.id not in prompt
 
 
 def test_giving_up_returns_no_skill():
@@ -215,7 +232,7 @@ def test_giving_up_returns_no_skill():
         "integrate x^2",
         role="student",
         client=fake_client(match(skill_id=None, confidence="low")),
-        input_fn=typing(),
+        input_fn=typing("0"),
     )
     assert skill_id is None
 

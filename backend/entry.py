@@ -47,12 +47,24 @@ MEDIA_TYPES = {
     ".webp": "image/webp",
 }
 
-OUT_OF_SCOPE = """I could not match that to anything I am able to diagnose.
+def out_of_scope() -> str:
+    """What we say when we cannot place a question.
 
-Right now I only cover differentiation: differentiating a function, gradients
-and tangents, stationary points, optimisation, and rates of change. If your
-question is about integration, trigonometry, vectors or anything else, it is
-outside what I can help with yet - that is a gap in me, not in your question."""
+    Read off the graph rather than written down, so it stops being a lie the
+    moment a topic is added or removed.
+    """
+    covered = topics()
+    listed = (
+        covered[0]
+        if len(covered) == 1
+        else ", ".join(covered[:-1]) + " and " + covered[-1]
+    )
+    return (
+        "I could not match that to anything I am able to diagnose.\n\n"
+        f"Right now I cover {listed}. If your question is about something "
+        "else, it is outside what I can help with yet - that is a gap in me, "
+        "not in your question."
+    )
 
 
 class EntryMatch(BaseModel):
@@ -346,7 +358,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if entry_skill_id is None:
         print()
-        print(OUT_OF_SCOPE)
+        print(out_of_scope())
         if match.reason:
             print()
             print(f"({match.reason})")
