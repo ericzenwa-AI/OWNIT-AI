@@ -67,10 +67,19 @@ def out_of_scope() -> str:
     )
 
 
+class QuestionPart(BaseModel):
+    """One lettered part of a question we are not starting with."""
+
+    label: str
+    skill_id: str | None
+    plain_summary: str
+
+
 class EntryMatch(BaseModel):
     """Which entry skill the question is asking for, if any."""
 
-    # The id of the matched skill, or None when nothing fits.
+    # The id of the matched skill, or None when nothing fits. On a question with
+    # lettered parts this is part (a) - we start there and work forwards.
     skill_id: str | None
     confidence: Literal["high", "medium", "low"]
     # What the question is asking for, said plainly enough for a student to
@@ -81,6 +90,9 @@ class EntryMatch(BaseModel):
     # Missing text is the one failure a student can actually fix, because we
     # need the words themselves rather than their reading of them.
     looks_incomplete: bool = False
+    # (b), (c) and so on. Someone photographing a whole question needs help with
+    # all of it, so these are offered in turn rather than thrown away.
+    other_parts: list[QuestionPart] = []
 
 
 def _image_block(image_path: str | Path) -> dict:
@@ -141,7 +153,11 @@ def build_prompt(question: str, topic: str | None = None) -> str:
         "- Set confidence to low if you are guessing.\n"
         "- Set `looks_incomplete` true if the question appears cut off, or "
         "refers to a part, a diagram, or a previous answer that is not here. "
-        "Missing text is worth asking for; a reading of the text is not.\n\n"
+        "Missing text is worth asking for; a reading of the text is not.\n"
+        "- If the question has lettered parts, start with part (a): put its "
+        "skill in `skill_id` and its summary in `plain_summary`. Put every "
+        "later part in `other_parts`, in order, each with its letter. Someone "
+        "who sends a whole question needs help with all of it.\n\n"
         "In `plain_summary`, say what the question is asking the student to do, "
         "in one sentence a 17-year-old would recognise. No jargon they would "
         "have to look up, and do not name the skill id."
@@ -250,12 +266,22 @@ def resolve_entry(
     those are what we ask them for, and never for their reading of the question.
     """
     match = identify_entry(question, image_path, client=client)
+    placed = is_usable(match)
 
-    if is_usable(match) and confirm_in_terminal(match, input_fn):
+    if placed and confirm_in_terminal(match, input_fn):
         return match.skill_id, match
 
     # An expert can just tell us, and the vocabulary means something to them.
+    # Say why we are asking first - a wall of skill names with no explanation
+    # leaves them unable to tell a misread question from one we do not cover.
     if role in EXPERT_ROLES:
+        print()
+        if placed:
+            print("Right - which is it then?")
+        else:
+            print("I could not place that question.")
+            if match.reason:
+                print(f"  {match.reason}")
         return _pick_by_hand(input_fn), match
 
     # Missing text is the one gap a student can genuinely close for us.
@@ -303,6 +329,15 @@ def ask_for_topic(input_fn=input) -> str | None:
         print(f"Type a number from 0 to {len(choices)}.")
 
 
+def listed_entry_points() -> list:
+    """Doorways in the order an expert is shown them, grouped by topic.
+
+    A flat run of every doorway was readable at eleven and is a wall at
+    twenty-four, and it only grows from here.
+    """
+    return sorted(entry_points(), key=lambda skill: (skill.topic, skill.name))
+
+
 def _pick_by_hand(input_fn=input) -> str | None:
     """Let an expert name the skill outright.
 
@@ -310,13 +345,17 @@ def _pick_by_hand(input_fn=input) -> str | None:
     they mean something to someone who teaches the subject and nothing to a
     sixteen-year-old who is stuck.
     """
-    options = entry_points()
+    options = listed_entry_points()
 
     print()
     print("Which of these is it?")
+    current_topic = None
     for number, skill in enumerate(options, start=1):
-        print(f"  {number}. {skill.name} - {skill.probe}")
-    print("  0. None of these")
+        if skill.topic != current_topic:
+            current_topic = skill.topic
+            print(f"\n  {current_topic}")
+        print(f"    {number:>2}. {skill.name}")
+    print("\n     0. None of these")
     print()
 
     while True:
@@ -362,30 +401,87 @@ def main(argv: list[str] | None = None) -> int:
         if match.reason:
             print()
             print(f"({match.reason})")
+        if not args.no_save:
+            _record_gap(args, match)
         return 1
 
     attempt = args.attempt
     if args.attempt_file:
         attempt = Path(args.attempt_file).read_text(encoding="utf-8")
 
-    from walk import _print_diagnosis, save_walk
+    from walk import SkillResult, _print_diagnosis, reusing, save_walk
 
-    diagnosis = diagnose(entry_skill_id, attempt)
-    _print_diagnosis(diagnosis)
+    # Someone who sends a whole question needs help with all of it, so we start
+    # at (a) and work forwards. What one part establishes carries to the next -
+    # the parts of a question rest on the same foundations, and asking twice
+    # reads as not having listened.
+    known: dict[str, SkillResult] = {}
 
-    if not args.no_save:
-        save_walk(
-            diagnosis,
-            question=args.question,
-            attempt=attempt,
-            student_ref=args.student,
-            role=args.role,
-            entry_confidence=match.confidence,
-            # False when our first guess was rejected and we got here another way.
-            entry_confirmed=entry_skill_id == match.skill_id,
+    for label, skill_id, summary in _parts(entry_skill_id, match):
+        if label is not None:
+            print()
+            print(f"Part ({label}): {summary}")
+            if skill_id is None:
+                print("  I cannot place this part, so I am skipping it.")
+                continue
+            answer = input(f"Work on part ({label}) now? (y/n): ").strip().lower()
+            if answer not in ("y", "yes"):
+                break
+
+        diagnosis = diagnose(
+            skill_id,
+            # The attempt is working on part (a); it says nothing about (b).
+            attempt if label is None else None,
+            check=reusing(known),
         )
+        _print_diagnosis(diagnosis)
+
+        if not args.no_save:
+            save_walk(
+                diagnosis,
+                question=args.question,
+                attempt=attempt if label is None else None,
+                student_ref=args.student,
+                role=args.role,
+                entry_confidence=match.confidence,
+                # False when our first guess was rejected and we got here
+                # another way.
+                entry_confirmed=entry_skill_id == match.skill_id,
+            )
 
     return 0
+
+
+def _parts(entry_skill_id: str, match: EntryMatch) -> list[tuple]:
+    """Part (a) first, then whatever else the question contained."""
+    return [(None, entry_skill_id, match.plain_summary)] + [
+        (part.label, part.skill_id, part.plain_summary) for part in match.other_parts
+    ]
+
+
+def _record_gap(args, match: EntryMatch) -> None:
+    """File a question nobody could place, as a coverage gap.
+
+    Costs whoever pasted it nothing - they have already done the only thing
+    required, which is to try. Never let filing it break the run.
+    """
+    import store
+
+    try:
+        connection = store.connect()
+        try:
+            store.record_unplaced(
+                connection,
+                args.question,
+                match,
+                from_image=bool(args.image),
+                role=args.role,
+                student_ref=args.student,
+            )
+        finally:
+            connection.close()
+    except Exception as error:  # noqa: BLE001 - never lose the run over filing
+        print(f"\n(could not record this gap: {error})", file=sys.stderr)
 
 
 if __name__ == "__main__":

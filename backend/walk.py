@@ -29,7 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Callable
 
 from anthropic import Anthropic
@@ -59,6 +59,9 @@ class SkillResult:
     question: str | None = None
     chosen: str | None = None
     seconds: float | None = None
+    # Carried over from an earlier part of the same question rather than asked
+    # again. Stored once, not twice.
+    reused: bool = False
 
 
 @dataclass
@@ -254,6 +257,25 @@ def check_by_asking(
 
 
 Check = Callable[[Skill], SkillResult]
+
+
+def reusing(known: dict[str, SkillResult], check: Check = check_by_asking) -> Check:
+    """Wrap a check so a skill settled earlier in the session is not asked again.
+
+    The parts of one exam question sit on the same foundations, so part (b)
+    usually walks straight back through what part (a) already established.
+    Asking a student the same thing twice is slow, and it reads as not having
+    listened the first time.
+    """
+
+    def remembering(skill: Skill) -> SkillResult:
+        if skill.id in known:
+            return replace(known[skill.id], reused=True)
+        result = check(skill)
+        known[skill.id] = result
+        return result
+
+    return remembering
 
 # A straight descent uses 5-7 questions before any sibling gets tested, so the
 # budget has to clear that comfortably or it fires on legitimate walks.

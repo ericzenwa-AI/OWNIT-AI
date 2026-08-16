@@ -73,6 +73,23 @@ CREATE TABLE IF NOT EXISTS feedback (
     note        TEXT
 );
 
+-- Questions we could not place. Every one is a coverage gap named by someone
+-- who teaches the subject, and it costs them nothing to report - they report it
+-- by pasting a question. Fifty tutors using this writes the backlog by itself,
+-- ordered by what students actually bring.
+CREATE TABLE IF NOT EXISTS unplaced (
+    id               INTEGER PRIMARY KEY,
+    created_at       TEXT    NOT NULL,
+    question         TEXT,
+    from_image       INTEGER,
+    role             TEXT,
+    student_ref      TEXT,
+    guessed          TEXT,
+    confidence       TEXT,
+    looks_incomplete INTEGER,
+    reason           TEXT
+);
+
 CREATE INDEX IF NOT EXISTS answers_by_skill ON answers(skill_id);
 """
 
@@ -134,8 +151,10 @@ def save_session(
     session_id = cursor.lastrowid
 
     # The entry node is not asked about - being stuck is the premise - so there
-    # is no answer to record for it.
-    asked = [r for r in diagnosis.results if r.asked]
+    # is no answer to record for it. Nor is anything carried over from an
+    # earlier part of the same question: it was answered once, so it is stored
+    # once.
+    asked = [r for r in diagnosis.results if r.asked and not r.reused]
     connection.executemany(
         """INSERT INTO answers (session_id, position, skill_id, question,
                chosen, outcome, misconception, seconds)
@@ -180,6 +199,41 @@ def record_feedback(
         (session_id, _now(), verdict, actual_gap, note),
     )
     connection.commit()
+
+
+def record_unplaced(
+    connection: sqlite3.Connection,
+    question: str,
+    match,
+    *,
+    from_image: bool = False,
+    role: str | None = None,
+    student_ref: str | None = None,
+) -> int:
+    """Note a question we could not diagnose, and why.
+
+    This is the cheapest contribution anyone can make, because it is not a
+    contribution - it is a side effect of trying to use the tool. A question
+    nobody could place is a doorway that does not exist yet.
+    """
+    cursor = connection.execute(
+        """INSERT INTO unplaced (created_at, question, from_image, role,
+               student_ref, guessed, confidence, looks_incomplete, reason)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            _now(),
+            question,
+            int(from_image),
+            role,
+            student_ref,
+            getattr(match, "skill_id", None),
+            getattr(match, "confidence", None),
+            int(bool(getattr(match, "looks_incomplete", False))),
+            getattr(match, "reason", None),
+        ),
+    )
+    connection.commit()
+    return cursor.lastrowid
 
 
 # ---- Reading it back ------------------------------------------------------
@@ -242,3 +296,20 @@ def common_misconceptions(
     ).fetchall()
 
     return [(row["misconception"], row["times"]) for row in rows]
+
+
+def unplaced_questions(
+    connection: sqlite3.Connection, limit: int = 50
+) -> list[sqlite3.Row]:
+    """Questions nobody could diagnose, newest first.
+
+    Read this as the coverage backlog. A question here is one a real person
+    brought and the graph had no doorway for.
+    """
+    return connection.execute(
+        """SELECT created_at, question, from_image, looks_incomplete, reason
+           FROM unplaced
+           ORDER BY id DESC
+           LIMIT ?""",
+        (limit,),
+    ).fetchall()

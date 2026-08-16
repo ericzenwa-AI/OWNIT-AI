@@ -420,3 +420,52 @@ def test_narrowing_keeps_only_real_prerequisites():
 def test_unknown_entry_skill_raises():
     with pytest.raises(ValueError, match="not a skill"):
         diagnose("not_a_skill", check=student())
+
+
+# ---- Carrying answers between parts of one question -----------------------
+
+
+def test_a_settled_skill_is_not_asked_again():
+    """Part (b) rests on the same foundations part (a) already tested."""
+    asked_ids: list[str] = []
+
+    def check(skill):
+        asked_ids.append(skill.id)
+        return SkillResult(skill.id, held=skill.id != "surds")
+
+    from walk import reusing
+
+    known: dict = {}
+    diagnose(ENTRY, check=reusing(known, check))
+    first_pass = list(asked_ids)
+
+    asked_ids.clear()
+    diagnose(ENTRY, check=reusing(known, check))
+
+    assert first_pass, "the first walk should have asked something"
+    assert asked_ids == [], "the second walk should have asked nothing new"
+
+
+def test_a_carried_answer_says_so():
+    def check(skill):
+        return SkillResult(skill.id, held=True)
+
+    from walk import reusing
+
+    known: dict = {}
+    reusing(known, check)(SKILLS["surds"])
+    carried = reusing(known, check)(SKILLS["surds"])
+
+    assert carried.reused is True
+    assert carried.held is True
+
+
+def test_carrying_does_not_change_the_diagnosis():
+    from walk import reusing
+
+    known: dict = {}
+    plain = diagnose(ENTRY, check=student(fails={"surds"}))
+    carried = diagnose(ENTRY, check=reusing(known, student(fails={"surds"})))
+
+    assert plain.root_gaps == carried.root_gaps
+    assert plain.chains == carried.chains

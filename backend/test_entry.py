@@ -17,6 +17,7 @@ from entry import (
     entry_points,
     identify_entry,
     is_usable,
+    listed_entry_points,
     resolve_entry,
 )
 from graph import topics
@@ -166,7 +167,7 @@ def test_a_tutor_can_name_the_skill_outright():
         client=fake_client(match()),
         input_fn=typing("n", "2"),
     )
-    assert skill_id == entry_points()[1].id
+    assert skill_id == listed_entry_points()[1].id
 
 
 def test_a_tutor_recognising_nothing_gives_up_cleanly():

@@ -185,3 +185,67 @@ def test_opening_it_twice_keeps_what_was_there(tmp_path):
     second = store.connect(path)
     assert second.execute("SELECT COUNT(*) c FROM sessions").fetchone()["c"] == 1
     second.close()
+
+
+# ---- Coverage gaps --------------------------------------------------------
+
+
+class _Match:
+    """The shape record_unplaced reads off an EntryMatch."""
+
+    def __init__(self, skill_id=None, confidence="high", looks_incomplete=False,
+                 reason="binomial expansion is not covered"):
+        self.skill_id = skill_id
+        self.confidence = confidence
+        self.looks_incomplete = looks_incomplete
+        self.reason = reason
+
+
+def test_an_unplaceable_question_is_filed(db):
+    store.record_unplaced(db, "expand (1 - 9x)^(1/2)", _Match(), role="tutor")
+
+    row = db.execute("SELECT * FROM unplaced").fetchone()
+    assert row["question"] == "expand (1 - 9x)^(1/2)"
+    assert row["reason"] == "binomial expansion is not covered"
+    assert row["role"] == "tutor"
+
+
+def test_the_backlog_reads_back_newest_first(db):
+    store.record_unplaced(db, "first question", _Match())
+    store.record_unplaced(db, "second question", _Match())
+
+    backlog = store.unplaced_questions(db)
+    assert [r["question"] for r in backlog] == ["second question", "first question"]
+
+
+def test_a_gap_records_whether_it_came_from_a_photo(db):
+    store.record_unplaced(db, "", _Match(), from_image=True)
+    assert store.unplaced_questions(db)[0]["from_image"] == 1
+
+
+def test_a_near_miss_keeps_what_was_guessed(db):
+    """Nothing usable, but knowing what it reached for is worth having."""
+    store.record_unplaced(db, "q", _Match(skill_id="index_laws", confidence="low"))
+
+    row = db.execute("SELECT * FROM unplaced").fetchone()
+    assert row["guessed"] == "index_laws"
+    assert row["confidence"] == "low"
+
+
+def test_an_empty_backlog_reads_back_empty(db):
+    assert store.unplaced_questions(db) == []
+
+
+# ---- Carrying answers between parts of one question -----------------------
+
+
+def test_a_reused_answer_is_not_stored_twice(db):
+    """Part (b) walks back through what part (a) already settled."""
+    from dataclasses import replace
+
+    first = answered("index_laws", held=False, mistake="treats a^0 as a")
+    session = store.save_session(db, a_walk([first, replace(first, skill_id="surds")]))
+    store.save_session(db, a_walk([replace(first, reused=True)]))
+
+    rows = db.execute("SELECT skill_id FROM answers").fetchall()
+    assert [r["skill_id"] for r in rows] == ["index_laws", "surds"]
