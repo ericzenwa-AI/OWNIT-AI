@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS unplaced (
     guessed          TEXT,
     confidence       TEXT,
     looks_incomplete INTEGER,
+    recognised_as    TEXT,
     reason           TEXT
 );
 
@@ -218,8 +219,9 @@ def record_unplaced(
     """
     cursor = connection.execute(
         """INSERT INTO unplaced (created_at, question, from_image, role,
-               student_ref, guessed, confidence, looks_incomplete, reason)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               student_ref, guessed, confidence, looks_incomplete,
+               recognised_as, reason)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             _now(),
             question,
@@ -229,6 +231,7 @@ def record_unplaced(
             getattr(match, "skill_id", None),
             getattr(match, "confidence", None),
             int(bool(getattr(match, "looks_incomplete", False))),
+            getattr(match, "recognised_as", None),
             getattr(match, "reason", None),
         ),
     )
@@ -307,9 +310,26 @@ def unplaced_questions(
     brought and the graph had no doorway for.
     """
     return connection.execute(
-        """SELECT created_at, question, from_image, looks_incomplete, reason
+        """SELECT created_at, question, from_image, looks_incomplete,
+                  recognised_as, reason
            FROM unplaced
            ORDER BY id DESC
            LIMIT ?""",
         (limit,),
     ).fetchall()
+
+
+def gaps_by_topic(connection: sqlite3.Connection) -> list[tuple[str, int]]:
+    """Which topics people keep asking for that we cannot answer, commonest first.
+
+    This is the coverage backlog in priority order. Nobody filled in a form to
+    produce it - they pasted questions and we could not help.
+    """
+    rows = connection.execute(
+        """SELECT recognised_as AS topic, COUNT(*) AS times
+           FROM unplaced
+           WHERE recognised_as IS NOT NULL AND recognised_as != ''
+           GROUP BY recognised_as
+           ORDER BY times DESC, topic"""
+    ).fetchall()
+    return [(row["topic"], row["times"]) for row in rows]

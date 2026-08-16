@@ -47,11 +47,15 @@ MEDIA_TYPES = {
     ".webp": "image/webp",
 }
 
-def out_of_scope() -> str:
+def out_of_scope(match=None) -> str:
     """What we say when we cannot place a question.
 
-    Read off the graph rather than written down, so it stops being a lie the
-    moment a topic is added or removed.
+    Two different failures, and saying the same thing for both is what made the
+    old message read as nonsense - it claimed not to understand the question and
+    then named the topic. If we know what it is, say so and blame the coverage.
+    If we genuinely could not read it, say that instead.
+
+    The covered list is read off the graph, so it cannot go stale.
     """
     covered = topics()
     listed = (
@@ -59,11 +63,21 @@ def out_of_scope() -> str:
         if len(covered) == 1
         else ", ".join(covered[:-1]) + " and " + covered[-1]
     )
+    recognised = getattr(match, "recognised_as", "") if match else ""
+
+    if recognised:
+        return (
+            f"That is a {recognised} question, and I do not cover "
+            f"{recognised} yet.\n\n"
+            f"Right now I cover {listed}. That is a gap in me, not in your "
+            "question - it is on the list to add."
+        )
+
     return (
-        "I could not match that to anything I am able to diagnose.\n\n"
-        f"Right now I cover {listed}. If your question is about something "
-        "else, it is outside what I can help with yet - that is a gap in me, "
-        "not in your question."
+        "I could not make out that question.\n\n"
+        "If you typed or pasted it, some of the maths may have been lost on "
+        "the way - powers and fractions often are. A photo of it usually "
+        f"works better. I cover {listed}."
     )
 
 
@@ -93,6 +107,11 @@ class EntryMatch(BaseModel):
     # (b), (c) and so on. Someone photographing a whole question needs help with
     # all of it, so these are offered in turn rather than thrown away.
     other_parts: list[QuestionPart] = []
+    # What the question is about, in two or three words, whether or not we cover
+    # it: "binomial expansion", "vectors". Failing to cover a topic and failing
+    # to read a question are different failures and need different words - and
+    # this is also what makes the coverage backlog groupable.
+    recognised_as: str = ""
 
 
 def _image_block(image_path: str | Path) -> dict:
@@ -160,7 +179,12 @@ def build_prompt(question: str, topic: str | None = None) -> str:
         "who sends a whole question needs help with all of it.\n\n"
         "In `plain_summary`, say what the question is asking the student to do, "
         "in one sentence a 17-year-old would recognise. No jargon they would "
-        "have to look up, and do not name the skill id."
+        "have to look up, and do not name the skill id.\n\n"
+        "In `recognised_as`, name the maths topic in two or three words - "
+        "\"binomial expansion\", \"vectors\", \"integration by parts\". Fill "
+        "this in even when nothing on the list matches, because knowing what a "
+        "question was is different from being able to help with it. Leave it "
+        "empty only if the question is unreadable."
     )
 
 
@@ -278,8 +302,11 @@ def resolve_entry(
         print()
         if placed:
             print("Right - which is it then?")
+        elif match.recognised_as:
+            print(f"That looks like {match.recognised_as}, which I do not cover yet.")
+            print("If it is really one of these, say which:")
         else:
-            print("I could not place that question.")
+            print("I could not make out that question.")
             if match.reason:
                 print(f"  {match.reason}")
         return _pick_by_hand(input_fn), match
@@ -397,10 +424,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if entry_skill_id is None:
         print()
-        print(out_of_scope())
-        if match.reason:
-            print()
-            print(f"({match.reason})")
+        print(out_of_scope(match))
         if not args.no_save:
             _record_gap(args, match)
         return 1
