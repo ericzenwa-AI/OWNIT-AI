@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     id                INTEGER PRIMARY KEY,
     created_at        TEXT    NOT NULL,
     student_ref       TEXT,
+    role              TEXT,
     question          TEXT,
     attempt           TEXT,
     entry_skill_id    TEXT    NOT NULL,
@@ -105,18 +106,20 @@ def save_session(
     question: str | None = None,
     attempt: str | None = None,
     student_ref: str | None = None,
+    role: str | None = None,
     entry_confidence: str | None = None,
     entry_confirmed: bool | None = None,
 ) -> int:
     """Write one finished walk, and every answer in it. Returns the session id."""
     cursor = connection.execute(
-        """INSERT INTO sessions (created_at, student_ref, question, attempt,
+        """INSERT INTO sessions (created_at, student_ref, role, question, attempt,
                entry_skill_id, entry_confidence, entry_confirmed,
                root_gaps, chain, unchecked, stopped_early)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             _now(),
             student_ref,
+            role,
             question,
             attempt,
             diagnosis.entry_skill_id,

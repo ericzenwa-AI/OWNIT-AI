@@ -25,9 +25,15 @@ from typing import Literal
 from anthropic import Anthropic
 from pydantic import BaseModel
 
-from graph import SKILLS, entry_points
+from graph import SKILLS, entry_points, topics
 from questions import MAX_TOKENS, MODEL
 from walk import diagnose
+
+# Who is sitting at the keyboard. It decides what we can usefully ask when the
+# match fails: a tutor can name the skill outright, a student cannot - being
+# unable to say what a question is testing is most of what being stuck means.
+ROLES = ("student", "tutor", "teacher", "parent")
+EXPERT_ROLES = ("tutor", "teacher")
 
 # A match we are prepared to act on. Anything less and we say so instead of
 # forcing the student down a branch we do not believe in.
@@ -59,6 +65,10 @@ class EntryMatch(BaseModel):
     # recognise or reject. This is what we show them, not the reasoning.
     plain_summary: str
     reason: str
+    # The question looks cut off, or refers to an earlier part we cannot see.
+    # Missing text is the one failure a student can actually fix, because we
+    # need the words themselves rather than their reading of them.
+    looks_incomplete: bool = False
 
 
 def _image_block(image_path: str | Path) -> dict:
@@ -86,11 +96,20 @@ def _image_block(image_path: str | Path) -> dict:
     }
 
 
-def build_prompt(question: str) -> str:
-    """The instructions for matching a question to an entry skill."""
+def build_prompt(question: str, topic: str | None = None) -> str:
+    """The instructions for matching a question to an entry skill.
+
+    Given a topic, only that topic's entry points are offered - which is what
+    makes narrowing worth anything once there is more than one.
+    """
+    points = entry_points()
+    if topic:
+        points = [skill for skill in points if skill.topic == topic]
+
     options = "\n".join(
-        f"- {skill.id}: {skill.name} - {skill.probe}" for skill in entry_points()
+        f"- {skill.id}: {skill.name} - {skill.probe}" for skill in points
     )
+    covered = ", ".join(sorted({skill.topic for skill in points}))
 
     return (
         "A student is stuck on this maths question:\n\n"
@@ -103,12 +122,14 @@ def build_prompt(question: str) -> str:
         "stationary points.\n"
         "- If the question needs several of these, pick the one it is really "
         "testing - usually the last step, the thing the marks are for.\n"
-        "- All of these are differentiation. If the question is about "
-        "integration, trigonometry, vectors, statistics or anything else, set "
-        "skill_id to null and say so in `reason`. Do not stretch to the "
-        "nearest option: a wrong match sends the student down a diagnosis "
-        "built on the wrong question.\n"
-        "- Set confidence to low if you are guessing.\n\n"
+        f"- Everything on this list is {covered}. If the question is about "
+        "anything else, set skill_id to null and say so in `reason`. Do not "
+        "stretch to the nearest option: a wrong match sends the student down a "
+        "diagnosis built on the wrong question.\n"
+        "- Set confidence to low if you are guessing.\n"
+        "- Set `looks_incomplete` true if the question appears cut off, or "
+        "refers to a part, a diagram, or a previous answer that is not here. "
+        "Missing text is worth asking for; a reading of the text is not.\n\n"
         "In `plain_summary`, say what the question is asking the student to do, "
         "in one sentence a 17-year-old would recognise. No jargon they would "
         "have to look up, and do not name the skill id."
@@ -119,6 +140,7 @@ def identify_entry(
     question: str,
     image_path: str | Path | None = None,
     *,
+    topic: str | None = None,
     client: Anthropic | None = None,
     model: str = MODEL,
 ) -> EntryMatch:
@@ -132,7 +154,7 @@ def identify_entry(
     if image_path is not None:
         # Images go before the text they relate to.
         content.append(_image_block(image_path))
-    content.append({"type": "text", "text": build_prompt(question)})
+    content.append({"type": "text", "text": build_prompt(question, topic)})
 
     response = client.messages.parse(
         model=model,
@@ -184,11 +206,8 @@ def describe(match: EntryMatch) -> str:
     return f"{opening}\n\n  {match.plain_summary}\n\n  In short: {skill.name}."
 
 
-def confirm_in_terminal(match: EntryMatch, input_fn=input) -> str | None:
-    """Show the match, and let the student accept it, correct it, or stop.
-
-    Returns the skill id to walk from, or None if they want to stop.
-    """
+def confirm_in_terminal(match: EntryMatch, input_fn=input) -> bool:
+    """Show the match in plain words and ask whether it is right."""
     print()
     print(describe(match))
     print()
@@ -196,14 +215,89 @@ def confirm_in_terminal(match: EntryMatch, input_fn=input) -> str | None:
     while True:
         answer = input_fn("Is that what you are stuck on? (y/n): ").strip().lower()
         if answer in ("y", "yes"):
-            return match.skill_id
+            return True
         if answer in ("n", "no"):
-            return _pick_by_hand(input_fn)
+            return False
         print("Type y or n.")
 
 
+def resolve_entry(
+    question: str,
+    image_path: str | Path | None = None,
+    *,
+    role: str = "student",
+    client: Anthropic | None = None,
+    input_fn=input,
+) -> tuple[str | None, EntryMatch]:
+    """Get to a skill we can walk from, or admit we cannot place the question.
+
+    When the match fails we only ask for things the person in front of us
+    actually holds. A tutor can name the skill. A student cannot - not knowing
+    what a question is testing is most of what being stuck means - but they do
+    know what topic they are on and whether there was more to the question. So
+    those are what we ask them for, and never for their reading of the question.
+    """
+    match = identify_entry(question, image_path, client=client)
+
+    if is_usable(match) and confirm_in_terminal(match, input_fn):
+        return match.skill_id, match
+
+    # An expert can just tell us, and the vocabulary means something to them.
+    if role in EXPERT_ROLES:
+        return _pick_by_hand(input_fn), match
+
+    # Missing text is the one gap a student can genuinely close for us.
+    if match.looks_incomplete:
+        print()
+        print("Some of that question seems to be missing.")
+        extra = input_fn("Paste the whole question, including any earlier parts: ")
+        if extra.strip():
+            match = identify_entry(f"{question}\n{extra}", image_path, client=client)
+            if is_usable(match) and confirm_in_terminal(match, input_fn):
+                return match.skill_id, match
+
+    # They may not know what the question tests, but they know what they are on.
+    topic = ask_for_topic(input_fn)
+    if topic:
+        match = identify_entry(question, image_path, topic=topic, client=client)
+        if is_usable(match) and confirm_in_terminal(match, input_fn):
+            return match.skill_id, match
+
+    return None, match
+
+
+def ask_for_topic(input_fn=input) -> str | None:
+    """What are they covering in class? A fact they hold, not a judgement.
+
+    Returns None when there is only one topic, because narrowing to the only
+    option asks the student a question and learns nothing.
+    """
+    choices = topics()
+    if len(choices) < 2:
+        return None
+
+    print()
+    print("What are you covering in class at the moment?")
+    for number, topic in enumerate(choices, start=1):
+        print(f"  {number}. {topic}")
+    print("  0. Not sure")
+    print()
+
+    while True:
+        answer = input_fn("Number: ").strip()
+        if answer.isdigit() and 0 <= int(answer) <= len(choices):
+            chosen = int(answer)
+            return None if chosen == 0 else choices[chosen - 1]
+        print(f"Type a number from 0 to {len(choices)}.")
+
+
 def _pick_by_hand(input_fn=input) -> str | None:
-    """We guessed wrong, so let the student say which it is themselves."""
+    """Let an expert name the skill outright.
+
+    Only ever shown to a tutor or teacher. These are our internal names, and
+    they mean something to someone who teaches the subject and nothing to a
+    sixteen-year-old who is stuck.
+    """
     options = entry_points()
 
     print()
@@ -233,27 +327,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--attempt", help="what the student tried, if anything")
     parser.add_argument("--attempt-file", help="read the attempt from a file instead")
     parser.add_argument("--student", help="anonymous reference, e.g. student_7")
+    parser.add_argument(
+        "--role",
+        default="student",
+        choices=ROLES,
+        help="who is at the keyboard (default: student)",
+    )
     parser.add_argument("--no-save", action="store_true", help="do not record this walk")
     args = parser.parse_args(argv)
 
     try:
-        match = identify_entry(args.question, args.image)
+        entry_skill_id, match = resolve_entry(
+            args.question, args.image, role=args.role
+        )
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
 
-    if not is_usable(match):
+    if entry_skill_id is None:
         print()
         print(OUT_OF_SCOPE)
         if match.reason:
             print()
             print(f"({match.reason})")
-        return 1
-
-    entry_skill_id = confirm_in_terminal(match)
-    if entry_skill_id is None:
-        print()
-        print(OUT_OF_SCOPE)
         return 1
 
     attempt = args.attempt
@@ -271,8 +367,9 @@ def main(argv: list[str] | None = None) -> int:
             question=args.question,
             attempt=attempt,
             student_ref=args.student,
+            role=args.role,
             entry_confidence=match.confidence,
-            # False when they rejected our match and named the skill themselves.
+            # False when our first guess was rejected and we got here another way.
             entry_confirmed=entry_skill_id == match.skill_id,
         )
 

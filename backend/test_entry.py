@@ -10,13 +10,16 @@ import pytest
 import entry
 from entry import (
     EntryMatch,
+    ask_for_topic,
     build_prompt,
     confirm_in_terminal,
     describe,
     entry_points,
     identify_entry,
     is_usable,
+    resolve_entry,
 )
+from graph import topics
 from graph import SKILLS
 
 
@@ -80,7 +83,9 @@ def test_every_entry_skill_is_offered_to_claude():
 def test_the_prompt_allows_no_match():
     prompt = build_prompt("Integrate x^2")
     assert "null" in prompt
-    assert "integration" in prompt.lower()
+    # Says what it covers, and to reject anything else rather than stretch.
+    assert "differentiation" in prompt.lower()
+    assert "anything else" in prompt.lower()
 
 
 # ---- Deciding whether to trust the match ----------------------------------
@@ -122,23 +127,97 @@ def test_an_unsure_match_says_so():
     assert "not certain" not in describe(match(confidence="high"))
 
 
-def test_confirming_returns_the_skill_to_walk_from():
-    assert confirm_in_terminal(match(), input_fn=typing("y")) == "find_stationary_points"
+def test_confirming_accepts_the_match():
+    assert confirm_in_terminal(match(), input_fn=typing("y")) is True
 
 
-def test_rejecting_lets_the_student_choose_instead():
-    """A wrong guess must not dead-end them."""
-    options = entry_points()
-    chosen = confirm_in_terminal(match(), input_fn=typing("n", "2"))
-    assert chosen == options[1].id
-
-
-def test_rejecting_and_recognising_nothing_stops_the_walk():
-    assert confirm_in_terminal(match(), input_fn=typing("n", "0")) is None
+def test_rejecting_the_match():
+    assert confirm_in_terminal(match(), input_fn=typing("n")) is False
 
 
 def test_unreadable_answers_are_asked_again():
-    assert confirm_in_terminal(match(), input_fn=typing("maybe", "y")) is not None
+    assert confirm_in_terminal(match(), input_fn=typing("maybe", "y")) is True
+
+
+# ---- When the match fails -------------------------------------------------
+
+
+def test_a_student_is_never_shown_the_skill_list(capsys):
+    """Our internal names mean nothing to someone who is stuck."""
+    resolve_entry(
+        "some question", role="student", client=fake_client(match()), input_fn=typing("n")
+    )
+    shown = capsys.readouterr().out
+    # The matched skill is named in the confirmation, which is the point of it.
+    # What must never appear is the menu of everything else.
+    others = [s.name for s in entry_points() if s.id != "find_stationary_points"]
+    for name in others:
+        assert name not in shown
+
+
+def test_a_tutor_can_name_the_skill_outright():
+    """They teach the subject, so the vocabulary is theirs too."""
+    skill_id, _ = resolve_entry(
+        "some question",
+        role="tutor",
+        client=fake_client(match()),
+        input_fn=typing("n", "2"),
+    )
+    assert skill_id == entry_points()[1].id
+
+
+def test_a_tutor_recognising_nothing_gives_up_cleanly():
+    skill_id, _ = resolve_entry(
+        "some question",
+        role="tutor",
+        client=fake_client(match()),
+        input_fn=typing("n", "0"),
+    )
+    assert skill_id is None
+
+
+def test_a_cut_off_question_asks_for_the_missing_text(capsys):
+    """The one thing a stuck student can actually supply."""
+    client = fake_client(match(looks_incomplete=True))
+    resolve_entry(
+        "part (b) only", role="student", client=client, input_fn=typing("n", "", "0")
+    )
+    assert "missing" in capsys.readouterr().out.lower()
+
+
+def test_the_student_is_never_asked_what_the_question_means(capsys):
+    """Being unable to say that is most of what being stuck is."""
+    resolve_entry(
+        "some question",
+        role="student",
+        client=fake_client(match(looks_incomplete=True)),
+        input_fn=typing("n", "", "0"),
+    )
+    shown = capsys.readouterr().out.lower()
+    assert "in your own words" not in shown
+    assert "what is the question asking" not in shown
+
+
+def test_topic_is_not_asked_when_there_is_only_one():
+    """Narrowing to the only option costs a question and learns nothing."""
+    assert len(topics()) == 1
+    assert ask_for_topic(input_fn=typing()) is None
+
+
+def test_topic_narrows_the_options_when_there_are_several():
+    prompt = build_prompt("a question", topic="differentiation")
+    for skill in entry_points():
+        assert skill.id in prompt
+
+
+def test_giving_up_returns_no_skill():
+    skill_id, _ = resolve_entry(
+        "integrate x^2",
+        role="student",
+        client=fake_client(match(skill_id=None, confidence="low")),
+        input_fn=typing(),
+    )
+    assert skill_id is None
 
 
 # ---- The call itself ------------------------------------------------------
