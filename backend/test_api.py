@@ -310,3 +310,47 @@ def test_a_broken_attachment_is_refused(client):
         json={"question": "", "attachment": "not base64!!", "attachment_type": "image/png"},
     )
     assert response.status_code == 400
+
+
+def test_a_model_failure_is_explained_not_dumped(client, monkeypatch):
+    """Seen for real on a dropped connection. A student needs words, not a 500."""
+    from anthropic import APITimeoutError
+
+    def times_out(*args, **kwargs):
+        raise APITimeoutError(request=None)
+
+    monkeypatch.setattr(api, "identify_entry", times_out)
+    response = client.post("/api/start", json={"question": "q"})
+
+    assert response.status_code == 503
+    assert "lost" in response.json()["detail"]
+
+
+def test_nothing_is_lost_when_the_model_fails_mid_walk(client, monkeypatch):
+    """The answers are already in the database, so the walk resumes."""
+    from anthropic import APITimeoutError
+
+    started = client.post("/api/start", json={"question": "q"}).json()
+    client.post(
+        "/api/answer",
+        json={
+            "session_id": started["session_id"],
+            "label": label_of(started, "right"),
+            "answered_before": 0,
+        },
+    )
+
+    def times_out(*args, **kwargs):
+        raise APITimeoutError(request=None)
+
+    monkeypatch.setattr(bank, "question_for", times_out)
+    failed = client.post(
+        "/api/answer",
+        json={"session_id": started["session_id"], "label": "A", "answered_before": 1},
+    )
+    assert failed.status_code == 503
+
+    connection = store.connect()
+    kept = len(store.answers_so_far(connection, started["session_id"]))
+    connection.close()
+    assert kept >= 1

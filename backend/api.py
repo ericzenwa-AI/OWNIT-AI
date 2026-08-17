@@ -21,9 +21,10 @@ import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from fastapi import FastAPI, HTTPException
+from anthropic import APIError
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 import bank
@@ -45,6 +46,25 @@ app.add_middleware(
 )
 
 PAGE = Path(__file__).resolve().parent.parent / "web" / "index.html"
+
+
+@app.exception_handler(APIError)
+def model_unavailable(request: Request, error: APIError) -> JSONResponse:
+    """The model did not answer, so say so in words a student can act on.
+
+    Seen for real on a dropped connection: without this it is a stack trace and
+    a 500. Nothing is lost when it happens - the answers already given are in
+    the database, so reloading picks the walk up where it stopped.
+    """
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": (
+                "I could not reach the marking service just then. Nothing you "
+                "have answered is lost - try again in a moment."
+            )
+        },
+    )
 
 
 # ---- What goes over the wire ----------------------------------------------
