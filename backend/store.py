@@ -25,6 +25,7 @@ choose, like "student_7", and the point is that it should not be a name.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -91,13 +92,41 @@ CREATE TABLE IF NOT EXISTS unplaced (
     reason           TEXT
 );
 
+-- Questions we have already written, ready to ask again. A question belongs to
+-- a skill, not to a student, so writing a fresh one for every teenager who
+-- reaches index laws is paying repeatedly for the same thing. Generating is
+-- most of the cost of a session; taking one off the shelf is free.
+--
+-- times_asked and times_correct are what let a bad question be found later: one
+-- everybody gets right is not discriminating, and one nobody gets right is
+-- probably broken rather than hard.
+CREATE TABLE IF NOT EXISTS question_bank (
+    id             INTEGER PRIMARY KEY,
+    skill_id       TEXT    NOT NULL,
+    question       TEXT    NOT NULL,
+    correct_option TEXT    NOT NULL,
+    distractors    TEXT    NOT NULL,
+    model          TEXT,
+    created_at     TEXT    NOT NULL,
+    times_asked    INTEGER NOT NULL DEFAULT 0,
+    times_correct  INTEGER NOT NULL DEFAULT 0,
+    -- Kept rather than deleted, so the answers already given still make sense.
+    retired        INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE INDEX IF NOT EXISTS answers_by_skill ON answers(skill_id);
+CREATE INDEX IF NOT EXISTS bank_by_skill ON question_bank(skill_id, retired);
 """
 
 
-def connect(path: str | Path = DEFAULT_PATH) -> sqlite3.Connection:
-    """Open the store, creating the file and tables the first time."""
-    path = Path(path)
+def connect(path: str | Path | None = None) -> sqlite3.Connection:
+    """Open the store, creating the file and tables the first time.
+
+    The default is read now rather than bound when this file was imported, so
+    the store can be pointed somewhere else - a test's temporary file, or a
+    different database later - without threading a path through every caller.
+    """
+    path = Path(path or DEFAULT_PATH)
     if path.parent != Path("."):
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -333,3 +362,109 @@ def gaps_by_topic(connection: sqlite3.Connection) -> list[tuple[str, int]]:
            ORDER BY times DESC, topic"""
     ).fetchall()
     return [(row["topic"], row["times"]) for row in rows]
+
+
+# ---- The question bank ----------------------------------------------------
+
+
+def bank_question(
+    connection: sqlite3.Connection,
+    skill_id: str,
+    question,
+    *,
+    model: str | None = None,
+) -> int:
+    """Put a written question on the shelf for the next student."""
+    connection.execute(
+        """INSERT INTO question_bank (skill_id, question, correct_option,
+               distractors, model, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (
+            skill_id,
+            question.question,
+            question.correct_option,
+            json.dumps([d.model_dump() for d in question.distractors]),
+            model,
+            _now(),
+        ),
+    )
+    connection.commit()
+    return connection.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+
+
+def take_question(connection: sqlite3.Connection, skill_id: str):
+    """A banked question for this skill, or None if the shelf is empty.
+
+    Least-used first, ties broken at random. Least-used spreads students across
+    the variants instead of hammering one, which both slows memorisation and
+    gathers evidence about every question rather than one.
+    """
+    row = connection.execute(
+        """SELECT * FROM question_bank
+           WHERE skill_id = ? AND retired = 0
+           ORDER BY times_asked ASC, RANDOM()
+           LIMIT 1""",
+        (skill_id,),
+    ).fetchone()
+
+    if row is None:
+        return None
+
+    from questions import Distractor, MultipleChoiceQuestion
+
+    question = MultipleChoiceQuestion(
+        question=row["question"],
+        correct_option=row["correct_option"],
+        distractors=[Distractor(**d) for d in json.loads(row["distractors"])],
+    )
+    return row["id"], question
+
+
+def mark_asked(connection: sqlite3.Connection, question_id: int, correct: bool) -> None:
+    """Record that a question was put to someone, and how it went."""
+    connection.execute(
+        """UPDATE question_bank
+           SET times_asked = times_asked + 1,
+               times_correct = times_correct + ?
+           WHERE id = ?""",
+        (1 if correct else 0, question_id),
+    )
+    connection.commit()
+
+
+def retire_question(connection: sqlite3.Connection, question_id: int) -> None:
+    """Stop asking a question without deleting the answers already given."""
+    connection.execute(
+        "UPDATE question_bank SET retired = 1 WHERE id = ?", (question_id,)
+    )
+    connection.commit()
+
+
+def bank_counts(connection: sqlite3.Connection) -> dict[str, int]:
+    """How many live questions each skill has on the shelf."""
+    rows = connection.execute(
+        """SELECT skill_id, COUNT(*) AS held
+           FROM question_bank WHERE retired = 0
+           GROUP BY skill_id"""
+    ).fetchall()
+    return {row["skill_id"]: row["held"] for row in rows}
+
+
+def weak_questions(
+    connection: sqlite3.Connection, min_asked: int = 10
+) -> list[sqlite3.Row]:
+    """Questions that are not telling us anything, once enough students have
+    seen them.
+
+    One everybody gets right does not discriminate; one nobody gets right is
+    more likely broken than hard. Both are worth a human eye.
+    """
+    return connection.execute(
+        """SELECT id, skill_id, question, times_asked, times_correct,
+                  CAST(times_correct AS REAL) / times_asked AS pass_rate
+           FROM question_bank
+           WHERE retired = 0 AND times_asked >= ?
+             AND (pass_rate > 0.95 OR pass_rate < 0.05)
+           ORDER BY times_asked DESC""",
+        (min_asked,),
+    ).fetchall()

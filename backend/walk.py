@@ -238,9 +238,19 @@ def check_by_asking(
     model: str = MODEL,
 ) -> SkillResult:
     """Generate a question for one skill and put it to the student."""
-    question = generate_question(skill.id, client=client, model=model)
+    # Off the shelf if we have written one for this skill before. Generation is
+    # most of what a session costs, and a question belongs to a skill rather
+    # than to a student.
+    import bank
+
+    banked_id, question = bank.question_for(skill.id)
+
     header = f"\n[{skill.name}]\n"
     answered = ask_in_terminal(question, header=header)
+
+    if banked_id is not None:
+        _record_asked(banked_id, answered.correct)
+
     return SkillResult(
         skill.id,
         held=answered.correct,
@@ -253,6 +263,24 @@ def check_by_asking(
 
 
 # ---- The walk -------------------------------------------------------------
+
+
+def _record_asked(banked_id: int, correct: bool) -> None:
+    """Note that a banked question was used, and how it went.
+
+    Which is how a question that teaches us nothing gets found later. Never
+    worth failing a student's session over.
+    """
+    import store
+
+    try:
+        connection = store.connect()
+        try:
+            store.mark_asked(connection, banked_id, correct)
+        finally:
+            connection.close()
+    except Exception:  # noqa: BLE001 - bookkeeping, not the point of the session
+        pass
 
 
 Check = Callable[[Skill], SkillResult]

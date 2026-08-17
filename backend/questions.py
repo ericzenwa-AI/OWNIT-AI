@@ -199,6 +199,70 @@ def generate_question(
     return question
 
 
+class QuestionSet(BaseModel):
+    questions: list[MultipleChoiceQuestion]
+
+
+def generate_batch(
+    skill_id: str,
+    count: int = 5,
+    *,
+    client: Anthropic | None = None,
+    model: str | None = None,
+) -> list[MultipleChoiceQuestion]:
+    """Write several questions for one skill in a single call.
+
+    Asking once for five is both cheaper than five calls and better, because
+    the model can see them together and make them differ. Generated one at a
+    time they come out as the same question with the numbers changed, which is
+    no protection against a student meeting the skill twice.
+    """
+    skill = SKILLS.get(skill_id)
+    if skill is None:
+        raise UnknownSkillError(f"'{skill_id}' is not a skill in the graph")
+
+    settings = llm.QUESTION.kwargs()
+    if model:
+        settings["model"] = model
+
+    response = client_or_new(client).messages.parse(
+        system=SYSTEM_PROMPT,
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"{build_prompt(skill)}\n\n"
+                    f"Write {count} questions like that, not one.\n"
+                    "- They must be genuinely different, not the same question "
+                    "with new numbers. Vary what is being asked and how it is "
+                    "set out.\n"
+                    "- Between them they should cover different mistakes. If "
+                    "one is built around a sign error, another should not be.\n"
+                    "- Every one must still test this skill alone, and still "
+                    "have exactly one correct option and three wrong ones."
+                ),
+            }
+        ],
+        output_format=QuestionSet,
+        **settings,
+    )
+
+    produced = response.parsed_output
+    if produced is None:
+        raise BadQuestionError(f"No questions came back for '{skill_id}'")
+
+    # Keep the well-formed ones rather than losing the batch to one bad entry.
+    return [
+        question
+        for question in produced.questions
+        if len(question.distractors) == DISTRACTOR_COUNT
+    ]
+
+
+def client_or_new(client: Anthropic | None) -> Anthropic:
+    return client or Anthropic()
+
+
 # ---- Asking -------------------------------------------------------------
 
 
