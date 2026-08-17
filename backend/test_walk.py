@@ -16,7 +16,7 @@ from walk import Narrowing, PresentationCheck, SkillResult, diagnose
 # The branch these tests walk, from data/skills.yaml:
 #
 #   exact_form
-#     |- surds
+#     |- surds              (level 3 - closer to the question, so asked first)
 #     |    `- index_laws
 #     |         |- index_notation   (floor)
 #     |         |- fractions_arith  (floor)
@@ -123,15 +123,36 @@ def test_carries_the_mistake_through():
     assert diagnosis.result_for("surds").mistake == "muddled surds"
 
 
-def test_stops_at_the_floor():
-    """A failed skill with no prerequisites is as deep as the graph goes."""
+def test_the_closest_skill_is_asked_first():
+    """Not the deepest. The first question has to look related to what they sent.
+
+    Deepest-first sounds thorough and is worse: it opens with something that
+    looks unrelated, and can name arithmetic as the gap without ever checking
+    whether the student knows the method at all.
+    """
+    diagnosis = diagnose(ENTRY, check=student())
+    # surds is level 3, fractions_arith level 4, so surds is nearer the question.
+    assert asked(diagnosis)[0] == "surds"
+
+
+def test_the_walk_goes_no_more_than_two_levels_down():
+    """Deeper answers are true and useless - a different conversation."""
     everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
     diagnosis = diagnose(ENTRY, check=student(fails=everything))
 
-    # fractions_arith is the most foundational of the entry node's needs, so it
-    # is tried first, fails, and has nothing under it.
-    assert diagnosis.root_gaps == ["fractions_arith"]
-    assert diagnosis.chains == [[ENTRY, "fractions_arith"]]
+    assert asked(diagnosis) == ["surds", "index_laws"]
+    assert "2 levels" in diagnosis.stopped_early
+    # Nothing is confirmed, because what index_laws rests on was never asked.
+    assert diagnosis.root_gaps == []
+    assert diagnosis.deepest_failure == "index_laws"
+
+
+def test_going_deeper_is_allowed_when_asked_for():
+    everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
+    diagnosis = diagnose(ENTRY, check=student(fails=everything), max_depth=5)
+
+    assert len(asked(diagnosis)) > 2
+    assert diagnosis.root_gaps
 
 
 def test_only_one_branch_is_walked():
@@ -139,8 +160,7 @@ def test_only_one_branch_is_walked():
     everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
     diagnosis = diagnose(ENTRY, check=student(fails=everything))
 
-    assert asked(diagnosis) == ["fractions_arith"]
-    assert "surds" not in asked(diagnosis)
+    assert "fractions_arith" not in asked(diagnosis)
 
 
 def test_skipped_siblings_are_reported_not_dropped():
@@ -148,7 +168,7 @@ def test_skipped_siblings_are_reported_not_dropped():
     everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
     diagnosis = diagnose(ENTRY, check=student(fails=everything))
 
-    assert "surds" in diagnosis.unchecked
+    assert "fractions_arith" in diagnosis.unchecked
 
 
 def test_nothing_is_unchecked_when_the_walk_completes():
@@ -160,7 +180,7 @@ def test_nothing_is_unchecked_when_the_walk_completes():
 def test_a_skill_is_only_asked_once():
     """fractions_arith sits under both exact_form and index_laws."""
     everything = {"surds", "index_laws", "fractions_arith"}
-    diagnosis = diagnose(ENTRY, check=student(fails=everything))
+    diagnosis = diagnose(ENTRY, check=student(fails=everything), max_depth=5)
     assert asked(diagnosis).count("fractions_arith") == 1
 
 
@@ -210,8 +230,8 @@ def test_everything_after_the_first_round_is_identical(monkeypatch):
     )
 
     fails = {"surds", "index_laws"}
-    with_attempt = diagnose(ENTRY, "sqrt(8) = 4", check=student(fails=fails))
-    without = diagnose(ENTRY, check=student(fails=fails))
+    with_attempt = diagnose(ENTRY, "sqrt(8) = 4", check=student(fails=fails), max_depth=5)
+    without = diagnose(ENTRY, check=student(fails=fails), max_depth=5)
 
     # Same descent below surds, reached from a narrower start.
     assert [ENTRY, "surds", "index_laws"] in with_attempt.chains
@@ -311,70 +331,87 @@ def test_presentation_finding_does_not_stop_the_walk(monkeypatch):
 
 
 def test_the_cap_stops_the_walk():
-    diagnosis = diagnose("differentiate_function", check=student(fails=set(SKILLS)), cap=3)
+    diagnosis = diagnose(
+        "differentiate_function", check=student(fails=set(SKILLS)), cap=1, max_depth=5
+    )
 
-    assert len(asked(diagnosis)) == 3
-    assert "maximum of 3" in diagnosis.stopped_early
+    assert len(asked(diagnosis)) == 1
+    assert "maximum of 1" in diagnosis.stopped_early
 
 
 def test_a_capped_walk_reports_a_lead_not_a_diagnosis():
     """Its prerequisites were never checked, so it is not a confirmed gap."""
-    diagnosis = diagnose("differentiate_function", check=student(fails=set(SKILLS)), cap=3)
+    diagnosis = diagnose(
+        "differentiate_function", check=student(fails=set(SKILLS)), cap=1, max_depth=5
+    )
 
     assert diagnosis.root_gaps == []
     assert diagnosis.deepest_failure is not None
     assert diagnosis.unchecked != []
 
 
-def test_the_default_cap_clears_a_full_descent():
-    """15 has to leave room for a straight walk to the floor plus siblings."""
-    everything = set(SKILLS)
-    diagnosis = diagnose("optimisation", check=student(fails=everything))
-    assert diagnosis.stopped_early is None
+def test_the_question_cap_is_not_what_stops_a_normal_walk():
+    """Two levels down is reached long before fifteen questions are."""
+    diagnosis = diagnose("optimisation", check=student(fails=set(SKILLS)))
+    assert "2 levels" in diagnosis.stopped_early
+    assert "maximum" not in diagnosis.stopped_early
 
 
 def test_three_dont_knows_in_a_row_stops_the_walk():
     def check(skill):
         return SkillResult(skill.id, held=False, dont_know=True)
 
-    diagnosis = diagnose("differentiate_function", check=check)
+    diagnosis = diagnose("differentiate_function", check=check, max_depth=5)
 
     assert len(asked(diagnosis)) == 3
     assert "I don't know" in diagnosis.stopped_early
 
 
-def test_stopping_at_the_floor_still_confirms_the_gap():
-    """A floor node has nothing beneath it, so an early stop costs nothing."""
+def test_the_depth_limit_is_reached_before_the_dont_know_rule():
+    """A failure always descends, so two levels caps the run at two in a row.
+    The rule only bites if the depth is raised."""
 
     def check(skill):
         return SkillResult(skill.id, held=False, dont_know=True)
 
-    diagnosis = diagnose("optimisation", check=check)
+    diagnosis = diagnose("differentiate_function", check=check)
 
+    assert len(asked(diagnosis)) == 2
+    assert "2 levels" in diagnosis.stopped_early
+
+
+def test_reaching_the_floor_confirms_the_gap():
+    """A floor skill has nothing beneath it, so the walk is genuinely finished
+    rather than cut off, however far down it got."""
+
+    def check(skill):
+        return SkillResult(skill.id, held=False, dont_know=True)
+
+    diagnosis = diagnose(ENTRY, check=check, max_depth=5)
+
+    gap = diagnosis.root_gaps[0]
+    assert SKILLS[gap].needs == ()
+    # The run of "I don't know"s stopped this walk, but stopping cost nothing:
+    # there was nothing beneath the gap left to check.
     assert diagnosis.stopped_early is not None
-    assert diagnosis.deepest_failure == "negatives"
-    assert SKILLS["negatives"].needs == ()
-    # Confirmed despite the early stop - the descent had nowhere left to go.
-    assert diagnosis.root_gaps == ["negatives"]
+    assert diagnosis.root_gaps == [gap]
 
 
 def test_the_dont_know_run_has_to_be_consecutive():
-    """A right answer resets the run, so the walk is not cut off."""
+    """A right answer resets the run, so plenty of them never trip the rule."""
     seen: list[str] = []
 
     def check(skill):
         seen.append(skill.id)
-        if len(seen) == 3:
+        # Every third answer is right, so the run never reaches three.
+        if len(seen) % 3 == 0:
             return SkillResult(skill.id, held=True)
         return SkillResult(skill.id, held=False, dont_know=True)
 
-    diagnosis = diagnose("optimisation", check=check)
+    diagnosis = diagnose("optimisation", check=check, max_depth=8)
 
-    # Two don't-knows, then a correct answer. Never three running, so the walk
-    # ends where the graph says, not where the limit says.
-    assert len([r for r in diagnosis.results if r.dont_know]) == 2
-    assert diagnosis.stopped_early is None
-    assert diagnosis.root_gaps == ["expand_brackets"]
+    assert len([r for r in diagnosis.results if r.dont_know]) >= 3
+    assert "I don't know" not in (diagnosis.stopped_early or "")
 
 
 # ---- Narrowing fallback ---------------------------------------------------
@@ -483,7 +520,7 @@ def test_a_walk_with_no_answers_asks_the_first_question():
 
     current = step(ENTRY)
     assert current.finished is False
-    assert current.ask == _most_foundational(ENTRY)[0]
+    assert current.ask == _closest(ENTRY)[0]
 
 
 def test_stepping_reaches_the_same_diagnosis_as_running_it_all_at_once():
@@ -549,14 +586,14 @@ def test_a_walk_can_be_picked_up_later():
 def test_the_cap_still_applies_when_stepping():
     from walk import step
 
-    given = [answer("form_expression_from_context", held=False, mistake="no")]
-    current = step("optimisation", given, cap=1)
+    given = [answer("classify_stationary", held=False, mistake="no")]
+    current = step("optimisation", given, cap=1, max_depth=5)
 
     assert current.finished is True
     assert "maximum of 1" in current.diagnosis.stopped_early
 
 
-def _most_foundational(entry_id):
-    from walk import _most_foundational_first
+def _closest(entry_id):
+    from walk import _closest_first
 
-    return _most_foundational_first(SKILLS[entry_id].needs)
+    return _closest_first(SKILLS[entry_id].needs)

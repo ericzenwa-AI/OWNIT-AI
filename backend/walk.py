@@ -313,13 +313,28 @@ QUESTION_CAP = 15
 DONT_KNOW_RUN = 3
 
 
-def _most_foundational_first(skill_ids) -> list[str]:
-    """Deepest skills first, so a broken foundation is found before its symptoms.
+# How far below the question we are prepared to go. Two levels is enough to
+# name something a tutor can teach: the skill the question rests on, and the
+# skill under that. Deeper answers are true but useless - telling someone
+# stuck on A-level indices that they are missing Year 7 arithmetic is a
+# different conversation, and not the one they came for.
+MAX_DEPTH = 2
 
-    Level 4 is the assumed floor and level 0 is what the exam asks for, so a
-    higher level number means more foundational.
+
+def _closest_first(skill_ids) -> list[str]:
+    """Nearest the student's question first, then further down.
+
+    Level 0 is what an exam asks for and level 4 is the assumed floor, so a
+    lower level number is closer to what they actually sent us.
+
+    The other order - deepest first - sounds more thorough and is worse. It
+    starts by asking about something that looks unrelated, and because the walk
+    dives into whatever fails, it can name arithmetic as the gap without ever
+    checking whether the student knows the method at all. Failing still
+    descends, so a genuinely shaky foundation is still found; it is found
+    because the evidence led there rather than because we began there.
     """
-    return sorted(skill_ids, key=lambda s: (-SKILLS[s].level, s))
+    return sorted(skill_ids, key=lambda s: (SKILLS[s].level, s))
 
 
 @dataclass
@@ -372,6 +387,7 @@ def step(
     reading: Reading | None = None,
     cap: int = QUESTION_CAP,
     dont_know_run: int = DONT_KNOW_RUN,
+    max_depth: int = MAX_DEPTH,
 ) -> Step:
     """Given what a student has answered so far, what should we ask next?
 
@@ -417,16 +433,17 @@ def step(
     # wrong guess costs questions rather than ending the walk with nothing.
     if reading.narrowed_to:
         candidates = list(reading.narrowed_to)
-        candidates += _most_foundational_first(
+        candidates += _closest_first(
             [need for need in entry.needs if need not in candidates]
         )
     else:
-        candidates = _most_foundational_first(entry.needs)
+        candidates = _closest_first(entry.needs)
 
     # Depth first: test siblings until one fails, descend into it, and leave the
     # rest for a follow-up. `parent` is whatever we most recently descended from,
     # so when a whole level holds, it is the gap.
     parent = entry.id
+    depth = 1
     asked = 0
     dont_knows_running = 0
 
@@ -483,8 +500,20 @@ def step(
         if broke_into is None:
             break
 
+        # As deep as we go. Whatever just failed is the answer we hand back,
+        # and the report has to say we did not look beneath it.
+        if depth >= max_depth:
+            diagnosis.stopped_early = (
+                f"we look at most {max_depth} levels below the question"
+            )
+            diagnosis.unchecked += [
+                need for need in SKILLS[broke_into].needs if need not in results
+            ]
+            break
+
         parent = broke_into
-        candidates = _most_foundational_first(
+        depth += 1
+        candidates = _closest_first(
             [need for need in SKILLS[broke_into].needs if need not in results]
         )
 
@@ -514,6 +543,7 @@ def diagnose(
     client: Anthropic | None = None,
     cap: int = QUESTION_CAP,
     dont_know_run: int = DONT_KNOW_RUN,
+    max_depth: int = MAX_DEPTH,
 ) -> Diagnosis:
     """Run a whole walk here and now, asking as it goes.
 
@@ -537,6 +567,7 @@ def diagnose(
             reading=reading,
             cap=cap,
             dont_know_run=dont_know_run,
+            max_depth=max_depth,
         )
         if current.finished:
             return current.diagnosis

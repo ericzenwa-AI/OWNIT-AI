@@ -178,7 +178,7 @@ function report() {
   // skill tells you nothing unless you can see why it, and not something
   // lower down.
   const why = gap
-    ? `<p>He could not do <strong>${escape(gap.skill)}</strong>.</p>` +
+    ? `<p>They could not do <strong>${escape(gap.skill)}</strong>.</p>` +
       (gap.held_beneath.length
         ? `<p>What it rests on was fine &mdash;
            ${listOf(gap.held_beneath.map(escape))} &mdash; so this is the right
@@ -191,12 +191,13 @@ function report() {
 
   const how = gap
     ? (gap.nothing_there
-        ? `<p>He picked <em>&ldquo;I don&rsquo;t know&rdquo;</em> rather than guessing,
-           so there is nothing to correct here. It needs teaching from the start.</p>`
+        ? `<p>They picked <em>&ldquo;I don&rsquo;t know&rdquo;</em> rather than
+           guessing, so there is nothing to correct here &mdash; it needs
+           teaching from the start.</p>`
         : (gap.mistake
-            ? `<p>He does have a rule for it, and it is the wrong one:
-               <em>${escape(gap.mistake)}</em> &mdash; so this is correcting a
-               belief, not filling a blank.</p>`
+            ? `<p>They do have a rule for it, and it is the wrong one, so this
+               is correcting a belief rather than filling a blank:</p>
+               <p class="note">${escape(gap.mistake)}</p>`
             : ''))
     : '';
 
@@ -214,9 +215,15 @@ function report() {
     </div>` : ''}
 
     ${r.stopped_early ? `<div class="card">
-      <p class="label">We stopped early</p>
-      <p>${escape(r.stopped_early)}. Treat this as a lead rather than a
-         finished answer.</p>
+      <p class="label">How far we looked</p>
+      <p>${/levels/.test(r.stopped_early)
+          ? `We stop two steps below the question on purpose. Two is enough to
+             name something teachable &mdash; going further ends up somewhere
+             true but useless, like telling an A-level student their problem is
+             Year 7 arithmetic. If teaching this does not stick, there is
+             probably something below it.`
+          : `${escape(r.stopped_early)}. Treat this as a lead rather than a
+             finished answer.`}</p>
     </div>` : ''}
 
     ${r.unchecked.length ? `<div class="card">
