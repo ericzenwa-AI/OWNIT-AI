@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 from entry import attachment_block
 from graph import SKILLS
+import llm
 from questions import MAX_TOKENS, MODEL
 
 
@@ -71,8 +72,7 @@ def read_scheme(
     client = client or Anthropic()
 
     response = client.messages.parse(
-        model=model,
-        max_tokens=MAX_TOKENS,
+        **llm.READ_SCHEME.kwargs(),
         system=(
             "You read A-level maths mark schemes and say what a candidate has "
             "to be able to DO to earn each mark. You describe skills, not "
@@ -129,8 +129,7 @@ def map_hints(
     )
 
     response = client.messages.parse(
-        model=model,
-        max_tokens=MAX_TOKENS,
+        **llm.MAP_HINTS.kwargs(),
         system=(
             "You match skills named in a mark scheme against a fixed list of "
             "skills, and say plainly when the list has no equivalent."

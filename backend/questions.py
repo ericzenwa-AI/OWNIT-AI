@@ -24,6 +24,7 @@ from anthropic import Anthropic
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
+import llm
 from graph import SKILLS, Skill
 
 # The key lives in backend/.env, next to this file.
@@ -160,7 +161,7 @@ def generate_question(
     skill_id: str,
     *,
     client: Anthropic | None = None,
-    model: str = MODEL,
+    model: str | None = None,
 ) -> MultipleChoiceQuestion:
     """Ask Claude for one question testing `skill_id`, and nothing else."""
     skill = SKILLS.get(skill_id)
@@ -169,12 +170,15 @@ def generate_question(
 
     client = client or Anthropic()
 
+    settings = llm.QUESTION.kwargs()
+    if model:
+        settings["model"] = model
+
     response = client.messages.parse(
-        model=model,
-        max_tokens=MAX_TOKENS,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": build_prompt(skill)}],
         output_format=MultipleChoiceQuestion,
+        **settings,
     )
 
     if response.stop_reason == "refusal":

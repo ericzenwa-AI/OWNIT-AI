@@ -1,0 +1,79 @@
+"""Which model each job gets, and how hard it is allowed to think.
+
+Running everything on the most capable model at full effort is the expensive
+default, and most of these jobs do not need it. The split is by how much
+judgement the job actually takes:
+
+  judgement       reading a student's working, deciding what a question is
+                  asking - get these wrong and every question after them is
+                  wrong. Worth the best model.
+  transcription   copying a paper or a mark scheme out faithfully. Long input,
+                  little reasoning, and input is where the cost is.
+  generation      writing one multiple-choice question to a fixed shape. Well
+                  specified, structured output, cheapest model that does it.
+
+Effort is not a free dial either. Thinking tokens are billed at the output
+rate, so a job at high effort can cost several times the same job at low.
+
+Careful with Haiku 4.5: it predates the effort parameter and rejects it, and
+its thinking is configured the old way. So it runs with neither, which is fine
+for a job that only has to follow a shape.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+OPUS = "claude-opus-5"
+SONNET = "claude-sonnet-5"
+HAIKU = "claude-haiku-4-5"
+
+# Models that take output_config.effort. Older ones error on it.
+TAKES_EFFORT = (OPUS, SONNET)
+
+
+@dataclass(frozen=True)
+class Task:
+    model: str
+    # low | medium | high | xhigh | max, or None to leave the model's default.
+    effort: str | None = None
+    max_tokens: int = 16000
+
+    def kwargs(self) -> dict:
+        """The model settings to spread into a messages call."""
+        settings: dict = {"model": self.model, "max_tokens": self.max_tokens}
+        if self.effort and self.model in TAKES_EFFORT:
+            settings["output_config"] = {"effort": self.effort}
+        return settings
+
+
+# Judgement. These decide where the whole diagnosis goes, so they keep the
+# best model - a cheaper entry match that misreads a question costs far more
+# than it saves.
+ENTRY_MATCH = Task(OPUS, effort="medium")
+NARROW = Task(OPUS, effort="medium")
+PRESENTATION = Task(OPUS, effort="low")
+
+# Generation. One question to a fixed shape, with structured output doing the
+# hard part. Try raising this if the questions get weak - it is one line.
+QUESTION = Task(HAIKU)
+
+# Transcription and offline analysis. Long PDFs, so the cost is nearly all
+# input, and a cheaper model saves most of it.
+READ_PAPER = Task(SONNET, effort="low")
+READ_SCHEME = Task(SONNET, effort="medium")
+MAP_HINTS = Task(SONNET, effort="medium")
+
+
+def cached(text: str) -> dict:
+    """A text block the API should keep, so repeat calls do not re-read it.
+
+    Caching is a prefix match, so a cached block only pays off when it sits
+    ahead of everything that changes between calls. Put the catalogue of skills
+    first and the student's question last, never the other way round.
+    """
+    return {
+        "type": "text",
+        "text": text,
+        "cache_control": {"type": "ephemeral"},
+    }

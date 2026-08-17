@@ -34,6 +34,7 @@ from pydantic import BaseModel
 
 from entry import MEDIA_TYPES, attachment_block, identify_entry, is_usable
 from graph import SKILLS
+import llm
 from questions import MAX_TOKENS, MODEL
 
 # Questions are independent, so they run side by side. Serially, fifty
@@ -65,8 +66,7 @@ def read_paper(
     client = client or Anthropic()
 
     response = client.messages.parse(
-        model=model,
-        max_tokens=MAX_TOKENS,
+        **llm.READ_PAPER.kwargs(),
         system=(
             "You transcribe A-level maths exam papers. You copy questions out "
             "faithfully, including the mathematics, and never solve them."

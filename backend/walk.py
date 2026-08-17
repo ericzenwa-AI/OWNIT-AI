@@ -35,6 +35,7 @@ from typing import Callable
 from anthropic import Anthropic
 from pydantic import BaseModel
 
+import llm
 from graph import SKILLS, Skill
 from questions import MODEL, MAX_TOKENS, ask_in_terminal, generate_question
 
@@ -134,8 +135,7 @@ def narrow_to_branch(
     )
 
     response = client.messages.parse(
-        model=model,
-        max_tokens=MAX_TOKENS,
+        **llm.NARROW.kwargs(),
         system=(
             "You read a student's partial working on an A-level maths question "
             "and say which prerequisite skill their working actually broke in."
@@ -195,8 +195,7 @@ def check_presentation(
     client = client or Anthropic()
 
     response = client.messages.parse(
-        model=model,
-        max_tokens=MAX_TOKENS,
+        **llm.PRESENTATION.kwargs(),
         system=(
             "You judge whether a student's maths went wrong in the method or "
             "only in how it was written out."

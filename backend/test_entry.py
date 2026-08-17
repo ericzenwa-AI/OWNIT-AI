@@ -260,10 +260,38 @@ def test_a_photo_is_sent_as_an_image_block(tmp_path):
     identify_entry("", photo, client=client)
 
     content = client.messages.sent["messages"][0]["content"]
-    assert content[0]["type"] == "image"
-    assert content[0]["source"]["media_type"] == "image/png"
-    # The image comes before the text it relates to.
-    assert content[1]["type"] == "text"
+    # The cached catalogue has to lead, or nothing caches - a cache only covers
+    # the prefix ahead of whatever changes between calls.
+    assert content[0]["cache_control"] == {"type": "ephemeral"}
+    # Then the attachment, then the text that refers to it.
+    assert content[1]["type"] == "image"
+    assert content[1]["source"]["media_type"] == "image/png"
+    assert content[2]["type"] == "text"
+
+
+def test_a_pdf_is_sent_as_a_document_block(tmp_path):
+    """A PDF is read, not scraped - scraping is what mangles the maths."""
+    paper = tmp_path / "paper.pdf"
+    paper.write_bytes(b"%PDF-1.4 pretend")
+
+    client = fake_client(match())
+    identify_entry("", paper, client=client)
+
+    content = client.messages.sent["messages"][0]["content"]
+    assert content[1]["type"] == "document"
+    assert content[1]["source"]["media_type"] == "application/pdf"
+
+
+def test_the_changing_part_comes_last(tmp_path):
+    """The student's question must sit after everything cached."""
+    client = fake_client(match())
+    identify_entry("Find the stationary points of y = x^3", client=client)
+
+    content = client.messages.sent["messages"][0]["content"]
+    assert "cache_control" not in content[-1]
+    assert "y = x^3" in content[-1]["text"]
+    # And nothing cached mentions it, or the cache would miss every time.
+    assert "y = x^3" not in content[0]["text"]
 
 
 def test_an_unsupported_image_type_is_refused(tmp_path):

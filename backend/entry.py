@@ -26,6 +26,7 @@ from anthropic import Anthropic
 from pydantic import BaseModel
 
 from graph import SKILLS, entry_points, topics
+import llm
 from questions import MAX_TOKENS, MODEL
 from walk import diagnose
 
@@ -145,8 +146,12 @@ def attachment_block(path: str | Path) -> dict:
 _image_block = attachment_block
 
 
-def build_prompt(question: str, topic: str | None = None) -> str:
-    """The instructions for matching a question to an entry skill.
+def catalogue(topic: str | None = None) -> str:
+    """The doorways and the rules - identical on every call, so it is cached.
+
+    Caching is a prefix match: only what sits ahead of the part that changes
+    can be reused. So this comes first and the student's question comes last,
+    which is the opposite of how it reads naturally.
 
     Given a topic, only that topic's entry points are offered - which is what
     makes narrowing worth anything once there is more than one.
@@ -161,11 +166,10 @@ def build_prompt(question: str, topic: str | None = None) -> str:
     covered = ", ".join(sorted({skill.topic for skill in points}))
 
     return (
-        "A student is stuck on this maths question:\n\n"
-        f"{question or '(the question is in the attached image)'}\n\n"
         "These are the skills a question can be asking for:\n"
         f"{options}\n\n"
-        "Say which one this question asks for.\n"
+        "You will be given one maths question a student is stuck on. Say which "
+        "of the skills above it asks for.\n"
         "- Match on what the student has to DO, not on the words that happen "
         "to appear. A question mentioning a tangent may still be asking for "
         "stationary points.\n"
@@ -194,13 +198,27 @@ def build_prompt(question: str, topic: str | None = None) -> str:
     )
 
 
+def asking(question: str) -> str:
+    """The one part that changes between calls, so it goes last."""
+    return (
+        "Here is the question the student is stuck on:\n\n"
+        f"{question or '(the question is in the attachment)'}"
+    )
+
+
+def build_prompt(question: str, topic: str | None = None) -> str:
+    """The whole prompt as one string. The API call sends it in two blocks so
+    the stable half can be cached; this is for reading and for tests."""
+    return f"{catalogue(topic)}\n\n{asking(question)}"
+
+
 def identify_entry(
     question: str,
     image_path: str | Path | None = None,
     *,
     topic: str | None = None,
     client: Anthropic | None = None,
-    model: str = MODEL,
+    model: str | None = None,
 ) -> EntryMatch:
     """Match a pasted question, or a photo of one, to an entry skill."""
     if not question.strip() and image_path is None:
@@ -208,15 +226,15 @@ def identify_entry(
 
     client = client or Anthropic()
 
-    content: list[dict] = []
+    # Cached catalogue first, then whatever changes. The other order would
+    # cache nothing, because a cache only covers the prefix ahead of the change.
+    content: list[dict] = [llm.cached(catalogue(topic))]
     if image_path is not None:
-        # Images go before the text they relate to.
+        # The attachment goes before the text that refers to it.
         content.append(attachment_block(image_path))
-    content.append({"type": "text", "text": build_prompt(question, topic)})
+    content.append({"type": "text", "text": asking(question)})
 
     response = client.messages.parse(
-        model=model,
-        max_tokens=MAX_TOKENS,
         system=(
             "You identify which A-level maths skill a question is testing. You "
             "are matching against a fixed list and saying plainly when nothing "
@@ -224,6 +242,7 @@ def identify_entry(
         ),
         messages=[{"role": "user", "content": content}],
         output_format=EntryMatch,
+        **({**llm.ENTRY_MATCH.kwargs(), "model": model} if model else llm.ENTRY_MATCH.kwargs()),
     )
 
     match = response.parsed_output
