@@ -300,12 +300,27 @@ def _report(diagnosis) -> dict:
     gaps = []
     for gap, chain in zip(diagnosis.root_gaps, diagnosis.chains):
         result = diagnosis.result_for(gap)
+
+        # Why this skill and not something lower: its own prerequisites were
+        # asked about and held. Anything else that held is a sibling somewhere
+        # else in the tree and says nothing about this gap - claiming otherwise
+        # would be a false reason on the one screen that has to be trusted.
+        beneath = [
+            SKILLS[need].name
+            for need in SKILLS[gap].needs
+            if (below := diagnosis.result_for(need)) is not None and below.held
+        ]
+
         gaps.append(
             {
                 "skill": SKILLS[gap].name,
                 "chain": [SKILLS[step].name for step in chain],
                 "nothing_there": bool(result and result.dont_know),
                 "mistake": result.mistake if result else None,
+                "held_beneath": beneath,
+                # Nothing sits below it in the subject at all, so there is
+                # nowhere further to look.
+                "is_bedrock": not SKILLS[gap].needs,
             }
         )
 

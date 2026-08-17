@@ -51,11 +51,20 @@
            color: var(--quiet); margin-bottom: 0.6rem; }
   .question { font-size: 1.05rem; margin-bottom: 1rem; white-space: pre-wrap; }
   .chain { color: var(--quiet); font-size: 0.9rem; margin-top: 0.4rem; }
-  .gap { font-size: 1.1rem; color: var(--accent); font-weight: bold; }
+  .gap { font-size: 1.35rem; color: var(--accent); font-weight: bold;
+         margin: 0.2rem 0 0.8rem; }
   .note { color: var(--quiet); font-size: 0.88rem; }
-  .held::before { content: "held  "; color: var(--accent); }
-  .missed::before { content: "not held  "; color: var(--wrong); }
+  /* The same small uppercase heading the rest of the page uses, so a card
+     always says what it is before it says anything else. */
+  .label { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
+           color: var(--quiet); margin-bottom: 0.2rem; }
+  /* A tick or a cross, not our internal words for it. */
+  .held::before { content: "\2713\00a0\00a0"; color: var(--accent); }
+  .missed::before { content: "\2717\00a0\00a0"; color: var(--wrong); }
   li { margin: 0.4rem 0; }
+  details summary { cursor: pointer; color: var(--quiet); font-size: 0.88rem; }
+  details[open] summary { margin-bottom: 0.8rem; }
+  strong { color: var(--ink); }
   .quiet-link { background: none; border: none; color: var(--quiet);
                 text-decoration: underline; padding: 0; font-size: 0.85rem; }
   .error { color: var(--wrong); }
@@ -163,32 +172,77 @@ function question() {
 
 function report() {
   const r = state.report;
-  const gaps = r.gaps.map(g => `
-    <p class="gap">${escape(g.skill)}</p>
-    <p class="note">${g.nothing_there
-        ? 'Nothing there yet - this is the place to start from scratch.'
-        : (g.mistake ? escape(g.mistake) : 'This is where it broke.')}</p>
-    <p class="chain">${g.chain.map(escape).join(' &rarr; ')}</p>`).join('');
+  const gap = r.gaps[0];
+
+  // The reasoning is the whole point, and it was the thing missing: naming a
+  // skill tells you nothing unless you can see why it, and not something
+  // lower down.
+  const why = gap
+    ? `<p>He could not do <strong>${escape(gap.skill)}</strong>.</p>` +
+      (gap.held_beneath.length
+        ? `<p>What it rests on was fine &mdash;
+           ${listOf(gap.held_beneath.map(escape))} &mdash; so this is the right
+           level to start at, not lower down.</p>`
+        : gap.is_bedrock
+          ? `<p>Nothing sits underneath it, so there is nowhere further to look.
+             This is where it has to start.</p>`
+          : '')
+    : '';
+
+  const how = gap
+    ? (gap.nothing_there
+        ? `<p>He picked <em>&ldquo;I don&rsquo;t know&rdquo;</em> rather than guessing,
+           so there is nothing to correct here. It needs teaching from the start.</p>`
+        : (gap.mistake
+            ? `<p>He does have a rule for it, and it is the wrong one:
+               <em>${escape(gap.mistake)}</em> &mdash; so this is correcting a
+               belief, not filling a blank.</p>`
+            : ''))
+    : '';
 
   screen.innerHTML = `
     <div class="card">
-      <div class="skill">Stuck on ${escape(r.stuck_on)}</div>
-      ${gaps || '<p class="note">No gap found below this question.</p>'}
-      ${r.stopped_early ? `<p class="note">Stopped early: ${escape(r.stopped_early)}.</p>` : ''}
+      <p class="note">Stuck on ${escape(r.stuck_on)}</p>
+      <p class="label">Teach this first</p>
+      <p class="gap">${gap ? escape(gap.skill) : 'Nothing below this question'}</p>
+      ${how}
     </div>
-    <div class="card">
-      <div class="skill">What we asked</div>
+
+    ${why ? `<div class="card">
+      <p class="label">Why that one</p>
+      ${why}
+    </div>` : ''}
+
+    ${r.stopped_early ? `<div class="card">
+      <p class="label">We stopped early</p>
+      <p>${escape(r.stopped_early)}. Treat this as a lead rather than a
+         finished answer.</p>
+    </div>` : ''}
+
+    ${r.unchecked.length ? `<div class="card">
+      <p class="label">Not looked at</p>
+      <p>We followed one trail down. ${listOf(r.unchecked.map(escape))}
+         ${r.unchecked.length === 1 ? 'was' : 'were'} never asked about, so
+         there may be more than one thing missing.</p>
+    </div>` : ''}
+
+    <details class="card">
+      <summary>Every question, in order</summary>
       <ul>${r.asked.map(a =>
         `<li class="${a.held ? 'held' : 'missed'}">${escape(a.skill)}
+          &mdash; ${a.held ? 'got it right'
+                   : (a.dont_know ? 'said they did not know' : 'got it wrong')}
          ${a.mistake ? `<br><span class="note">${escape(a.mistake)}</span>` : ''}</li>`
       ).join('')}</ul>
-    </div>
-    ${r.unchecked.length ? `<div class="card">
-      <div class="skill">Not checked</div>
-      <p class="note">Any of these could hold another gap:
-        ${r.unchecked.map(escape).join(', ')}.</p>
-    </div>` : ''}
+    </details>
+
     <p><button onclick="askScreen()">Another question</button></p>`;
+}
+
+function listOf(items) {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
 }
 
 function outOfScope() {
