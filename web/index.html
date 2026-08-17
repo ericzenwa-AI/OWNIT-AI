@@ -219,24 +219,7 @@ function report() {
       ${why}
     </div>` : ''}
 
-    ${r.stopped_early ? `<div class="card">
-      <p class="label">How far we looked</p>
-      <p>${/levels/.test(r.stopped_early)
-          ? `We stop two steps below the question on purpose. Two is enough to
-             name something teachable &mdash; going further ends up somewhere
-             true but useless, like telling an A-level student their problem is
-             Year 7 arithmetic. If teaching this does not stick, there is
-             probably something below it.`
-          : `${escape(r.stopped_early)}. Treat this as a lead rather than a
-             finished answer.`}</p>
-    </div>` : ''}
-
-    ${r.unchecked.length ? `<div class="card">
-      <p class="label">Not looked at</p>
-      <p>We followed one trail down. ${listOf(r.unchecked.map(escape))}
-         ${r.unchecked.length === 1 ? 'was' : 'were'} never asked about, so
-         there may be more than one thing missing.</p>
-    </div>` : ''}
+    ${unchecked(r)}
 
     <details class="card">
       <summary>Every question, in order</summary>
@@ -249,6 +232,26 @@ function report() {
     </details>
 
     <p><button onclick="askScreen()">Another question</button></p>`;
+}
+
+// One card, not two. How far down we went and which branches we stepped past
+// are the same admission - we checked one trail, not everything - and splitting
+// them read as two separate caveats.
+function unchecked(r) {
+  const skipped = r.unchecked.length
+    ? `${listOf(r.unchecked.map(escape))}
+       ${r.unchecked.length === 1 ? 'was' : 'were'} not asked about.`
+    : '';
+  const deeper = /levels/.test(r.stopped_early || '')
+    ? 'We did not look below it either.'
+    : (r.stopped_early ? escape(r.stopped_early) + '.' : '');
+
+  if (!skipped && !deeper) return '';
+
+  return `<div class="card">
+    <p class="label">What we did not check</p>
+    <p>${skipped} ${deeper} So there may be more than one thing missing.</p>
+  </div>`;
 }
 
 function listOf(items) {
