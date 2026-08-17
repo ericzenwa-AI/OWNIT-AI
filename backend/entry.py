@@ -45,6 +45,7 @@ MEDIA_TYPES = {
     ".jpeg": "image/jpeg",
     ".gif": "image/gif",
     ".webp": "image/webp",
+    ".pdf": "application/pdf",
 }
 
 def out_of_scope(match=None) -> str:
@@ -114,29 +115,34 @@ class EntryMatch(BaseModel):
     recognised_as: str = ""
 
 
-def _image_block(image_path: str | Path) -> dict:
-    """Wrap a photo of a question so the API can read it.
+def attachment_block(path: str | Path) -> dict:
+    """Wrap a photo or a PDF so the API can read it.
 
-    The Messages API takes images natively as base64 content blocks, so a photo
-    needs no separate transcription step - it goes in the same request as the
-    text and Claude reads it directly.
+    Both go in the same request as the text and are read directly - no OCR step
+    and, importantly, no text extraction. Pulling the text layer out of a PDF is
+    exactly what turns (1 - 9x)^(1/2) into "19 1 2 x"; sending the file itself
+    keeps the layout, and the layout is where the maths lives.
     """
-    path = Path(image_path)
+    path = Path(path)
     media_type = MEDIA_TYPES.get(path.suffix.lower())
     if media_type is None:
         raise ValueError(
-            f"Cannot read '{path.suffix}' images. Use one of: "
+            f"Cannot read '{path.suffix}' files. Use one of: "
             f"{', '.join(sorted(MEDIA_TYPES))}"
         )
 
-    return {
-        "type": "image",
-        "source": {
-            "type": "base64",
-            "media_type": media_type,
-            "data": base64.standard_b64encode(path.read_bytes()).decode("utf-8"),
-        },
+    source = {
+        "type": "base64",
+        "media_type": media_type,
+        "data": base64.standard_b64encode(path.read_bytes()).decode("utf-8"),
     }
+    # A PDF is a document block; everything else is an image block.
+    kind = "document" if media_type == "application/pdf" else "image"
+    return {"type": kind, "source": source}
+
+
+# Kept for callers that only ever pass images.
+_image_block = attachment_block
 
 
 def build_prompt(question: str, topic: str | None = None) -> str:
@@ -205,7 +211,7 @@ def identify_entry(
     content: list[dict] = []
     if image_path is not None:
         # Images go before the text they relate to.
-        content.append(_image_block(image_path))
+        content.append(attachment_block(image_path))
     content.append({"type": "text", "text": build_prompt(question, topic)})
 
     response = client.messages.parse(

@@ -30,12 +30,77 @@ from pathlib import Path
 
 from anthropic import Anthropic
 
-from entry import MEDIA_TYPES, identify_entry, is_usable
+from pydantic import BaseModel
+
+from entry import MEDIA_TYPES, attachment_block, identify_entry, is_usable
 from graph import SKILLS
+from questions import MAX_TOKENS, MODEL
 
 # Questions are independent, so they run side by side. Serially, fifty
 # questions is a quarter of an hour of watching a terminal.
 WORKERS = 5
+
+
+class PaperQuestion(BaseModel):
+    """One question lifted off a paper."""
+
+    number: str
+    text: str
+    recognised_as: str
+
+
+class Paper(BaseModel):
+    questions: list[PaperQuestion]
+
+
+def read_paper(
+    pdf: Path, *, client: Anthropic | None = None, model: str = MODEL
+) -> list[PaperQuestion]:
+    """Pull every question out of a past paper, maths intact.
+
+    The model reads the PDF itself rather than us scraping its text layer -
+    scraping is what collapses a fractional power into a stray number, and a
+    question whose maths has been destroyed tells us nothing about coverage.
+    """
+    client = client or Anthropic()
+
+    response = client.messages.parse(
+        model=model,
+        max_tokens=MAX_TOKENS,
+        system=(
+            "You transcribe A-level maths exam papers. You copy questions out "
+            "faithfully, including the mathematics, and never solve them."
+        ),
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    attachment_block(pdf),
+                    {
+                        "type": "text",
+                        "text": (
+                            "List every question in this paper.\n"
+                            "- One entry per question. Keep lettered parts "
+                            "together in the same entry, as they appear.\n"
+                            "- Copy the wording, and write the maths in plain "
+                            "ASCII: / for division, ^ for powers, sqrt() for "
+                            "roots, * for multiplication. Getting the maths "
+                            "right matters more than the exact wording.\n"
+                            "- Skip the front cover, formula sheets and blank "
+                            "pages.\n"
+                            "- In `recognised_as`, name the topic in two or "
+                            "three words.\n"
+                            "- Do not answer anything."
+                        ),
+                    },
+                ],
+            }
+        ],
+        output_format=Paper,
+    )
+
+    paper = response.parsed_output
+    return paper.questions if paper else []
 
 
 @dataclass
@@ -193,7 +258,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Measure how many real questions we can place."
     )
-    parser.add_argument("path", help="a text file of questions, or a folder of images")
+    parser.add_argument(
+        "path", help="a text file, a folder of images, or a past paper PDF"
+    )
     parser.add_argument(
         "--images", action="store_true", help="treat the path as a folder of images"
     )
@@ -208,7 +275,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {path} does not exist", file=sys.stderr)
         return 2
 
-    if args.images or path.is_dir():
+    if path.suffix.lower() == ".pdf":
+        print(f"Reading {path.name}...")
+        questions = read_paper(path)
+        if not questions:
+            print(f"error: could not read any questions from {path}", file=sys.stderr)
+            return 2
+        print(f"Found {len(questions)} questions. Checking...")
+        report = check_questions([q.text for q in questions], args.workers)
+        for item, question in zip(report.checked, questions):
+            item.source = f"Q{question.number}"
+    elif args.images or path.is_dir():
         images = find_images(path)
         if not images:
             print(f"error: no images in {path}", file=sys.stderr)
