@@ -1,51 +1,111 @@
 # OwnIt
 
-## v1 (on `main`)
+Two things live in this repository.
 
-A FastAPI backend that checks whether a student can account for an essay they submitted. Upload a PDF, get Socratic questions about the argument's load-bearing claims, answer them, get follow-ups that probe what the answers left unexplained, and produce a neutral observation report for the teacher. The report deliberately does not judge or score — it records what the student said, with quotes.
+**v2 — the maths diagnostic** (this branch). A student is stuck on a question.
+They send it in, and instead of being told how to do it, they are asked a short
+run of questions that traces the failure downwards through the skills the
+question rests on, until it reaches the one that is actually missing.
 
-## v2 — Diagnostic (this branch)
+**v1 — the essay checker** (`backend/main.py`). The original: upload an essay,
+answer questions about it, and a teacher gets a neutral report of what the
+student could and could not account for. Untouched by v2 except for a model
+migration.
 
-v2 changes the subject and the shape of the problem.
+---
 
-**Input:** an A-level maths question a student is stuck on, plus their attempt (however partial, however wrong).
-
-**Output:** the specific prerequisite skill that is actually missing.
-
-### The idea
-
-"I don't get integration by parts" is almost never the real problem. Underneath it might be a shaky grip on the product rule, or on rearranging an equation, or on what a definite integral means. A student who is told to re-read the integration-by-parts chapter will fail again, because the thing that broke was three levels down.
-
-v2 works backwards from the failure. It takes the attempt, finds the first step where the reasoning actually goes wrong, and then asks: what must be true for a student to get that step right? That gives a prerequisite. If the student can do the prerequisite, the diagnosis stops there. If they can't, the same question is asked of *that* skill, and the trace goes one level deeper.
-
-The result is a chain, not a label:
+## v2, in one pass
 
 ```
-integration by parts
-  └─ product rule for differentiation
-       └─ recognising a product vs. a composition
+    a photo of a question
+            |
+    entry.py     which skill is this asking for?  (or: we cannot place it)
+            |
+    walk.py      ask about a prerequisite. Held? try the next one.
+            |    Not held? go down into it and ask again.
+            |
+    the gap      the deepest skill they cannot do whose own
+                 prerequisites they can
 ```
 
-with the bottom of the chain being the thing to actually teach.
+The rest is in service of that:
 
-### How it differs from v1
+| | |
+|---|---|
+| `data/skills.yaml` | 72 skills and what each rests on. 24 are doorways a question can start from |
+| `backend/graph.py` | loads it, refuses to run on a broken graph |
+| `backend/questions.py` | writes one multiple-choice question about one skill |
+| `backend/bank.py` | keeps questions so they are written once per skill, not once per student |
+| `backend/entry.py` | question in - photo, PDF or text - to a skill to start from |
+| `backend/walk.py` | the descent |
+| `backend/store.py` | every answer, every gap, every question we could not place |
+| `backend/api.py` | the same thing over HTTP, one question per request |
+| `web/index.html` | the page |
+| `backend/coverage.py` | how many real questions can we place? |
+| `backend/scheme.py` | what do mark schemes say a question actually needs? |
+| `backend/llm.py` | which model each job gets |
 
-| | v1 | v2 |
-|---|---|---|
-| Domain | Essays | A-level maths |
-| Asks about | Work the student already produced | Work the student is stuck on |
-| Goal | Can they account for it? | What is missing underneath? |
-| Output | Neutral observation report | A prerequisite chain and a single root gap |
+## Running it
 
-What carries over is the method: ask, don't tell. The diagnostic never supplies the answer or works the problem for the student. Probing questions are how it tests whether a prerequisite is held, and the student's replies are the evidence.
+```powershell
+pip install -r requirements.txt
 
-### Open questions
+# the website
+uvicorn api:app --reload --port 8000 --app-dir backend
 
-- Where does the prerequisite map come from — is it inferred per-question, or is there a fixed A-level skill graph to walk?
-- When does the trace stop? Too shallow and it restates the symptom; too deep and every diagnosis bottoms out at arithmetic.
-- How many probing questions can we ask before a stuck student gives up?
-- Does the report go to the student, the teacher, or both — and does it read differently for each?
+# or from a terminal, no server
+python backend/entry.py "Find the stationary points of y = x^3 - 6x^2 + 9x" --role tutor
+python backend/entry.py "" --image data/papers/question.png
 
-### Status
+# how much of a real paper can we handle?
+python backend/coverage.py data/papers/paper.pdf
 
-Design only. No v2 code yet. `backend/main.py` is unchanged v1.
+# what does a mark scheme say questions need?
+python backend/scheme.py data/papers/markscheme.pdf
+```
+
+`ANTHROPIC_API_KEY` goes in `backend/.env`.
+
+```powershell
+python -m pytest backend/ -q      # 170 tests, none of which call the API
+```
+
+## Deploying
+
+The application is stateless; everything is in one SQLite file.
+
+```
+web: uvicorn api:app --host 0.0.0.0 --port $PORT --app-dir backend
+```
+
+Two environment variables:
+
+- `ANTHROPIC_API_KEY`
+- `OWNIT_DB` — where the database lives
+
+**`OWNIT_DB` matters more than it looks.** Hosting platforms wipe the
+filesystem on every deploy, so it has to point at a disk that survives -
+otherwise every session, every misconception and every banked question
+disappears the next time you push. That data is the only part of this that a
+competitor could not rebuild from the code.
+
+One instance only, while it is SQLite. Several would need Postgres, and nothing
+above would change except the connection.
+
+## Where it actually stands
+
+**Working, and checked against real questions:** reading a photo or a PDF of a
+question, matching it to a skill or honestly refusing, narrowing from a
+student's attempt, the descent itself, the question bank, and the record of
+everything answered.
+
+**Coverage is 20%** of a real Edexcel Pure paper - 3 questions in 15. The
+backlog is not a guess: `coverage.py` and `scheme.py` produce it from actual
+papers. Biggest gaps are integration, trigonometry, modulus functions,
+composite and inverse functions, binomial expansion and series.
+
+**Not yet done.** Nothing measures whether a diagnosis is *correct* -
+`backend/eval.py` is still empty, and that is the gap that matters most before
+real students see it. Nobody has corrected a diagnosis yet, so the `feedback`
+table is empty. And the report is written for a tutor; the same finding needs
+gentler words before it is put in front of a sixteen-year-old.

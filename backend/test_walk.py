@@ -469,3 +469,94 @@ def test_carrying_does_not_change_the_diagnosis():
 
     assert plain.root_gaps == carried.root_gaps
     assert plain.chains == carried.chains
+
+
+# ---- Taking one step at a time --------------------------------------------
+
+
+def answer(skill_id, held=True, **kw):
+    return SkillResult(skill_id, held=held, **kw)
+
+
+def test_a_walk_with_no_answers_asks_the_first_question():
+    from walk import step
+
+    current = step(ENTRY)
+    assert current.finished is False
+    assert current.ask == _most_foundational(ENTRY)[0]
+
+
+def test_stepping_reaches_the_same_diagnosis_as_running_it_all_at_once():
+    """The web version and the terminal version must not be able to differ."""
+    from walk import step
+
+    fails = {"surds", "index_laws"}
+    at_once = diagnose(ENTRY, check=student(fails=fails))
+
+    answers = []
+    while True:
+        current = step(ENTRY, answers)
+        if current.finished:
+            break
+        answers.append(
+            answer(current.ask, held=current.ask not in fails, mistake="muddled")
+        )
+
+    assert current.diagnosis.root_gaps == at_once.root_gaps
+    assert current.diagnosis.chains == at_once.chains
+    assert [r.skill_id for r in current.diagnosis.results] == [
+        r.skill_id for r in at_once.results
+    ]
+
+
+def test_stepping_holds_nothing_between_calls():
+    """Same answers in, same question out - no matter how often you ask.
+
+    This is what lets a server forget a student entirely between requests.
+    """
+    from walk import step
+
+    answers = [answer("fractions_arith", held=True)]
+    first = step(ENTRY, answers)
+    second = step(ENTRY, answers)
+    third = step(ENTRY, list(answers))
+
+    assert first.ask == second.ask == third.ask
+
+
+def test_a_finished_walk_asks_for_nothing_more():
+    from walk import step
+
+    answers = [answer(need, held=True) for need in SKILLS[ENTRY].needs]
+    current = step(ENTRY, answers)
+
+    assert current.finished is True
+    assert current.ask is None
+    assert current.diagnosis.root_gaps == [ENTRY]
+
+
+def test_a_walk_can_be_picked_up_later():
+    """He closed the tab on Tuesday and came back on Thursday."""
+    from walk import step
+
+    tuesday = [answer("fractions_arith", held=True)]
+    thursday = step(ENTRY, tuesday)
+
+    assert thursday.finished is False
+    assert thursday.ask == "surds"
+
+
+def test_the_cap_still_applies_when_stepping():
+    from walk import step
+
+    given = [answer("form_expression_from_context", held=False, mistake="no")]
+    current = step("optimisation", given, cap=1)
+
+    assert current.finished is True
+    assert "maximum of 1" in current.diagnosis.stopped_early
+
+
+def _most_foundational(entry_id):
+    from walk import _most_foundational_first
+
+    return _most_foundational_first(SKILLS[entry_id].needs)

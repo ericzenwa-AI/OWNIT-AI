@@ -322,21 +322,85 @@ def _most_foundational_first(skill_ids) -> list[str]:
     return sorted(skill_ids, key=lambda s: (-SKILLS[s].level, s))
 
 
-def diagnose(
+@dataclass
+class Reading:
+    """What reading the student's attempt established.
+
+    Decided once at the start and carried from then on, because it costs two
+    model calls and the answer cannot change part way through a walk.
+    """
+
+    had_attempt: bool = False
+    narrowed_to: list[str] | None = None
+    narrowed_because: str | None = None
+    presentation_note: str | None = None
+
+
+@dataclass
+class Step:
+    """Where a walk has got to: one more question, or a finished diagnosis."""
+
+    ask: str | None
+    diagnosis: Diagnosis
+
+    @property
+    def finished(self) -> bool:
+        return self.ask is None
+
+
+def read_attempt(
+    entry: Skill, attempt: str, *, client: Anthropic | None = None
+) -> Reading:
+    """The two judgements we make about an attempt, before any question."""
+    presentation = check_presentation(entry, attempt, client=client)
+    narrowing = narrow_to_branch(entry, attempt, client=client)
+
+    return Reading(
+        had_attempt=True,
+        narrowed_to=list(narrowing.branch_skill_ids),
+        narrowed_because=narrowing.reason,
+        presentation_note=(
+            presentation.note if presentation.presentation_only else None
+        ),
+    )
+
+
+def step(
     entry_skill_id: str,
-    attempt: str | None = None,
+    answers: list[SkillResult] | tuple = (),
     *,
-    check: Check = check_by_asking,
-    client: Anthropic | None = None,
+    reading: Reading | None = None,
     cap: int = QUESTION_CAP,
     dont_know_run: int = DONT_KNOW_RUN,
-) -> Diagnosis:
-    """Find the skill underneath the question that the student is missing."""
+) -> Step:
+    """Given what a student has answered so far, what should we ask next?
+
+    This is the whole walk, and it holds nothing between calls. Hand it the
+    answers and it replays the descent from the top, stopping at the first
+    skill it has no answer for - that is the next question. When it runs out of
+    questions, the diagnosis is finished.
+
+    That is what makes the walk work over a web request. A terminal program can
+    sit inside a loop waiting for a keypress; a server cannot hold a half
+    finished walk in memory while a student thinks, wanders off, or closes the
+    tab. Replaying is cheap, and it means the answer never depends on anything
+    being remembered - only on what the student actually said.
+    """
     entry = SKILLS.get(entry_skill_id)
     if entry is None:
         raise ValueError(f"'{entry_skill_id}' is not a skill in the graph")
 
-    diagnosis = Diagnosis(entry_skill_id=entry.id, had_attempt=attempt is not None)
+    reading = reading or Reading()
+    given = {answer.skill_id: answer for answer in answers}
+    needed: str | None = None
+
+    diagnosis = Diagnosis(
+        entry_skill_id=entry.id,
+        had_attempt=reading.had_attempt,
+        presentation_note=reading.presentation_note,
+        narrowed_to=list(reading.narrowed_to) if reading.narrowed_to else None,
+        narrowed_because=reading.narrowed_because,
+    )
 
     # Being stuck on the question is the premise. We never test the entry node -
     # if every prerequisite below it holds, the entry node itself is the gap.
@@ -348,20 +412,11 @@ def diagnose(
     # Who sent us to each skill, so we can trace a chain back up afterwards.
     parents: dict[str, str] = {}
 
-    # Round one is the only place the two paths differ.
-    if attempt is not None:
-        presentation = check_presentation(entry, attempt, client=client)
-        if presentation.presentation_only:
-            diagnosis.presentation_note = presentation.note
-
-        narrowing = narrow_to_branch(entry, attempt, client=client)
-        diagnosis.narrowed_to = list(narrowing.branch_skill_ids)
-        diagnosis.narrowed_because = narrowing.reason
-
-        # The branch the attempt pointed at goes first. The rest of the level
-        # queues up behind it, so a wrong guess costs questions rather than
-        # ending the walk with nothing.
-        candidates = list(narrowing.branch_skill_ids)
+    # Round one is the only place the two paths differ. The branch the attempt
+    # pointed at goes first, with the rest of the level queued behind it, so a
+    # wrong guess costs questions rather than ending the walk with nothing.
+    if reading.narrowed_to:
+        candidates = list(reading.narrowed_to)
         candidates += _most_foundational_first(
             [need for need in entry.needs if need not in candidates]
         )
@@ -389,7 +444,14 @@ def diagnose(
                 ]
                 break
 
-            result = check(SKILLS[skill_id])
+            # The first skill we have no answer for is the next question. Stop
+            # here and hand it back rather than asking for it ourselves.
+            result = given.get(skill_id)
+            if result is None:
+                needed = skill_id
+                parents.setdefault(skill_id, parent)
+                break
+
             results[skill_id] = result
             diagnosis.results.append(result)
             parents.setdefault(skill_id, parent)
@@ -408,7 +470,7 @@ def diagnose(
                 ]
                 break
 
-        if diagnosis.stopped_early:
+        if needed or diagnosis.stopped_early:
             break
 
         if dont_knows_running >= dont_know_run:
@@ -441,7 +503,44 @@ def diagnose(
             if result.asked
         )
 
-    return diagnosis
+    return Step(ask=needed, diagnosis=diagnosis)
+
+
+def diagnose(
+    entry_skill_id: str,
+    attempt: str | None = None,
+    *,
+    check: Check = check_by_asking,
+    client: Anthropic | None = None,
+    cap: int = QUESTION_CAP,
+    dont_know_run: int = DONT_KNOW_RUN,
+) -> Diagnosis:
+    """Run a whole walk here and now, asking as it goes.
+
+    The terminal version: it can afford to sit in a loop waiting for someone to
+    type. A server takes the same steps one request at a time - the deciding is
+    all in step(), so the two cannot drift apart.
+    """
+    entry = SKILLS.get(entry_skill_id)
+    if entry is None:
+        raise ValueError(f"'{entry_skill_id}' is not a skill in the graph")
+
+    reading = (
+        read_attempt(entry, attempt, client=client) if attempt is not None else Reading()
+    )
+
+    answers: list[SkillResult] = []
+    while True:
+        current = step(
+            entry_skill_id,
+            answers,
+            reading=reading,
+            cap=cap,
+            dont_know_run=dont_know_run,
+        )
+        if current.finished:
+            return current.diagnosis
+        answers.append(check(SKILLS[current.ask]))
 
 
 def _root_gaps(results: dict[str, SkillResult]) -> list[str]:

@@ -26,12 +26,20 @@ choose, like "student_7", and the point is that it should not be a name.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_PATH = Path(__file__).resolve().parent.parent / "data" / "ownit.db"
+# Where the answers live. Overridable because a hosting platform wipes its
+# filesystem on every deploy - there the path has to point at a mounted disk
+# that survives, or every session ever recorded disappears with the next push.
+DEFAULT_PATH = Path(
+    os.environ.get(
+        "OWNIT_DB", Path(__file__).resolve().parent.parent / "data" / "ownit.db"
+    )
+)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sessions (
@@ -47,7 +55,22 @@ CREATE TABLE IF NOT EXISTS sessions (
     root_gaps         TEXT,
     chain             TEXT,
     unchecked         TEXT,
-    stopped_early     TEXT
+    stopped_early     TEXT,
+    -- What reading the attempt established. Decided once, then carried, so a
+    -- walk resumed tomorrow narrows the same way it did today.
+    reading           TEXT,
+    finished          INTEGER NOT NULL DEFAULT 0
+);
+
+-- The question currently on a student's screen. One per session, so answering
+-- can be scored against exactly what they were shown rather than against a
+-- fresh shuffle. Cleared as soon as it is answered.
+CREATE TABLE IF NOT EXISTS pending (
+    session_id INTEGER PRIMARY KEY REFERENCES sessions(id),
+    skill_id   TEXT    NOT NULL,
+    question   TEXT    NOT NULL,
+    options    TEXT    NOT NULL,
+    banked_id  INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS answers (
@@ -468,3 +491,153 @@ def weak_questions(
            ORDER BY times_asked DESC""",
         (min_asked,),
     ).fetchall()
+
+
+# ---- A walk in progress ---------------------------------------------------
+#
+# The terminal keeps a walk alive inside one running function. A server cannot,
+# so these let a walk live entirely in the database: opened, answered a question
+# at a time, and closed. Nothing is held between requests, which is what lets a
+# student shut the tab and come back.
+
+
+def open_walk(
+    connection: sqlite3.Connection,
+    *,
+    entry_skill_id: str,
+    reading,
+    question: str | None = None,
+    attempt: str | None = None,
+    student_ref: str | None = None,
+    role: str | None = None,
+    match=None,
+) -> int:
+    """Start a walk and return the id everything else refers to."""
+    from dataclasses import asdict
+
+    cursor = connection.execute(
+        """INSERT INTO sessions (created_at, student_ref, role, question, attempt,
+               entry_skill_id, entry_confidence, entry_confirmed, reading)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            _now(),
+            student_ref,
+            role,
+            question,
+            attempt,
+            entry_skill_id,
+            getattr(match, "confidence", None),
+            1 if match is not None else None,
+            json.dumps(asdict(reading)),
+        ),
+    )
+    connection.commit()
+    return cursor.lastrowid
+
+
+def walk_state(connection: sqlite3.Connection, session_id: int):
+    return connection.execute(
+        "SELECT * FROM sessions WHERE id = ?", (session_id,)
+    ).fetchone()
+
+
+def answers_so_far(connection: sqlite3.Connection, session_id: int) -> list:
+    """Rebuild what the student has established, in the order they said it."""
+    from walk import SkillResult
+
+    rows = connection.execute(
+        """SELECT * FROM answers WHERE session_id = ? ORDER BY position""",
+        (session_id,),
+    ).fetchall()
+
+    return [
+        SkillResult(
+            row["skill_id"],
+            held=row["outcome"] == "correct",
+            mistake=row["misconception"],
+            dont_know=row["outcome"] == "dont_know",
+            question=row["question"],
+            chosen=row["chosen"],
+            seconds=row["seconds"],
+        )
+        for row in rows
+    ]
+
+
+def set_pending(
+    connection: sqlite3.Connection,
+    session_id: int,
+    *,
+    skill_id: str,
+    question: str,
+    options: list[dict],
+    banked_id: int | None = None,
+) -> None:
+    """Remember exactly what we put on screen, so the answer can be scored."""
+    connection.execute(
+        """INSERT INTO pending (session_id, skill_id, question, options, banked_id)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(session_id) DO UPDATE SET
+               skill_id = excluded.skill_id,
+               question = excluded.question,
+               options  = excluded.options,
+               banked_id = excluded.banked_id""",
+        (session_id, skill_id, question, json.dumps(options), banked_id),
+    )
+    connection.commit()
+
+
+def pending_question(connection: sqlite3.Connection, session_id: int):
+    return connection.execute(
+        "SELECT * FROM pending WHERE session_id = ?", (session_id,)
+    ).fetchone()
+
+
+def record_answer(
+    connection: sqlite3.Connection,
+    session_id: int,
+    *,
+    skill_id: str,
+    question: str,
+    chosen: str,
+    held: bool,
+    mistake: str | None,
+    dont_know: bool,
+    banked_id: int | None = None,
+) -> None:
+    """File one answer and take the question off the screen."""
+    position = connection.execute(
+        "SELECT COUNT(*) AS n FROM answers WHERE session_id = ?", (session_id,)
+    ).fetchone()["n"] + 1
+
+    outcome = "correct" if held else ("dont_know" if dont_know else "wrong")
+    connection.execute(
+        """INSERT INTO answers (session_id, position, skill_id, question,
+               chosen, outcome, misconception)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (session_id, position, skill_id, question, chosen, outcome, mistake),
+    )
+    connection.execute("DELETE FROM pending WHERE session_id = ?", (session_id,))
+    connection.commit()
+
+    if banked_id is not None:
+        mark_asked(connection, banked_id, held)
+
+
+def close_walk(connection: sqlite3.Connection, session_id: int, diagnosis) -> None:
+    """Write the conclusion onto the session."""
+    connection.execute(
+        """UPDATE sessions
+           SET root_gaps = ?, chain = ?, unchecked = ?, stopped_early = ?,
+               finished = 1
+           WHERE id = ?""",
+        (
+            ",".join(diagnosis.root_gaps),
+            " -> ".join(diagnosis.chains[0]) if diagnosis.chains else "",
+            ",".join(diagnosis.unchecked),
+            diagnosis.stopped_early,
+            session_id,
+        ),
+    )
+    connection.execute("DELETE FROM pending WHERE session_id = ?", (session_id,))
+    connection.commit()

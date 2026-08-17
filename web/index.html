@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OwnIt</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --quiet: #6b6b6b;
+    --line: #e0ddd6;
+    --paper: #faf8f4;
+    --accent: #2f5d50;
+    --wrong: #8c3b2e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 1.5rem 1rem 4rem;
+    background: var(--paper);
+    color: var(--ink);
+    font: 17px/1.55 Georgia, 'Times New Roman', serif;
+  }
+  main { max-width: 34rem; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+  .sub { color: var(--quiet); font-size: 0.9rem; margin: 0 0 1.75rem; }
+  textarea, input[type=text] {
+    width: 100%; padding: 0.7rem; font: inherit; font-size: 0.95rem;
+    border: 1px solid var(--line); border-radius: 6px; background: #fff;
+  }
+  textarea { min-height: 5rem; resize: vertical; }
+  label { display: block; font-size: 0.85rem; color: var(--quiet); margin: 1rem 0 0.35rem; }
+  button {
+    font: inherit; padding: 0.7rem 1.2rem; border-radius: 6px;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.option {
+    display: block; width: 100%; text-align: left; margin: 0.5rem 0;
+    background: #fff; color: var(--ink); border-color: var(--line);
+    padding: 0.8rem 1rem;
+  }
+  button.option:hover:not(:disabled) { border-color: var(--accent); }
+  button.option .letter { color: var(--quiet); margin-right: 0.6rem; }
+  .card {
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 8px; padding: 1.25rem; margin: 1rem 0;
+  }
+  .skill { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
+           color: var(--quiet); margin-bottom: 0.6rem; }
+  .question { font-size: 1.05rem; margin-bottom: 1rem; white-space: pre-wrap; }
+  .chain { color: var(--quiet); font-size: 0.9rem; margin-top: 0.4rem; }
+  .gap { font-size: 1.1rem; color: var(--accent); font-weight: bold; }
+  .note { color: var(--quiet); font-size: 0.88rem; }
+  .held::before { content: "held  "; color: var(--accent); }
+  .missed::before { content: "not held  "; color: var(--wrong); }
+  li { margin: 0.4rem 0; }
+  .quiet-link { background: none; border: none; color: var(--quiet);
+                text-decoration: underline; padding: 0; font-size: 0.85rem; }
+  .error { color: var(--wrong); }
+  .counter { color: var(--quiet); font-size: 0.8rem; text-align: right; }
+</style>
+</head>
+<body>
+<main>
+  <h1>OwnIt</h1>
+  <p class="sub">Stuck on a maths question? Let's find what's actually missing.</p>
+  <div id="screen"></div>
+</main>
+
+<script>
+const screen = document.getElementById('screen');
+let state = {};
+
+// A photo keeps the layout that copy-pasting destroys - powers and fractions
+// come out of a PDF as loose numbers - so it is offered first.
+function askScreen() {
+  screen.innerHTML = `
+    <div class="card">
+      <label for="photo">A photo of the question (best)</label>
+      <input type="file" id="photo" accept="image/*,application/pdf">
+      <label for="text">Or type it out</label>
+      <textarea id="text" placeholder="Simplify (x^5 * x^2) / x^3"></textarea>
+      <label for="attempt">What you tried, if anything (optional)</label>
+      <textarea id="attempt" placeholder="I don't know how to start"></textarea>
+      <p><button id="go">Start</button></p>
+      <p id="msg" class="note"></p>
+    </div>`;
+  document.getElementById('go').onclick = start;
+}
+
+async function start() {
+  const button = document.getElementById('go');
+  const msg = document.getElementById('msg');
+  const file = document.getElementById('photo').files[0];
+  const text = document.getElementById('text').value.trim();
+
+  if (!file && !text) { msg.textContent = 'Give me the question, or a photo of it.'; return; }
+
+  button.disabled = true;
+  msg.textContent = 'Reading the question...';
+
+  const body = {
+    question: text,
+    attempt: document.getElementById('attempt').value.trim() || null,
+  };
+  if (file) {
+    body.attachment = await asBase64(file);
+    body.attachment_type = file.type;
+  }
+
+  try {
+    state = await post('/api/start', body);
+    draw();
+  } catch (error) {
+    button.disabled = false;
+    msg.className = 'error';
+    msg.textContent = error.message;
+  }
+}
+
+async function answer(label) {
+  document.querySelectorAll('button.option').forEach(b => b.disabled = true);
+  try {
+    state = await post('/api/answer', {
+      session_id: state.session_id,
+      label,
+      answered_before: state.asked_so_far,
+    });
+    draw();
+  } catch (error) {
+    screen.insertAdjacentHTML('beforeend', `<p class="error">${error.message}</p>`);
+  }
+}
+
+function draw() {
+  if (state.message) return outOfScope();
+  if (state.finished) return report();
+  question();
+}
+
+function question() {
+  const q = state.asking;
+  screen.innerHTML = `
+    ${state.matched ? `<p class="note">Looking at: ${escape(state.matched)}</p>` : ''}
+    <div class="card">
+      <div class="skill">${escape(q.skill_name)}</div>
+      <div class="question">${escape(q.question)}</div>
+      <div id="options"></div>
+    </div>
+    <p class="counter">${state.asked_so_far} answered</p>`;
+
+  const box = document.getElementById('options');
+  q.options.forEach(o => {
+    const button = document.createElement('button');
+    button.className = 'option';
+    button.innerHTML = `<span class="letter">${o.label}</span>${escape(o.text)}`;
+    button.onclick = () => answer(o.label);
+    box.appendChild(button);
+  });
+}
+
+function report() {
+  const r = state.report;
+  const gaps = r.gaps.map(g => `
+    <p class="gap">${escape(g.skill)}</p>
+    <p class="note">${g.nothing_there
+        ? 'Nothing there yet - this is the place to start from scratch.'
+        : (g.mistake ? escape(g.mistake) : 'This is where it broke.')}</p>
+    <p class="chain">${g.chain.map(escape).join(' &rarr; ')}</p>`).join('');
+
+  screen.innerHTML = `
+    <div class="card">
+      <div class="skill">Stuck on ${escape(r.stuck_on)}</div>
+      ${gaps || '<p class="note">No gap found below this question.</p>'}
+      ${r.stopped_early ? `<p class="note">Stopped early: ${escape(r.stopped_early)}.</p>` : ''}
+    </div>
+    <div class="card">
+      <div class="skill">What we asked</div>
+      <ul>${r.asked.map(a =>
+        `<li class="${a.held ? 'held' : 'missed'}">${escape(a.skill)}
+         ${a.mistake ? `<br><span class="note">${escape(a.mistake)}</span>` : ''}</li>`
+      ).join('')}</ul>
+    </div>
+    ${r.unchecked.length ? `<div class="card">
+      <div class="skill">Not checked</div>
+      <p class="note">Any of these could hold another gap:
+        ${r.unchecked.map(escape).join(', ')}.</p>
+    </div>` : ''}
+    <p><button onclick="askScreen()">Another question</button></p>`;
+}
+
+function outOfScope() {
+  screen.innerHTML = `
+    <div class="card">
+      <p style="white-space: pre-wrap">${escape(state.message)}</p>
+    </div>
+    <p><button onclick="askScreen()">Try another question</button></p>`;
+}
+
+async function post(path, body) {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || 'Something went wrong.');
+  return data;
+}
+
+function asBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function escape(text) {
+  const node = document.createElement('div');
+  node.textContent = text ?? '';
+  return node.innerHTML;
+}
+
+askScreen();
+</script>
+</body>
+</html>
