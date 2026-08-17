@@ -154,7 +154,12 @@ function question() {
   screen.innerHTML = `
     ${state.matched ? `<p class="note">Looking at: ${escape(state.matched)}</p>` : ''}
     <div class="card">
-      <div class="skill">${escape(q.skill_name)}</div>
+      <!-- Says why this is being asked without naming the chain. The chain is
+           most of how you would approach their question, and announcing what
+           we suspect before they answer invites them to answer to it. The
+           skill's own name is our vocabulary anyway - it belongs in the
+           tutor's report, not on a student's screen. -->
+      <div class="skill">Something your question rests on</div>
       <div class="question">${escape(q.question)}</div>
       <div id="options"></div>
     </div>
