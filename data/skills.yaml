@@ -853,16 +853,18 @@ nodes:
     name: Arithmetic sequences
     level: 2
     topic: sequences and series
-    kind: fact
-    probe: State the nth term and sum formulae for a sequence with a common difference.
+    kind: procedure
+    probe: Use the nth term rule to find a particular term, or work back to the first
+      term and common difference from two given terms.
     needs: [nth_term_rule]
 
   - id: geometric_sequence
     name: Geometric sequences
     level: 2
     topic: sequences and series
-    kind: fact
-    probe: State the nth term and sum formulae for a sequence with a common ratio.
+    kind: procedure
+    probe: Use the nth term rule to find a particular term, or work back to the first
+      term and common ratio from two given terms.
     needs: [nth_term_rule, index_laws]
 
   - id: arithmetic_series_sum
