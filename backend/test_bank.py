@@ -197,3 +197,101 @@ def test_the_shelf_is_used_when_it_has_something(monkeypatch, tmp_path):
 
     _, question = bank.question_for("index_laws")
     assert question.question == "already written"
+
+
+# ---- Surviving the database ------------------------------------------------
+#
+# The shelf was lost twice by ordinary accidents - a deleted file, a rebuilt
+# database. These are about the file that stops that costing money again.
+
+
+@pytest.fixture
+def shelf(tmp_path, monkeypatch):
+    """A database and a shelf file, both temporary."""
+    monkeypatch.setattr(store, "DEFAULT_PATH", tmp_path / "live.db")
+    monkeypatch.setattr(bank, "SHELF_FILE", tmp_path / "question_bank.jsonl")
+    return tmp_path
+
+
+def test_the_shelf_survives_losing_the_database(shelf):
+    """The whole point: delete the database, get the questions back."""
+    connection = store.connect()
+    store.bank_question(connection, "index_laws", a_question("Simplify x^2 * x^5"))
+    store.bank_question(connection, "surds", a_question("Simplify root 50"))
+    connection.close()
+
+    assert bank.save() == 2
+
+    (shelf / "live.db").unlink()
+
+    assert bank.load() == 2
+    connection = store.connect()
+    try:
+        assert store.bank_counts(connection) == {"index_laws": 1, "surds": 1}
+    finally:
+        connection.close()
+
+
+def test_putting_the_shelf_back_twice_changes_nothing(shelf):
+    """Someone will run it again to be sure. That must not duplicate."""
+    connection = store.connect()
+    store.bank_question(connection, "index_laws", a_question())
+    connection.close()
+
+    bank.save()
+    assert bank.load() == 0
+    assert bank.load() == 0
+
+    connection = store.connect()
+    try:
+        assert store.bank_counts(connection) == {"index_laws": 1}
+    finally:
+        connection.close()
+
+
+def test_a_retired_question_stays_retired(shelf):
+    """Retiring is a judgement someone made about a bad question. Losing it
+    means the next person reads the same bad question and judges again."""
+    connection = store.connect()
+    bad = store.bank_question(connection, "index_laws", a_question("Ambiguous"))
+    store.retire_question(connection, bad)
+    connection.close()
+
+    bank.save()
+    (shelf / "live.db").unlink()
+    bank.load()
+
+    connection = store.connect()
+    try:
+        # Retired, so nothing is on the shelf to hand out.
+        assert store.bank_counts(connection) == {}
+        assert store.take_question(connection, "index_laws") is None
+    finally:
+        connection.close()
+
+
+def test_what_students_did_does_not_travel(shelf):
+    """The question is ours to move around. How a particular class got on with
+    it is theirs, and stays on the machine that collected it."""
+    connection = store.connect()
+    banked = store.bank_question(connection, "index_laws", a_question())
+    store.mark_asked(connection, banked, correct=True)
+    store.mark_asked(connection, banked, correct=False)
+    connection.close()
+
+    bank.save()
+
+    import json
+
+    records = None
+    with open(shelf / "question_bank.jsonl", encoding="utf-8") as handle:
+        records = [json.loads(line) for line in handle if line.strip()]
+
+    assert records, "nothing was written"
+    assert "times_asked" not in records[0]
+    assert "times_correct" not in records[0]
+
+
+def test_loading_nothing_is_not_an_error(shelf):
+    """A fresh clone has no shelf file yet. That is a normal state."""
+    assert bank.load() == 0

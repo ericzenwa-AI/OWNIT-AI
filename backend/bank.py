@@ -13,14 +13,18 @@ doing before a busy week rather than being a thing you must remember.
     python backend/bank.py --fill          # write questions for empty skills
     python backend/bank.py --fill --all    # top every skill up
     python backend/bank.py --weak          # questions that teach us nothing
+    python backend/bank.py --save          # write the shelf out to be committed
+    python backend/bank.py --load          # put a committed shelf back
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import random
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import store
 from graph import SKILLS
@@ -31,6 +35,43 @@ from questions import MultipleChoiceQuestion, generate_batch
 PER_SKILL = 5
 
 WORKERS = 5
+
+# Where the shelf lives when it is not in the database. One question per line,
+# so a commit shows which questions changed rather than "binary file differs",
+# and two people adding questions do not collide over the whole file.
+SHELF_FILE = Path(__file__).resolve().parent.parent / "data" / "question_bank.jsonl"
+
+
+def save(path: Path | None = None) -> int:
+    """Write the shelf to a file that can be committed."""
+    path = Path(path or SHELF_FILE)
+    connection = store.connect()
+    try:
+        records = store.export_bank(connection)
+    finally:
+        connection.close()
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return len(records)
+
+
+def load(path: Path | None = None) -> int:
+    """Put a saved shelf back. Returns how many questions were new."""
+    path = Path(path or SHELF_FILE)
+    if not path.exists():
+        return 0
+
+    with path.open(encoding="utf-8") as handle:
+        records = [json.loads(line) for line in handle if line.strip()]
+
+    connection = store.connect()
+    try:
+        return store.restore_bank(connection, records)
+    finally:
+        connection.close()
 
 
 def question_for(skill_id: str, *, connection=None) -> tuple[int | None, MultipleChoiceQuestion]:
@@ -142,12 +183,30 @@ def main(argv: list[str] | None = None) -> int:
         "--all", action="store_true", help="top up every skill, not just empty ones"
     )
     parser.add_argument("--weak", action="store_true", help="show useless questions")
+    parser.add_argument(
+        "--save", action="store_true", help="write the shelf to a committable file"
+    )
+    parser.add_argument("--load", action="store_true", help="put a saved shelf back")
     parser.add_argument("--per-skill", type=int, default=PER_SKILL)
     parser.add_argument("--workers", type=int, default=WORKERS)
     args = parser.parse_args(argv)
 
     if args.weak:
         show_weak()
+        return 0
+
+    if args.save:
+        count = save()
+        print(f"Wrote {count} questions to {SHELF_FILE.relative_to(Path.cwd())}")
+        print("Commit it - that is what stops this costing money twice.")
+        return 0
+
+    if args.load:
+        if not SHELF_FILE.exists():
+            print(f"No saved shelf at {SHELF_FILE}. Nothing to put back.")
+            return 1
+        added = load()
+        print(f"Put back {added} questions." if added else "Already up to date.")
         return 0
 
     if not args.fill:
@@ -168,6 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Writing {args.per_skill} questions for {len(wanted)} skills...")
     written = fill(wanted, args.per_skill, args.workers)
     print(f"\nShelved {written} questions.")
+    print("Run --save and commit, or these are lost with the database.")
     return 0
 
 

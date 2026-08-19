@@ -2,6 +2,10 @@
 venv/
 # Student answers. Never goes to GitHub.
 *.db
+# Deliberately NOT ignored: data/question_bank.jsonl. It looks like a database
+# dump, but it holds no student data - only questions we paid a model to write.
+# Tracking it is what stops that being paid for twice, and what gives a
+# deployed copy a full shelf on its first day.
 .venv/
 __pycache__/
 .claude/

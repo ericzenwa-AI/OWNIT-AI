@@ -641,3 +641,82 @@ def close_walk(connection: sqlite3.Connection, session_id: int, diagnosis) -> No
     )
     connection.execute("DELETE FROM pending WHERE session_id = ?", (session_id,))
     connection.commit()
+
+
+# ---- Carrying the shelf between machines -----------------------------------
+#
+# The database holds two kinds of thing that deserve opposite treatment.
+#
+# Student answers are theirs. They stay on the machine that collected them and
+# never go near GitHub, which is why *.db is ignored.
+#
+# Banked questions are not theirs. Nobody's work is in them - we paid a model
+# to write them, and that money buys the same questions every time. Keeping
+# them only inside an ignored file means one deletion costs it again, and a
+# deployed copy starts with an empty shelf.
+#
+# So the shelf travels as a text file that can be committed, and the answers
+# never move. What travels is the question itself; how often it has been asked
+# and how often it was right stay behind, because those are facts about the
+# students who saw it, not about the question.
+
+
+def export_bank(connection: sqlite3.Connection) -> list[dict]:
+    """Every live question on the shelf, as plain records.
+
+    Retired questions come too. Retiring is a judgement about the question -
+    it was ambiguous, or wrong - and that judgement is worth more than the
+    question, because losing it means someone re-reads the same bad question.
+    """
+    rows = connection.execute(
+        """SELECT skill_id, question, correct_option, distractors, model, retired
+           FROM question_bank
+           ORDER BY skill_id, id"""
+    ).fetchall()
+    return [
+        {
+            "skill_id": row["skill_id"],
+            "question": row["question"],
+            "correct_option": row["correct_option"],
+            "distractors": json.loads(row["distractors"]),
+            "model": row["model"],
+            "retired": row["retired"],
+        }
+        for row in rows
+    ]
+
+
+def restore_bank(connection: sqlite3.Connection, records: list[dict]) -> int:
+    """Put exported questions back, skipping any already here.
+
+    Safe to run twice, and safe to run against a shelf that already has things
+    on it - a question is the same question if it asks the same thing about the
+    same skill. Returns how many were actually new.
+    """
+    added = 0
+    for record in records:
+        already = connection.execute(
+            "SELECT 1 FROM question_bank WHERE skill_id = ? AND question = ? LIMIT 1",
+            (record["skill_id"], record["question"]),
+        ).fetchone()
+        if already:
+            continue
+
+        connection.execute(
+            """INSERT INTO question_bank (skill_id, question, correct_option,
+                   distractors, model, created_at, retired)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                record["skill_id"],
+                record["question"],
+                record["correct_option"],
+                json.dumps(record["distractors"]),
+                record.get("model"),
+                _now(),
+                record.get("retired", 0),
+            ),
+        )
+        added += 1
+
+    connection.commit()
+    return added
