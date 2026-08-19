@@ -135,16 +135,26 @@ def test_the_closest_skill_is_asked_first():
     assert asked(diagnosis)[0] == "surds"
 
 
-def test_the_walk_goes_no_more_than_two_levels_down():
-    """Deeper answers are true and useless - a different conversation."""
+def test_the_depth_limit_stops_the_descent():
+    """Whatever the limit is set to, it is obeyed."""
     everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
-    diagnosis = diagnose(ENTRY, check=student(fails=everything))
+    diagnosis = diagnose(ENTRY, check=student(fails=everything), max_depth=2)
 
     assert asked(diagnosis) == ["surds", "index_laws"]
     assert "2 levels" in diagnosis.stopped_early
     # Nothing is confirmed, because what index_laws rests on was never asked.
     assert diagnosis.root_gaps == []
     assert diagnosis.deepest_failure == "index_laws"
+
+
+def test_the_default_depth_reaches_the_floor():
+    """Five levels is what finds a broken foundation, which is the case this
+    exists for - a student whose real gap is years below the question."""
+    everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
+    diagnosis = diagnose(ENTRY, check=student(fails=everything))
+
+    gap = diagnosis.root_gaps[0]
+    assert SKILLS[gap].needs == ()
 
 
 def test_going_deeper_is_allowed_when_asked_for():
@@ -156,11 +166,11 @@ def test_going_deeper_is_allowed_when_asked_for():
 
 
 def test_only_one_branch_is_walked():
-    """Depth first buys its speed by not looking at the siblings."""
+    """Depth first buys its speed by not looking at every sibling."""
     everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
     diagnosis = diagnose(ENTRY, check=student(fails=everything))
 
-    assert "fractions_arith" not in asked(diagnosis)
+    assert diagnosis.unchecked
 
 
 def test_skipped_siblings_are_reported_not_dropped():
@@ -168,7 +178,17 @@ def test_skipped_siblings_are_reported_not_dropped():
     everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
     diagnosis = diagnose(ENTRY, check=student(fails=everything))
 
-    assert "fractions_arith" in diagnosis.unchecked
+    assert diagnosis.unchecked
+
+
+def test_nothing_asked_is_also_reported_as_unchecked():
+    """A sibling queued as skipped can be reached later down another branch.
+    Left alone it appears as both the answer and a thing we never looked at."""
+    everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
+    diagnosis = diagnose(ENTRY, check=student(fails=everything))
+
+    assert not set(diagnosis.unchecked) & set(asked(diagnosis))
+    assert len(diagnosis.unchecked) == len(set(diagnosis.unchecked))
 
 
 def test_nothing_is_unchecked_when_the_walk_completes():
@@ -351,10 +371,9 @@ def test_a_capped_walk_reports_a_lead_not_a_diagnosis():
 
 
 def test_the_question_cap_is_not_what_stops_a_normal_walk():
-    """Two levels down is reached long before fifteen questions are."""
+    """The depth is reached long before fifteen questions are."""
     diagnosis = diagnose("optimisation", check=student(fails=set(SKILLS)))
-    assert "2 levels" in diagnosis.stopped_early
-    assert "maximum" not in diagnosis.stopped_early
+    assert "maximum" not in (diagnosis.stopped_early or "")
 
 
 def test_three_dont_knows_in_a_row_stops_the_walk():
@@ -367,17 +386,30 @@ def test_three_dont_knows_in_a_row_stops_the_walk():
     assert "I don't know" in diagnosis.stopped_early
 
 
-def test_the_depth_limit_is_reached_before_the_dont_know_rule():
-    """A failure always descends, so two levels caps the run at two in a row.
-    The rule only bites if the depth is raised."""
+def test_a_shallow_limit_bites_before_the_dont_know_rule():
+    """A failure always descends, so at two levels the walk stops after two in
+    a row and the three-in-a-row rule can never fire."""
+
+    def check(skill):
+        return SkillResult(skill.id, held=False, dont_know=True)
+
+    diagnosis = diagnose("differentiate_function", check=check, max_depth=2)
+
+    assert len(asked(diagnosis)) == 2
+    assert "2 levels" in diagnosis.stopped_early
+
+
+def test_at_the_default_depth_the_dont_know_rule_does_fire():
+    """Which is the point of it - a student saying it three times running is
+    below the question, and grinding to the floor helps nobody."""
 
     def check(skill):
         return SkillResult(skill.id, held=False, dont_know=True)
 
     diagnosis = diagnose("differentiate_function", check=check)
 
-    assert len(asked(diagnosis)) == 2
-    assert "2 levels" in diagnosis.stopped_early
+    assert len(asked(diagnosis)) == 3
+    assert "I don't know" in diagnosis.stopped_early
 
 
 def test_reaching_the_floor_confirms_the_gap():
