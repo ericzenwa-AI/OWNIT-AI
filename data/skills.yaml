@@ -5,7 +5,8 @@
 # cannot actually do. That node is the thing to teach.
 
 meta:
-  topics: differentiation, indices and surds, exponentials and logarithms, quadratics, coordinate geometry
+  # Topics are not listed here - they are read off the skills that carry one,
+  # so the list cannot drift out of date. See graph.topics().
   syllabus: A-level (UK), spec-agnostic
   version: 0.1-draft
   status: hypothesis — not validated against student data
@@ -157,6 +158,7 @@ nodes:
   - id: first_principles
     name: Differentiation from first principles
     level: 1
+    topic: differentiation
     kind: procedure
     probe: Derive the derivative of a simple function using the limit definition.
     needs: [limit_h_to_zero, expand_brackets, algebraic_fractions]
@@ -598,3 +600,285 @@ nodes:
     kind: procedure
     probe: Find the midpoint of two points and the distance between them, leaving the distance in exact form.
     needs: [coordinates, substitute_expr, surds, fractions_arith]
+
+  # ---- Integration ---------------------------------------------------------
+  # Nearly all of its floor already exists, built for differentiation: the
+  # standard derivatives, index laws, and rewriting into index form.
+
+  - id: integral_meaning
+    name: What integration undoes
+    level: 3
+    kind: concept
+    probe: Explain what an integral gives you, and why differentiating the answer returns the original.
+    needs: [derivative_meaning]
+
+  - id: constant_of_integration
+    name: Why an indefinite integral needs + c
+    level: 3
+    kind: concept
+    probe: Say why an indefinite integral carries an arbitrary constant, and when it can be pinned down.
+    needs: [integral_meaning]
+
+  - id: integrate_powers
+    name: Integrate a power of x
+    level: 2
+    kind: procedure
+    probe: Raise the index by one and divide by the new index, including negative and fractional powers.
+    needs: [deriv_polynomial, index_laws, rewrite_index_form]
+
+  - id: standard_integrals
+    name: Standard integrals
+    level: 2
+    kind: fact
+    probe: State the integrals of e^x, 1/x, sin x and cos x.
+    needs: [deriv_exp_e, deriv_ln, deriv_sin_cos]
+
+  - id: recognise_reverse_chain
+    name: Spot an integral that needs a substitution
+    level: 2
+    kind: concept
+    probe: Given several integrals, pick the ones needing a substitution and name what to substitute.
+    needs: [recognise_composite, chain_rule]
+
+  - id: definite_integral
+    name: Evaluate an integral between limits
+    level: 1
+    kind: procedure
+    probe: Integrate, substitute both limits, and subtract in the right order.
+    needs: [integrate_powers, substitute_expr, negatives]
+
+  - id: integrate_expression
+    name: Integrate an expression
+    level: 0
+    topic: integration
+    kind: procedure
+    probe: Integrate an expression in powers of x, giving the answer with a constant.
+    needs: [integrate_powers, constant_of_integration, rewrite_index_form]
+
+  - id: evaluate_definite_integral
+    name: Work out a definite integral
+    level: 0
+    topic: integration
+    kind: procedure
+    probe: Evaluate an integral between two limits, leaving the answer in exact form.
+    needs: [definite_integral, exact_form]
+
+  - id: area_under_curve
+    name: Find the area under a curve
+    level: 0
+    topic: integration
+    kind: procedure
+    probe: Set up and evaluate the integral giving the area between a curve and the x-axis.
+    needs: [definite_integral, integral_meaning, coordinates]
+
+  - id: integrate_by_substitution
+    name: Integrate by substitution
+    level: 0
+    topic: integration
+    kind: procedure
+    probe: Choose a substitution, change the variable and the limits, and integrate.
+    needs: [recognise_reverse_chain, standard_integrals, definite_integral]
+
+  - id: area_between_curves
+    name: Find the area between two curves
+    level: 0
+    topic: integration
+    kind: procedure
+    probe: Find where two curves meet, then integrate the difference between them.
+    needs: [definite_integral, solve_quadratic]
+
+  # ---- Functions -----------------------------------------------------------
+
+  - id: modulus_meaning
+    name: What the modulus of a number is
+    level: 3
+    kind: concept
+    probe: Say what the modulus of x means, and why it leaves a positive value alone.
+    needs: [negatives]
+
+  - id: domain_and_range
+    name: Domain and range
+    level: 3
+    kind: concept
+    probe: Say which values a function can take in, and which values it can give out.
+    needs: [function_notation, coordinates]
+
+  - id: compose_functions
+    name: Put one function inside another
+    level: 2
+    kind: procedure
+    probe: Work out fg(x) by substituting one function into the other, in the right order.
+    needs: [function_notation, substitute_expr, recognise_composite]
+
+  - id: inverse_function
+    name: Find the inverse of a function
+    level: 2
+    kind: procedure
+    probe: Swap x and y and rearrange to make y the subject.
+    needs: [function_notation, solve_linear, algebraic_fractions]
+
+  - id: modulus_graph
+    name: Sketch a graph containing a modulus
+    level: 2
+    kind: procedure
+    probe: Sketch the graph of a modulus function and read off the vertex.
+    needs: [modulus_meaning, coordinates, straight_line_equation]
+
+  - id: evaluate_composite
+    name: Work out a composite function
+    level: 0
+    topic: functions
+    kind: procedure
+    probe: Evaluate fg(x) at a value, or write it as a single expression.
+    needs: [compose_functions, substitute_expr]
+
+  - id: find_inverse
+    name: Find an inverse function
+    level: 0
+    topic: functions
+    kind: procedure
+    probe: Find the inverse of a function and state its domain.
+    needs: [inverse_function, domain_and_range]
+
+  - id: state_domain_range
+    name: State a domain or range
+    level: 0
+    topic: functions
+    kind: concept
+    probe: Give the domain or range of a function, and say why values are excluded.
+    needs: [domain_and_range]
+
+  - id: sketch_modulus_graph
+    name: Sketch a modulus graph
+    level: 0
+    topic: functions
+    kind: procedure
+    probe: Sketch a graph involving a modulus and give the coordinates of the vertex.
+    needs: [modulus_graph, modulus_meaning]
+
+  - id: solve_modulus_equation
+    name: Solve an equation containing a modulus
+    level: 0
+    topic: functions
+    kind: procedure
+    probe: Solve a modulus equation by taking both branches and rejecting invalid solutions.
+    needs: [modulus_meaning, solve_linear, solve_quadratic]
+
+  # ---- Binomial expansion --------------------------------------------------
+
+  - id: binomial_coefficients
+    name: Binomial coefficients
+    level: 2
+    kind: fact
+    probe: State how the coefficients of a binomial expansion are worked out.
+    needs: [index_notation, fractions_arith]
+
+  - id: binomial_validity
+    name: When a binomial expansion is valid
+    level: 2
+    kind: concept
+    probe: Say for which values of x an expansion with a negative or fractional index is valid, and why.
+    needs: [modulus_meaning, index_laws]
+
+  - id: expand_binomial
+    name: Expand a bracket to a positive whole power
+    level: 0
+    topic: binomial expansion
+    kind: procedure
+    probe: Expand a bracket raised to a positive whole number power, in ascending powers.
+    needs: [binomial_coefficients, index_laws, expand_brackets]
+
+  - id: expand_binomial_fractional
+    name: Expand with a negative or fractional power
+    level: 0
+    topic: binomial expansion
+    kind: procedure
+    probe: Find the first few terms of an expansion where the index is negative or fractional.
+    needs: [binomial_coefficients, index_laws, rewrite_index_form, fractions_arith]
+
+  - id: binomial_approximation
+    name: Use an expansion to approximate a value
+    level: 0
+    topic: binomial expansion
+    kind: procedure
+    probe: Substitute a value into an expansion to approximate a root, and say whether it is allowed.
+    needs: [binomial_validity, binomial_coefficients, substitute_expr]
+
+  # ---- Polynomials ---------------------------------------------------------
+
+  - id: factor_theorem_meaning
+    name: What the factor theorem says
+    level: 3
+    kind: concept
+    probe: State what f(a) = 0 tells you about the factors of f(x), and why.
+    needs: [substitute_expr, null_factor]
+
+  - id: polynomial_division
+    name: Divide one polynomial by another
+    level: 2
+    kind: procedure
+    probe: Divide a cubic by a linear factor and give the quotient.
+    needs: [expand_brackets, solve_linear, negatives]
+
+  - id: use_factor_theorem
+    name: Use the factor theorem
+    level: 0
+    topic: polynomials
+    kind: procedure
+    probe: Use a known factor to find an unknown constant, or test whether a bracket is a factor.
+    needs: [factor_theorem_meaning, substitute_expr, solve_linear]
+
+  - id: factorise_cubic
+    name: Factorise a cubic fully
+    level: 0
+    topic: polynomials
+    kind: procedure
+    probe: Find one factor, divide it out, and factorise what is left.
+    needs: [factor_theorem_meaning, polynomial_division, factorise_quadratic]
+
+  # ---- Sequences and series ------------------------------------------------
+
+  - id: nth_term_rule
+    name: What an nth term rule does
+    level: 3
+    kind: concept
+    probe: Say what the nth term rule gives you, and how to use it to find a particular term.
+    needs: [substitute_expr, solve_linear]
+
+  - id: arithmetic_sequence
+    name: Arithmetic sequences
+    level: 2
+    kind: fact
+    probe: State the nth term and sum formulae for a sequence with a common difference.
+    needs: [nth_term_rule]
+
+  - id: geometric_sequence
+    name: Geometric sequences
+    level: 2
+    kind: fact
+    probe: State the nth term and sum formulae for a sequence with a common ratio.
+    needs: [nth_term_rule, index_laws]
+
+  - id: arithmetic_series_sum
+    name: Sum an arithmetic series
+    level: 0
+    topic: sequences and series
+    kind: procedure
+    probe: Find the sum of the first n terms of a sequence with a common difference.
+    needs: [arithmetic_sequence, substitute_expr, solve_linear]
+
+  - id: geometric_series_sum
+    name: Sum a geometric series
+    level: 0
+    topic: sequences and series
+    kind: procedure
+    probe: Find the sum of the first n terms of a sequence with a common ratio.
+    needs: [geometric_sequence, index_laws, solve_linear]
+
+  - id: sum_to_infinity
+    name: Sum a geometric series to infinity
+    level: 0
+    topic: sequences and series
+    kind: procedure
+    probe: Find the sum to infinity, and say when one exists.
+    needs: [geometric_sequence, fractions_arith]
