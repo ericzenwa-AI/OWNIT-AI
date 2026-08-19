@@ -776,6 +776,7 @@ nodes:
   - id: binomial_validity
     name: When a binomial expansion is valid
     level: 2
+    topic: binomial expansion
     kind: concept
     probe: Say for which values of x an expansion with a negative or fractional index is valid, and why.
     needs: [modulus_meaning, index_laws]
