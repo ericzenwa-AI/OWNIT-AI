@@ -354,3 +354,188 @@ def test_nothing_is_lost_when_the_model_fails_mid_walk(client, monkeypatch):
     kept = len(store.answers_so_far(connection, started["session_id"]))
     connection.close()
     assert kept >= 1
+
+# ---- Picking a walk back up ------------------------------------------------
+
+
+def _finish(client, question="q"):
+    """Answer everything wrong until a diagnosis comes out."""
+    state = client.post("/api/start", json={"question": question}).json()
+    session_id = state["session_id"]
+    for _ in range(20):
+        if state.get("finished"):
+            break
+        state = client.post(
+            "/api/answer",
+            json={
+                "session_id": session_id,
+                "label": label_of(state, "wrong one"),
+                "answered_before": state["asked_so_far"],
+            },
+        ).json()
+    return session_id, state
+
+
+def test_a_session_can_be_picked_up_from_its_id(client):
+    """What a bookmarked link has to do."""
+    started = client.post("/api/start", json={"question": "q"}).json()
+    session_id = started["session_id"]
+
+    resumed = client.get(f"/api/session/{session_id}").json()
+
+    assert resumed["session_id"] == session_id
+    assert resumed["asking"]["question"] == started["asking"]["question"]
+
+
+def test_resuming_hands_back_the_same_question_in_the_same_order(client):
+    """The options are shuffled once and scored against that order. Handing
+    back a fresh shuffle would mark the answer against letters the student
+    never saw."""
+    started = client.post("/api/start", json={"question": "q"}).json()
+    session_id = started["session_id"]
+
+    resumed = client.get(f"/api/session/{session_id}").json()
+
+    assert resumed["asking"]["options"] == started["asking"]["options"]
+
+
+def test_resuming_does_not_move_the_walk_on(client):
+    """Following the link twice must not skip a question."""
+    started = client.post("/api/start", json={"question": "q"}).json()
+    session_id = started["session_id"]
+
+    client.get(f"/api/session/{session_id}")
+    again = client.get(f"/api/session/{session_id}").json()
+
+    assert again["asked_so_far"] == started["asked_so_far"]
+    assert again["asking"]["question"] == started["asking"]["question"]
+
+
+def test_resuming_mid_walk_keeps_what_was_already_answered(client):
+    started = client.post("/api/start", json={"question": "q"}).json()
+    session_id = started["session_id"]
+    client.post(
+        "/api/answer",
+        json={
+            "session_id": session_id,
+            "label": label_of(started, "wrong one"),
+            "answered_before": 0,
+        },
+    )
+
+    resumed = client.get(f"/api/session/{session_id}").json()
+
+    assert resumed["asked_so_far"] == 1
+    assert resumed["asking"] is not None
+
+
+def test_resuming_a_finished_walk_gives_the_report_back(client):
+    session_id, finished = _finish(client)
+
+    resumed = client.get(f"/api/session/{session_id}").json()
+
+    assert resumed["finished"] is True
+    assert resumed["report"]["stuck_on"] == finished["report"]["stuck_on"]
+
+
+def test_resuming_a_session_that_does_not_exist(client):
+    assert client.get("/api/session/9999").status_code == 404
+
+
+# ---- Saying whether the diagnosis was right --------------------------------
+
+
+def test_a_diagnosis_can_be_marked_right(client):
+    session_id, _ = _finish(client)
+
+    response = client.post(
+        "/api/feedback", json={"session_id": session_id, "verdict": "right"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["recorded"] is True
+
+
+def test_a_wrong_diagnosis_records_the_real_gap(client):
+    session_id, _ = _finish(client)
+
+    response = client.post(
+        "/api/feedback",
+        json={
+            "session_id": session_id,
+            "verdict": "wrong",
+            "actual_gap": "Expanding brackets",
+            "note": "They could not multiply out the second bracket.",
+        },
+    )
+
+    body = response.json()
+    assert body["matched_a_known_skill"] is True
+    # Written as a name, stored as the id, so it can be counted later.
+    assert body["actual_gap"] == "expand_brackets"
+
+
+def test_a_gap_we_have_no_skill_for_is_kept_as_written(client):
+    """The most useful answer a tutor can give is that the real gap is not in
+    the graph at all. Insisting on a known skill would throw that away."""
+    session_id, _ = _finish(client)
+
+    body = client.post(
+        "/api/feedback",
+        json={
+            "session_id": session_id,
+            "verdict": "wrong",
+            "actual_gap": "reading the question properly",
+        },
+    ).json()
+
+    assert body["matched_a_known_skill"] is False
+    assert body["actual_gap"] == "reading the question properly"
+
+
+def test_feedback_is_stored_against_the_session(client):
+    session_id, _ = _finish(client)
+    client.post(
+        "/api/feedback",
+        json={"session_id": session_id, "verdict": "wrong", "actual_gap": "surds"},
+    )
+
+    connection = store.connect()
+    try:
+        rows = connection.execute(
+            "SELECT verdict, actual_gap FROM feedback WHERE session_id = ?",
+            (session_id,),
+        ).fetchall()
+    finally:
+        connection.close()
+
+    assert [(r["verdict"], r["actual_gap"]) for r in rows] == [("wrong", "surds")]
+
+
+def test_a_verdict_has_to_be_right_or_wrong(client):
+    session_id, _ = _finish(client)
+
+    response = client.post(
+        "/api/feedback", json={"session_id": session_id, "verdict": "maybe"}
+    )
+
+    assert response.status_code == 400
+
+
+def test_an_unfinished_walk_has_no_diagnosis_to_judge(client):
+    started = client.post("/api/start", json={"question": "q"}).json()
+
+    response = client.post(
+        "/api/feedback",
+        json={"session_id": started["session_id"], "verdict": "right"},
+    )
+
+    assert response.status_code == 400
+
+
+def test_feedback_on_a_session_that_does_not_exist(client):
+    response = client.post(
+        "/api/feedback", json={"session_id": 9999, "verdict": "right"}
+    )
+
+    assert response.status_code == 404

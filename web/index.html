@@ -82,6 +82,30 @@
 const screen = document.getElementById('screen');
 let state = {};
 
+// The session id goes in the address bar, so the page a student is looking at
+// is a page they can bookmark, and a link a tutor can send them back to. It is
+// replaceState rather than pushState: every question is the same session, and
+// the back button should leave the diagnostic rather than undo a question.
+function rememberSession(id) {
+  if (id) history.replaceState(null, '', '?s=' + id);
+}
+
+function forgetSession() {
+  history.replaceState(null, '', location.pathname);
+}
+
+function sessionInUrl() {
+  const id = new URLSearchParams(location.search).get('s');
+  return id && /^\d+$/.test(id) ? id : null;
+}
+
+// Only a tutor should be judging a diagnosis. There is no sign-in yet, so this
+// is a flag on the link rather than an account - enough to keep it away from
+// students without pretending to be security.
+function isTutor() {
+  return new URLSearchParams(location.search).has('tutor');
+}
+
 // A photo keeps the layout that copy-pasting destroys - powers and fractions
 // come out of a PDF as loose numbers - so it is offered first.
 function askScreen() {
@@ -121,6 +145,7 @@ async function start() {
 
   try {
     state = await post('/api/start', body);
+    rememberSession(state.session_id);
     draw();
   } catch (error) {
     button.disabled = false;
@@ -137,10 +162,35 @@ async function answer(label) {
       label,
       answered_before: state.asked_so_far,
     });
+    rememberSession(state.session_id);
     draw();
   } catch (error) {
     screen.insertAdjacentHTML('beforeend', `<p class="error">${error.message}</p>`);
   }
+}
+
+// Following a link to a walk already in progress. The question comes back in
+// the order it was shown, so the letters mean what they meant yesterday.
+async function resume(id) {
+  screen.innerHTML = '<div class="card"><p class="note">Finding where you left off...</p></div>';
+  try {
+    state = await get('/api/session/' + id);
+    draw();
+  } catch (error) {
+    forgetSession();
+    screen.innerHTML = `<div class="card">
+      <p class="error">${escape(error.message)}</p>
+      <p class="note">That link may be from a walk that was never finished, or from
+      a different device.</p>
+    </div>
+    <p><button onclick="newQuestion()">Start a new question</button></p>`;
+  }
+}
+
+function newQuestion() {
+  forgetSession();
+  state = {};
+  askScreen();
 }
 
 function draw() {
@@ -231,7 +281,63 @@ function report() {
       ).join('')}</ul>
     </details>
 
-    <p><button onclick="askScreen()">Another question</button></p>`;
+    ${verdictCard()}
+
+    <p><button onclick="newQuestion()">Another question</button></p>`;
+
+  if (isTutor()) wireVerdict();
+}
+
+// The only signal that can correct the graph. Everything else we record says
+// how the walk behaved, not whether it was right.
+function verdictCard() {
+  if (!isTutor()) return '';
+  return `<div class="card" id="verdict">
+    <p class="label">Was this right?</p>
+    <p>
+      <button id="was-right">Yes, that was the gap</button>
+      <button id="was-wrong">No</button>
+    </p>
+    <div id="correction" hidden>
+      <label for="real-gap">What was it really?</label>
+      <input type="text" id="real-gap" placeholder="Expanding brackets">
+      <label for="verdict-note">Anything worth remembering (optional)</label>
+      <textarea id="verdict-note" placeholder="They could expand, but not with a negative outside."></textarea>
+      <p><button id="send-verdict">Save</button></p>
+    </div>
+    <p id="verdict-msg" class="note"></p>
+  </div>`;
+}
+
+function wireVerdict() {
+  const msg = document.getElementById('verdict-msg');
+  const correction = document.getElementById('correction');
+
+  document.getElementById('was-right').onclick = () => sendVerdict('right');
+  document.getElementById('was-wrong').onclick = () => {
+    correction.hidden = false;
+    document.getElementById('real-gap').focus();
+  };
+  document.getElementById('send-verdict').onclick = () => sendVerdict('wrong');
+
+  async function sendVerdict(verdict) {
+    const body = {session_id: state.session_id, verdict};
+    if (verdict === 'wrong') {
+      body.actual_gap = document.getElementById('real-gap').value.trim() || null;
+      body.note = document.getElementById('verdict-note').value.trim() || null;
+    }
+    try {
+      const saved = await post('/api/feedback', body);
+      correction.hidden = true;
+      document.querySelectorAll('#verdict button').forEach(b => b.disabled = true);
+      msg.textContent = saved.actual_gap && !saved.matched_a_known_skill
+        ? `Saved. "${saved.actual_gap}" is not a skill on the map, which is worth knowing.`
+        : 'Saved.';
+    } catch (error) {
+      msg.className = 'error';
+      msg.textContent = error.message;
+    }
+  }
 }
 
 // One card, not two. How far down we went and which branches we stepped past
@@ -268,6 +374,13 @@ function outOfScope() {
     <p><button onclick="askScreen()">Try another question</button></p>`;
 }
 
+async function get(path) {
+  const response = await fetch(path);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || 'Something went wrong.');
+  return data;
+}
+
 async function post(path, body) {
   const response = await fetch(path, {
     method: 'POST',
@@ -294,7 +407,8 @@ function escape(text) {
   return node.innerHTML;
 }
 
-askScreen();
+const existing = sessionInUrl();
+if (existing) resume(existing); else askScreen();
 </script>
 </body>
 </html>

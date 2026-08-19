@@ -91,6 +91,18 @@ class AnswerRequest(BaseModel):
     answered_before: int
 
 
+class FeedbackRequest(BaseModel):
+    session_id: int
+    # Whether the diagnosis was right. Nothing else is worth recording if this
+    # is not answered, so it has no default.
+    verdict: str
+    # What the gap really was, when we got it wrong. A skill id or name is
+    # matched to the graph; anything else is kept as written, because "it was
+    # something you do not have a skill for" is the most useful answer there is.
+    actual_gap: str | None = None
+    note: str | None = None
+
+
 class Option(BaseModel):
     label: str
     text: str
@@ -293,6 +305,101 @@ def _advance(session_id: int) -> StateOut:
         )
     finally:
         connection.close()
+
+
+@app.get("/api/session/{session_id}", response_model=StateOut)
+def resume(session_id: int) -> StateOut:
+    """Pick a walk back up from its id.
+
+    What makes a link worth sending: the question already on screen is handed
+    back exactly as it was, in the order it was shown, rather than a fresh one.
+    A student who closes the tab and follows the link later sees the question
+    they left, not a different one.
+    """
+    connection = store.connect()
+    try:
+        walk_row = store.walk_state(connection, session_id)
+        if walk_row is None:
+            raise HTTPException(404, "No such session.")
+
+        pending = store.pending_question(connection, session_id)
+        answered = len(store.answers_so_far(connection, session_id))
+
+        if pending is not None:
+            options = json.loads(pending["options"])
+            return StateOut(
+                session_id=session_id,
+                asking=QuestionOut(
+                    skill_name=SKILLS[pending["skill_id"]].name,
+                    question=pending["question"],
+                    options=[
+                        Option(label=o["label"], text=o["text"]) for o in options
+                    ],
+                ),
+                asked_so_far=answered,
+            )
+    finally:
+        connection.close()
+
+    # Nothing waiting: either finished, or interrupted between two questions.
+    # Replaying the answers settles which, and writes the next question.
+    return _advance(session_id)
+
+
+# ---- Saying whether it was right ------------------------------------------
+
+
+def _as_known_skill(text: str) -> str | None:
+    """Match what a tutor typed to a skill in the graph, if it is one."""
+    wanted = text.strip().casefold()
+    for skill in SKILLS.values():
+        if wanted in (skill.id.casefold(), skill.name.casefold()):
+            return skill.id
+    return None
+
+
+@app.post("/api/feedback")
+def feedback(request: FeedbackRequest) -> dict:
+    """Record whether a diagnosis was right, and what the real gap was.
+
+    This is the only signal that can correct the graph. Everything else we
+    measure says how the walk behaved, not whether it was correct.
+    """
+    if request.verdict not in ("right", "wrong"):
+        raise HTTPException(400, "Verdict must be 'right' or 'wrong'.")
+
+    connection = store.connect()
+    try:
+        walk_row = store.walk_state(connection, session_id=request.session_id)
+        if walk_row is None:
+            raise HTTPException(404, "No such session.")
+        if not walk_row["finished"]:
+            raise HTTPException(
+                400, "That walk has not finished, so there is no diagnosis to judge."
+            )
+
+        recognised = None
+        gap = (request.actual_gap or "").strip()
+        if gap:
+            recognised = _as_known_skill(gap)
+
+        store.record_feedback(
+            connection,
+            request.session_id,
+            request.verdict,
+            actual_gap=recognised or (gap or None),
+            note=(request.note or "").strip() or None,
+        )
+    finally:
+        connection.close()
+
+    return {
+        "recorded": True,
+        # Said plainly, so a typo is visible rather than silently filed as a
+        # skill nobody has.
+        "actual_gap": recognised or (gap or None),
+        "matched_a_known_skill": bool(recognised),
+    }
 
 
 def _report(diagnosis) -> dict:
