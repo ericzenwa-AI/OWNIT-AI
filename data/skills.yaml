@@ -166,6 +166,7 @@ nodes:
   - id: second_derivative
     name: Second derivative
     level: 1
+    topic: differentiation
     kind: procedure
     probe: Differentiate a derivative again and state what its sign tells you.
     needs: [differentiate_function, gradient_sign]
@@ -469,6 +470,7 @@ nodes:
   - id: straight_line_equation
     name: Equation of a straight line
     level: 4
+    topic: coordinate geometry
     kind: procedure
     probe: Write the line through a given point with a given gradient.
     needs: [gradient_straight_line, substitute_expr]
@@ -817,6 +819,7 @@ nodes:
   - id: polynomial_division
     name: Divide one polynomial by another
     level: 2
+    topic: polynomials
     kind: procedure
     probe: Divide a cubic by a linear factor and give the quotient.
     needs: [expand_brackets, solve_linear, negatives]
@@ -849,6 +852,7 @@ nodes:
   - id: arithmetic_sequence
     name: Arithmetic sequences
     level: 2
+    topic: sequences and series
     kind: fact
     probe: State the nth term and sum formulae for a sequence with a common difference.
     needs: [nth_term_rule]
@@ -856,6 +860,7 @@ nodes:
   - id: geometric_sequence
     name: Geometric sequences
     level: 2
+    topic: sequences and series
     kind: fact
     probe: State the nth term and sum formulae for a sequence with a common ratio.
     needs: [nth_term_rule, index_laws]
