@@ -249,3 +249,28 @@ def test_a_reused_answer_is_not_stored_twice(db):
 
     rows = db.execute("SELECT skill_id FROM answers").fetchall()
     assert [r["skill_id"] for r in rows] == ["index_laws", "surds"]
+
+
+def test_todays_count_includes_questions_we_could_not_place(db):
+    """Both spend a call on the best model, and a run of unplaceable questions
+    is exactly the shape an abusive one takes."""
+    import walk
+    from entry import EntryMatch
+
+    assert store.starts_today(db) == 0
+
+    store.open_walk(db, entry_skill_id="index_laws", reading=walk.Reading())
+    assert store.starts_today(db) == 1
+
+    store.record_unplaced(
+        db,
+        "something about vectors",
+        EntryMatch(
+            skill_id="",
+            confidence="low",
+            plain_summary="",
+            reason="not on the map",
+            recognised_as="vectors",
+        ),
+    )
+    assert store.starts_today(db) == 2

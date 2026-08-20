@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import os
 import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -25,7 +26,7 @@ from anthropic import APIError
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import bank
 import store
@@ -46,6 +47,24 @@ app.add_middleware(
 )
 
 PAGE = Path(__file__).resolve().parent.parent / "web" / "index.html"
+
+# Every start is a call to the best model, so every start costs money, and the
+# page is public with no sign-in. Without a ceiling, one script - or one class
+# sharing a link - empties the account overnight, and the first anyone knows is
+# that the app has stopped working for everyone.
+#
+# A whole day is refused rather than degraded, because a diagnosis built on a
+# cheaper model would be a worse diagnosis and nobody would be told.
+DAILY_STARTS = int(os.environ.get("OWNIT_DAILY_STARTS", "200"))
+
+# Base64 of a photo. A phone picture is comfortably under this; anything much
+# larger is not a question, and it is read into memory before anything checks
+# what it is.
+MAX_ATTACHMENT_CHARS = 8_000_000
+
+# Long enough for any exam question, short enough that nobody is paying to have
+# a novel read to them.
+MAX_QUESTION_CHARS = 4_000
 
 
 @app.exception_handler(APIError)
@@ -71,13 +90,13 @@ def model_unavailable(request: Request, error: APIError) -> JSONResponse:
 
 
 class StartRequest(BaseModel):
-    question: str = ""
+    question: str = Field("", max_length=MAX_QUESTION_CHARS)
     # A photo or PDF of the question, base64 encoded. Text loses powers and
     # fractions on the way out of a PDF, so this is the better route.
-    attachment: str | None = None
-    attachment_type: str | None = None
-    attempt: str | None = None
-    student_ref: str | None = None
+    attachment: str | None = Field(None, max_length=MAX_ATTACHMENT_CHARS)
+    attachment_type: str | None = Field(None, max_length=100)
+    attempt: str | None = Field(None, max_length=MAX_QUESTION_CHARS)
+    student_ref: str | None = Field(None, max_length=200)
     role: str = "student"
 
 
@@ -149,6 +168,23 @@ def _save_attachment(encoded: str, media_type: str | None) -> Path:
 @app.post("/api/start", response_model=StateOut)
 def start(request: StartRequest) -> StateOut:
     """Work out what the question is asking, and ask the first thing."""
+    if not (request.question or "").strip() and not request.attachment:
+        raise HTTPException(400, "Send the question, or a photo of it.")
+
+    connection = store.connect()
+    try:
+        started_today = store.starts_today(connection)
+    finally:
+        connection.close()
+
+    if started_today >= DAILY_STARTS:
+        raise HTTPException(
+            429,
+            "OwnIt has taken as many questions as it can today. It will start "
+            "again tomorrow - and if you were part way through, your answers "
+            "are saved.",
+        )
+
     attachment = (
         _save_attachment(request.attachment, request.attachment_type)
         if request.attachment

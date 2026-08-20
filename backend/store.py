@@ -535,6 +535,24 @@ def open_walk(
     return cursor.lastrowid
 
 
+def starts_today(connection: sqlite3.Connection) -> int:
+    """How many questions have been read since midnight.
+
+    Counts the ones we could not place as well as the ones we could. Both spend
+    a call on the best model, and a run of unplaceable questions is exactly the
+    shape an abusive one takes - so counting only successful walks would leave
+    the hole open.
+    """
+    since = _now()[:10]
+    walks = connection.execute(
+        "SELECT COUNT(*) AS n FROM sessions WHERE created_at >= ?", (since,)
+    ).fetchone()["n"]
+    refused = connection.execute(
+        "SELECT COUNT(*) AS n FROM unplaced WHERE created_at >= ?", (since,)
+    ).fetchone()["n"]
+    return walks + refused
+
+
 def walk_state(connection: sqlite3.Connection, session_id: int):
     return connection.execute(
         "SELECT * FROM sessions WHERE id = ?", (session_id,)

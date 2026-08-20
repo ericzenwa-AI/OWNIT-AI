@@ -539,3 +539,64 @@ def test_feedback_on_a_session_that_does_not_exist(client):
     )
 
     assert response.status_code == 404
+
+
+# ---- Not being emptied overnight -------------------------------------------
+
+
+def test_a_question_with_nothing_in_it_costs_nothing(client):
+    """Refused before any model is called, not after."""
+    response = client.post("/api/start", json={"question": "   "})
+
+    assert response.status_code == 400
+
+
+def test_an_attachment_too_large_to_be_a_question_is_refused(client):
+    """Read into memory before anything checks what it is, so the check has to
+    happen at the edge."""
+    too_big = "A" * (api.MAX_ATTACHMENT_CHARS + 1)
+
+    response = client.post(
+        "/api/start",
+        json={"question": "q", "attachment": too_big, "attachment_type": "image/png"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_a_question_longer_than_any_exam_question_is_refused(client):
+    response = client.post(
+        "/api/start", json={"question": "x" * (api.MAX_QUESTION_CHARS + 1)}
+    )
+
+    assert response.status_code == 422
+
+
+def test_the_day_stops_when_the_ceiling_is_reached(client, monkeypatch):
+    """The page is public and every start costs a call on the best model."""
+    monkeypatch.setattr(api, "DAILY_STARTS", 2)
+
+    assert client.post("/api/start", json={"question": "q"}).status_code == 200
+    assert client.post("/api/start", json={"question": "q"}).status_code == 200
+
+    refused = client.post("/api/start", json={"question": "q"})
+    assert refused.status_code == 429
+    assert "tomorrow" in refused.json()["detail"]
+
+
+def test_a_walk_already_going_is_not_stopped_by_the_ceiling(client, monkeypatch):
+    """Turning someone away part way through would lose them the session they
+    already answered, which is worse than the spend it saves."""
+    started = client.post("/api/start", json={"question": "q"}).json()
+    monkeypatch.setattr(api, "DAILY_STARTS", 0)
+
+    answered = client.post(
+        "/api/answer",
+        json={
+            "session_id": started["session_id"],
+            "label": label_of(started, "wrong one"),
+            "answered_before": 0,
+        },
+    )
+
+    assert answered.status_code == 200
