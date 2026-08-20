@@ -54,9 +54,21 @@ ENTRY_MATCH = Task(OPUS, effort="medium")
 NARROW = Task(OPUS, effort="medium")
 PRESENTATION = Task(OPUS, effort="low")
 
-# Generation. One question to a fixed shape, with structured output doing the
-# hard part. Try raising this if the questions get weak - it is one line.
-QUESTION = Task(HAIKU)
+# Generation. This was Haiku, on the reasoning that writing one question to a
+# fixed shape is well specified and structured output does the hard part. That
+# was wrong, and auditing the bank showed how wrong: 10% of the answers marked
+# correct were not correct, and the errors were not spread evenly. Expanding
+# brackets and negative numbers came out right nearly every time; areas between
+# curves and binomial expansions were wrong about a third of the time. Writing
+# the question was never the hard part - working out the answer was.
+#
+# The cost argument for a cheap model also stopped applying once the bank
+# existed. A question is written once and served to many students, so the price
+# of writing it is spread across all of them, while a wrong answer key is
+# charged to every single one: a student who answers correctly is recorded as
+# not holding the skill, and the diagnosis goes looking for a gap that is not
+# there.
+QUESTION = Task(SONNET, effort="medium")
 
 # Transcription and offline analysis. Long PDFs, so the cost is nearly all
 # input, and a cheaper model saves most of it.

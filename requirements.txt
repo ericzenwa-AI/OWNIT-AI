@@ -16,3 +16,7 @@ PyYAML==6.0.3              # reads data/skills.yaml
 
 # Tests
 pytest==9.1.1
+# Runs the page's own maths converter, so the tests exercise the JavaScript
+# that ships rather than a Python rewrite of it. The tests skip without it,
+# so the suite still runs on a machine that cannot build it.
+dukpy==0.6.0

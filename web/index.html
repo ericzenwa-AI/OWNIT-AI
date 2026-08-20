@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OwnIt</title>
+<!-- Typesetting only. If either of these fails to load, mathHtml() falls back
+     to the plain text the bank stores, which is what the page showed before. -->
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+      crossorigin="anonymous">
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+        crossorigin="anonymous"></script>
 <style>
   :root {
     --ink: #1a1a1a;
@@ -68,6 +76,12 @@
   .quiet-link { background: none; border: none; color: var(--quiet);
                 text-decoration: underline; padding: 0; font-size: 0.85rem; }
   .error { color: var(--wrong); }
+  /* Slightly up on the surrounding serif, which sets a small x-height next to
+     KaTeX's. Nothing else about the page's type changes - this is for the
+     notation, not for the writing around it. */
+  .katex { font-size: 1.08em; }
+  /* A long quotient must not push the card sideways on a phone. */
+  .question, button.option { overflow-x: auto; }
   .counter { color: var(--quiet); font-size: 0.8rem; text-align: right; }
 </style>
 </head>
@@ -210,7 +224,7 @@ function question() {
            skill's own name is our vocabulary anyway - it belongs in the
            tutor's report, not on a student's screen. -->
       <div class="skill">Something your question rests on</div>
-      <div class="question">${escape(q.question)}</div>
+      <div class="question">${mathHtml(q.question)}</div>
       <div id="options"></div>
     </div>
     <p class="counter">${state.asked_so_far} answered</p>`;
@@ -219,7 +233,7 @@ function question() {
   q.options.forEach(o => {
     const button = document.createElement('button');
     button.className = 'option';
-    button.innerHTML = `<span class="letter">${o.label}</span>${escape(o.text)}`;
+    button.innerHTML = `<span class="letter">${o.label}</span>${mathHtml(o.text)}`;
     button.onclick = () => answer(o.label);
     box.appendChild(button);
   });
@@ -399,6 +413,159 @@ function asBase64(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+// ---- Maths -------------------------------------------------------------
+//
+// The bank stores maths the way a person types it - x^(-2), sqrt(136),
+// (4x^2 + 3x)/(x - 2) - because that is what the model writes and what the
+// audit compares. KaTeX needs LaTeX. So the notation is converted here, at the
+// moment it is shown, rather than being stored twice.
+//
+// Questions are prose with maths in them, not maths, so this cannot simply
+// typeset the whole string. It finds the runs that are actually notation and
+// leaves the sentence alone.
+
+// Written in plain ES5 - no arrow functions, no flatMap - so it runs in a
+// bare JavaScript engine as well as a browser. That is what lets the tests
+// exercise this exact code rather than a Python rewrite of it.
+
+// Words that are maths even though they are only letters.
+var FUNCTIONS = ['sqrt', 'sin', 'cos', 'tan', 'ln', 'log', 'pi', 'lim'];
+
+// A token can join a maths run if it is notation rather than a word: it has a
+// digit, or an operator, or it is a single letter being used as a variable.
+// Two-letter words like "of" and "to" are how a run would otherwise swallow
+// the sentence around it.
+function canJoin(token) {
+  if (!token) return false;
+  if (FUNCTIONS.indexOf(token.toLowerCase()) !== -1) return true;
+  if (/\d/.test(token)) return true;
+  if (/[\^_+\-*\/=()\[\]<>|]/.test(token)) return true;
+  // dx, dy, dt - the differential in an integral. Two letters, no operator,
+  // so nothing else here would let them into a run, and they sit in the
+  // middle of one: "sin(x) / cos(x) dx".
+  if (/^d[a-z]$/.test(token)) return true;
+  return /^[A-Za-z]$/.test(token);
+}
+
+// Only runs containing one of these are worth typesetting. Without it,
+// "(3 - x)(2 + 5x)" would be re-rendered for no gain, and every re-render is
+// a chance to make something worse.
+//
+// sqrt is matched without a word boundary because 4sqrt(3) is how coefficients
+// come out of the bank, and \bsqrt\b misses it - which looked far worse than
+// doing nothing, because sqrt(12) in the same sentence did typeset.
+//
+// Any slash inside a run counts. Requiring non-space either side missed
+// "sin(x) / cos(x)", which is exactly the shape a quotient arrives in.
+function worthIt(run) {
+  return /[\^_]/.test(run) || /sqrt/.test(run) || run.indexOf('/') !== -1;
+}
+
+// a/b -> \frac{a}{b}, innermost first, brackets respected.
+function fractions(text) {
+  var operand = '(\\([^()]*(?:\\([^()]*\\)[^()]*)*\\)|[A-Za-z0-9{}^_\\\\]+)';
+  var pattern = new RegExp(operand + '\\s*\\/\\s*' + operand);
+  function bare(x) { return /^\(.*\)$/.test(x) ? x.slice(1, -1) : x; }
+  var before;
+  do {
+    before = text;
+    text = text.replace(pattern, function (whole, top, bottom) {
+      return '\\frac{' + bare(top) + '}{' + bare(bottom) + '}';
+    });
+  } while (text !== before);
+  return text;
+}
+
+function toLatex(run) {
+  var out = run;
+  out = out.replace(/sqrt\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, '\\sqrt{$1}');
+  // Not \b at the end: log_3 and sin^2 are both common, and a word boundary
+  // fails on both because _ and ^ are not letters. The lookahead keeps it from
+  // firing inside a longer word.
+  out = out.replace(/\b(sin|cos|tan|ln|log)(?![a-z])/g, '\\$1 ');
+  out = out.replace(/\bpi\b/g, '\\pi ');
+  // Exponents and subscripts, bracketed or bare. Bare has to be braced too, or
+  // x^12 typesets as x^1 followed by a 2.
+  out = out.replace(/\^\s*\(([^()]*)\)/g, '^{$1}');
+  out = out.replace(/\^\s*(-?[A-Za-z0-9]+)/g, '^{$1}');
+  out = out.replace(/_\s*\(([^()]*)\)/g, '_{$1}');
+  out = out.replace(/_\s*(-?[A-Za-z0-9]+)/g, '_{$1}');
+  out = fractions(out);
+  out = out.replace(/\*/g, ' \\cdot ');
+  out = out.replace(/<=/g, ' \\le ').replace(/>=/g, ' \\ge ');
+  out = out.replace(/!=/g, ' \\ne ');
+  // Whatever angle brackets are left are inequalities, and LaTeX has words for
+  // those. Turning them into relations here means no run can carry a tag as
+  // far as the renderer: a question containing </script> arrives with a slash
+  // in it, which is enough to make it look like a fraction and get typeset.
+  // KaTeX escapes its own output, but nothing student-facing should rest on
+  // that being true of whichever version is on the CDN.
+  out = out.replace(/</g, ' \\lt ').replace(/>/g, ' \\gt ');
+  return out;
+}
+
+function typeset(run) {
+  try {
+    return katex.renderToString(toLatex(run), {
+      throwOnError: false,
+      displayMode: false,
+      output: 'html',
+    });
+  } catch (error) {
+    return escape(run);
+  }
+}
+
+// Splits a string into words, holding trailing sentence punctuation back so a
+// full stop is never typeset as part of an expression.
+function pieces(text) {
+  var raw = String(text).split(/(\s+)/);
+  var out = [];
+  for (var i = 0; i < raw.length; i++) {
+    var part = raw[i];
+    if (!part) continue;
+    if (/^\s+$/.test(part)) { out.push({text: part, space: true}); continue; }
+    var match = part.match(/^([\s\S]*?)([.,;:?!]*)$/);
+    if (match[1]) out.push({text: match[1], word: true});
+    if (match[2]) out.push({text: match[2], punctuation: true});
+  }
+  return out;
+}
+
+function mathHtml(text) {
+  if (text === null || text === undefined) return '';
+  if (!window.katex) return escape(text);
+
+  var parts = pieces(text);
+  var html = '', run = [], gap = '';
+
+  function flush() {
+    if (!run.length) return;
+    var joined = run.join(' ');
+    html += worthIt(joined) ? typeset(joined) : escape(joined);
+    run = [];
+  }
+
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (part.space) {
+      if (run.length) gap = part.text; else html += part.text;
+      continue;
+    }
+    if (part.word && canJoin(part.text)) {
+      if (run.length && gap) gap = '';
+      run.push(part.text);
+      continue;
+    }
+    flush();
+    if (gap) { html += gap; gap = ''; }
+    html += escape(part.text);
+  }
+  flush();
+  if (gap) html += gap;
+  return html;
 }
 
 function escape(text) {
