@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OwnIt &mdash; find what you're actually missing</title>
+<meta name="description" content="You're not bad at maths. Something underneath the question is missing, and this finds it.">
+<style>
+  /* The product's own two signals: green for what held, rust for where it
+     broke. The landing page uses them to mean the same things, so the page
+     and the thing it is describing agree. */
+  :root {
+    --paper:   #F7F5F0;
+    --raised:  #FFFFFF;
+    --ink:     #14201C;
+    --quiet:   #5F6B66;
+    --faint:   #8B958F;
+    --line:    #E2DED5;
+    --held:    #2F5D50;
+    --broke:   #8C3B2E;
+    --measure: 34rem;
+
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --serif: Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:  #121614;
+      --raised: #191F1C;
+      --ink:    #E9EDEA;
+      --quiet:  #9BA6A0;
+      --faint:  #6E7A74;
+      --line:   #27302C;
+      --held:   #7FB9A5;
+      --broke:  #E08A72;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:  #121614;
+    --raised: #191F1C;
+    --ink:    #E9EDEA;
+    --quiet:  #9BA6A0;
+    --faint:  #6E7A74;
+    --line:   #27302C;
+    --held:   #7FB9A5;
+    --broke:  #E08A72;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0 1.25rem 4rem;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  main { max-width: var(--measure); margin: 0 auto; }
+
+  section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  section:last-of-type { border-bottom: none; }
+
+  h1, h2, h3 { font-family: var(--sans); letter-spacing: -0.02em; }
+
+  h1 {
+    font-size: clamp(1.9rem, 7.5vw, 2.6rem);
+    line-height: 1.1;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 1.35rem;
+    font-weight: 650;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+  h3 { font-size: 1rem; font-weight: 650; margin: 0 0 0.3rem; }
+
+  p { margin: 0 0 1rem; text-wrap: pretty; }
+  p:last-child { margin-bottom: 0; }
+
+  .lead { font-size: 1.1rem; color: var(--quiet); }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 0.9rem;
+  }
+
+  header { padding: 4rem 0 0; }
+
+  .wordmark {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+    color: var(--held);
+    margin: 0 0 3rem;
+  }
+
+  /* ---- the descent: the shape of the product, used as the shape of the page */
+
+  .descent {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    background: var(--raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.2rem 1.1rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .step {
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+    padding: 0.35rem 0;
+    white-space: nowrap;
+  }
+  .step .name { flex: 1; }
+  .step .mark { font-size: 0.75rem; letter-spacing: 0.04em; }
+  .ok   { color: var(--held); }
+  .bad  { color: var(--broke); }
+  .d1 { padding-left: 1.1rem; }
+  .d2 { padding-left: 2.2rem; }
+  .rule {
+    border-top: 1px solid var(--line);
+    margin: 0.6rem 0 0.5rem;
+    padding-top: 0.6rem;
+    white-space: normal;
+    font-family: var(--serif);
+    font-size: 0.9rem;
+    color: var(--quiet);
+  }
+  .rule b { font-family: var(--mono); font-size: 0.82rem; color: var(--broke); }
+
+  blockquote {
+    margin: 1.2rem 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--line);
+    color: var(--quiet);
+    font-size: 0.97rem;
+  }
+  blockquote cite {
+    display: block;
+    margin-top: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-style: normal;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+  }
+
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: n; }
+  ol.steps li {
+    counter-increment: n;
+    display: grid;
+    grid-template-columns: 1.8rem 1fr;
+    gap: 0 0.9rem;
+    margin-bottom: 1.3rem;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--held);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    width: 1.65rem; height: 1.65rem;
+    display: grid; place-items: center;
+    background: var(--raised);
+  }
+  ol.steps p { font-size: 0.95rem; color: var(--quiet); margin: 0.15rem 0 0; }
+
+  /* ---- the ask ---- */
+
+  #join {
+    background: var(--raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.6rem 1.3rem;
+  }
+  label {
+    display: block;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    color: var(--quiet);
+    margin: 1rem 0 0.35rem;
+  }
+  input[type=email], input[type=text] {
+    width: 100%;
+    padding: 0.75rem 0.8rem;
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  input:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--held);
+    outline-offset: 2px;
+  }
+  button {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 1.1rem;
+    padding: 0.8rem 1.2rem;
+    color: #fff;
+    background: var(--held);
+    border: 1px solid var(--held);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:disabled { opacity: 0.55; cursor: default; }
+
+  .small { font-size: 0.85rem; color: var(--quiet); }
+  .said { margin-top: 0.9rem; font-family: var(--sans); font-size: 0.9rem; }
+  .said.bad { color: var(--broke); }
+  .said.ok { color: var(--held); }
+
+  footer {
+    padding-top: 2.5rem;
+    color: var(--faint);
+    font-size: 0.84rem;
+  }
+  footer a { color: var(--quiet); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="wordmark">OwnIt</p>
+  <h1>You're probably not bad at maths.</h1>
+  <p class="lead">You're missing something underneath the question &mdash; and
+  nobody has ever gone looking for it.</p>
+</header>
+
+<section>
+  <h2>Why doing more past papers isn't working</h2>
+  <p>Every A-level question sits on top of other things. Differentiation sits on
+  indices. Indices sit on knowing what a power means. When you get a question
+  wrong, the mark scheme says you got <em>that topic</em> wrong &mdash; so that's
+  the topic you go back and revise.</p>
+  <p>But if the actual problem is two years further down, revising the topic
+  changes nothing. You do it again, it still doesn't stick, and you conclude
+  you're just bad at maths.</p>
+  <p>You're not. You just can't see where it broke, because if you could see it,
+  you wouldn't be stuck.</p>
+</section>
+
+<section>
+  <p class="eyebrow">A real example</p>
+  <h2>What examiners actually saw</h2>
+  <p>June 2024, AQA Paper 1, question 10. Prove from first principles that the
+  derivative of <span style="font-family: var(--mono)">x&sup3;</span> is
+  <span style="font-family: var(--mono)">3x&sup2;</span>. Here is what the
+  examiners reported students doing:</p>
+
+  <blockquote>
+    Quite a few students expanded (x&nbsp;+&nbsp;h)&sup3; as
+    (x&sup2;&nbsp;+&nbsp;xh)&nbsp;+&nbsp;(xh)&hellip; because students did not
+    collect like terms.
+    <cite>AQA examiner report, 7357/1, June 2024</cite>
+  </blockquote>
+
+  <p>Every one of those students lost the marks on a <em>differentiation</em>
+  question. But not one of them had a differentiation problem. They couldn't
+  expand a bracket &mdash; something they were taught at fourteen.</p>
+
+  <p>This is what OwnIt does with that. It asks a few short questions, going
+  down one layer at a time:</p>
+
+  <div class="descent">
+    <div class="step"><span class="name">Prove from first principles&hellip;</span></div>
+    <div class="step d1"><span class="name">Limits &mdash; what h&nbsp;&rarr;&nbsp;0 means</span><span class="mark ok">FINE</span></div>
+    <div class="step d1"><span class="name">Algebraic fractions</span><span class="mark ok">FINE</span></div>
+    <div class="step d1"><span class="name">Expanding brackets</span><span class="mark bad">HERE</span></div>
+    <div class="step d2"><span class="name">Negative numbers</span><span class="mark ok">FINE</span></div>
+    <div class="rule">Four questions. The thing to fix is <b>expanding brackets</b>
+    &mdash; and everything underneath it is solid, so that's where to start, not lower.</div>
+  </div>
+
+  <p>The second thing the examiners reported on that question was students
+  using <span style="font-family: var(--mono)">h&nbsp;=&nbsp;0</span> instead of
+  the limit. OwnIt finds that one in two questions, because it's a different
+  break in a different place.</p>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>
+      <div>
+        <h3>Send the question you're stuck on</h3>
+        <p>A photo of the page is best &mdash; typing maths out loses the powers
+        and the fractions. Tell it what you tried, if you tried something.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <h3>Answer a few short questions</h3>
+        <p>Usually about six. Multiple choice, and "I don't know" is always an
+        option &mdash; it's more useful than a guess, and it isn't marked
+        against you.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <h3>Get one thing to fix</h3>
+        <p>Not a list of twelve weaknesses. One skill, the reason it's that one,
+        and what it means you'll stop getting wrong once it's fixed.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>It won't do your homework</h2>
+  <p>It never gives you the answer to the question you sent. That's deliberate,
+  and it's the whole point &mdash; an answer gets you through tonight, and you're
+  stuck again next week on the same thing wearing a different hat.</p>
+  <p>You can show the result to your teacher or your tutor without it looking
+  like you cheated, because you didn't.</p>
+</section>
+
+<section id="join">
+  <p class="eyebrow">Opening soon</p>
+  <h2>Be told when it's ready</h2>
+  <p class="small">I'm a maths and physics tutor. I built this because I keep
+  finding the same thing in lessons &mdash; the question a student is stuck on is
+  almost never where the problem is. It's being tested with students now.</p>
+
+  <form id="form" novalidate>
+    <label for="email">Your email</label>
+    <input type="email" id="email" name="email" autocomplete="email"
+           placeholder="you@example.com" required>
+
+    <label for="studying">What are you stuck on? (optional)</label>
+    <input type="text" id="studying" name="studying"
+           placeholder="Edexcel Year 13 &mdash; integration is destroying me">
+
+    <button type="submit" id="go">Join the waitlist</button>
+    <p class="said" id="said" role="status" aria-live="polite"></p>
+  </form>
+
+  <p class="small" style="margin-top:1.2rem">One email when it opens. Nothing
+  else, and your address doesn't go anywhere else.</p>
+</section>
+
+<footer>
+  <p>Right now it covers Pure maths &mdash; differentiation, integration, logs,
+  sequences, quadratics, functions, indices, binomial expansion, coordinate
+  geometry and polynomials. Trigonometry, statistics and mechanics aren't in
+  yet. If it can't place your question it says so rather than guessing.</p>
+  <p>Built by a tutor, in the open.</p>
+</footer>
+
+</main>
+
+<script>
+const form = document.getElementById('form');
+const said = document.getElementById('said');
+const go = document.getElementById('go');
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const studying = document.getElementById('studying').value.trim();
+
+  if (!email) {
+    tell('Put your email in first.', false);
+    return;
+  }
+
+  go.disabled = true;
+  tell('One moment...', true);
+
+  try {
+    const response = await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, studying: studying || null}),
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      go.disabled = false;
+      tell(data.detail || 'That did not go through. Try again in a moment.', false);
+      return;
+    }
+
+    form.querySelectorAll('input').forEach(i => i.disabled = true);
+    go.textContent = 'You are on the list';
+    tell(data.message, true);
+  } catch (error) {
+    go.disabled = false;
+    tell('That did not go through. Check your connection and try again.', false);
+  }
+});
+
+function tell(text, good) {
+  said.textContent = text;
+  said.className = 'said ' + (good ? 'ok' : 'bad');
+}
+</script>
+</body>
+</html>

@@ -600,3 +600,98 @@ def test_a_walk_already_going_is_not_stopped_by_the_ceiling(client, monkeypatch)
     )
 
     assert answered.status_code == 200
+
+
+# ---- The waitlist ----------------------------------------------------------
+
+
+def test_joining_the_waitlist(client):
+    response = client.post("/api/waitlist", json={"email": "ada@example.com"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["joined"] is True
+    assert body["already_here"] is False
+
+
+def test_what_they_are_stuck_on_is_kept(client):
+    """The most useful thing on the form for deciding what to build next."""
+    client.post(
+        "/api/waitlist",
+        json={"email": "ada@example.com", "studying": "Edexcel Y13, integration"},
+    )
+
+    connection = store.connect()
+    try:
+        row = connection.execute(
+            "SELECT email, studying FROM waitlist"
+        ).fetchone()
+    finally:
+        connection.close()
+
+    assert row["email"] == "ada@example.com"
+    assert row["studying"] == "Edexcel Y13, integration"
+
+
+def test_signing_up_twice_is_not_an_error(client):
+    """People forget. Two sign-ups is one person, not two, and telling them so
+    is friendlier than an error."""
+    client.post("/api/waitlist", json={"email": "ada@example.com"})
+    second = client.post("/api/waitlist", json={"email": "ada@example.com"})
+
+    assert second.status_code == 200
+    assert second.json()["already_here"] is True
+
+    connection = store.connect()
+    try:
+        assert store.waitlist_size(connection) == 1
+    finally:
+        connection.close()
+
+
+def test_the_same_address_in_different_case_is_the_same_person(client):
+    client.post("/api/waitlist", json={"email": "Ada@Example.com"})
+    client.post("/api/waitlist", json={"email": "ada@example.com "})
+
+    connection = store.connect()
+    try:
+        assert store.waitlist_size(connection) == 1
+    finally:
+        connection.close()
+
+
+def test_a_typo_is_caught_before_they_wait_months_for_nothing(client):
+    response = client.post("/api/waitlist", json={"email": "ada.example.com"})
+
+    assert response.status_code == 400
+
+
+def test_an_absurd_email_is_refused(client):
+    response = client.post("/api/waitlist", json={"email": "x" * 300})
+
+    assert response.status_code == 422
+
+
+# ---- The front door --------------------------------------------------------
+
+
+def test_the_landing_page_is_the_front_door(client):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "waitlist" in response.text.lower()
+
+
+def test_the_diagnostic_has_its_own_address(client):
+    response = client.get("/start")
+
+    assert response.status_code == 200
+    assert "id=\"screen\"" in response.text
+
+
+def test_an_old_session_link_still_finds_its_question(client):
+    """Links made before the diagnostic moved to /start point at /?s=42."""
+    response = client.get("/?s=42", follow_redirects=False)
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/start?s=42"

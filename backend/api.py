@@ -18,6 +18,7 @@ from __future__ import annotations
 import base64
 import binascii
 import os
+import re
 import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -25,7 +26,7 @@ from tempfile import NamedTemporaryFile
 from anthropic import APIError
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 import bank
@@ -46,7 +47,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-PAGE = Path(__file__).resolve().parent.parent / "web" / "index.html"
+WEB = Path(__file__).resolve().parent.parent / "web"
+PAGE = WEB / "index.html"
+LANDING = WEB / "landing.html"
 
 # Every start is a call to the best model, so every start costs money, and the
 # page is public with no sign-in. Without a ceiling, one script - or one class
@@ -108,6 +111,13 @@ class AnswerRequest(BaseModel):
     # double-tapped button would otherwise answer the *next* question with a
     # letter the student never read.
     answered_before: int
+
+
+class WaitlistRequest(BaseModel):
+    email: str = Field(max_length=254)
+    # What they are studying, in their words. Optional, and the most useful
+    # thing on the form for deciding which topic to build next.
+    studying: str | None = Field(None, max_length=300)
 
 
 class FeedbackRequest(BaseModel):
@@ -490,6 +500,36 @@ def _report(diagnosis) -> dict:
 # ---- Odds and ends --------------------------------------------------------
 
 
+# Deliberately loose. The only thing that matters is that a typo is caught
+# before someone waits months for an email that was never going to arrive;
+# anything stricter starts rejecting addresses that are perfectly real.
+EMAIL = re.compile(r"^[^@\s]+@[^@\s.]+\.[^@\s]+$")
+
+
+@app.post("/api/waitlist")
+def waitlist(request: WaitlistRequest) -> dict:
+    """Take an email address and say we will be in touch."""
+    email = request.email.strip()
+    if not EMAIL.match(email):
+        raise HTTPException(400, "That does not look like an email address.")
+
+    connection = store.connect()
+    try:
+        new = store.join_waitlist(connection, email, request.studying)
+    finally:
+        connection.close()
+
+    return {
+        "joined": True,
+        "already_here": not new,
+        "message": (
+            "You are on the list. I will email you when it opens."
+            if new
+            else "You are already on the list - nothing more to do."
+        ),
+    }
+
+
 @app.get("/api/health")
 def health() -> dict:
     from graph import topics
@@ -497,8 +537,26 @@ def health() -> dict:
     return {"status": "ok", "skills": len(SKILLS), "topics": topics()}
 
 
-@app.get("/")
-def page():
+@app.get("/start")
+def diagnostic():
+    """The diagnostic itself."""
     if not PAGE.exists():
         raise HTTPException(404, "The page has not been built yet.")
     return FileResponse(PAGE)
+
+
+@app.get("/")
+def front(s: str | None = None):
+    """The front door.
+
+    A session id here is from a link made before the diagnostic moved to
+    /start. Sending it on rather than showing the landing page means an old
+    bookmark still lands on the question it was saved at.
+    """
+    if s:
+        return RedirectResponse(f"/start?s={s}")
+    if not LANDING.exists():
+        return FileResponse(PAGE) if PAGE.exists() else JSONResponse(
+            status_code=404, content={"detail": "The page has not been built yet."}
+        )
+    return FileResponse(LANDING)

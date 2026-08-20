@@ -137,6 +137,21 @@ CREATE TABLE IF NOT EXISTS question_bank (
     retired        INTEGER NOT NULL DEFAULT 0
 );
 
+-- People who asked to be told when it opens.
+--
+-- These are children's email addresses. They stay in this file, which never
+-- goes to GitHub, they are never handed to anyone else, and the only thing
+-- they are for is one message saying it is ready. UNIQUE on email so someone
+-- signing up twice is one person, not two.
+CREATE TABLE IF NOT EXISTS waitlist (
+    id         INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    email      TEXT NOT NULL UNIQUE,
+    -- Free text: which exam board, which year, what they are stuck on. Optional,
+    -- and the most useful thing on the form for deciding what to build next.
+    studying   TEXT
+);
+
 CREATE INDEX IF NOT EXISTS answers_by_skill ON answers(skill_id);
 CREATE INDEX IF NOT EXISTS bank_by_skill ON question_bank(skill_id, retired);
 """
@@ -533,6 +548,42 @@ def open_walk(
     )
     connection.commit()
     return cursor.lastrowid
+
+
+def join_waitlist(
+    connection: sqlite3.Connection, email: str, studying: str | None = None
+) -> bool:
+    """Add someone to the waitlist. True if they were not already on it.
+
+    Signing up twice is not an error - people forget - so the second time
+    quietly updates what they told us and reports that they were already here.
+    """
+    email = email.strip().lower()
+    studying = (studying or "").strip() or None
+
+    already = connection.execute(
+        "SELECT id FROM waitlist WHERE email = ?", (email,)
+    ).fetchone()
+
+    if already:
+        if studying:
+            connection.execute(
+                "UPDATE waitlist SET studying = ? WHERE id = ?",
+                (studying, already["id"]),
+            )
+            connection.commit()
+        return False
+
+    connection.execute(
+        "INSERT INTO waitlist (created_at, email, studying) VALUES (?, ?, ?)",
+        (_now(), email, studying),
+    )
+    connection.commit()
+    return True
+
+
+def waitlist_size(connection: sqlite3.Connection) -> int:
+    return connection.execute("SELECT COUNT(*) AS n FROM waitlist").fetchone()["n"]
 
 
 def starts_today(connection: sqlite3.Connection) -> int:
