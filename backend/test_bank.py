@@ -13,6 +13,19 @@ import store
 from questions import Distractor, MultipleChoiceQuestion
 
 
+@pytest.fixture(autouse=True)
+def never_the_committed_shelf(tmp_path, monkeypatch):
+    """No test may read data/question_bank.jsonl.
+
+    It exists and it is full, so a test that reaches it stops testing what it
+    says it tests - one here was asserting a question was written when it was
+    quietly being served 548 real ones. Also resets the once-per-process flag,
+    which would otherwise leak between tests in whichever order they ran.
+    """
+    monkeypatch.setattr(bank, "SHELF_FILE", tmp_path / "question_bank.jsonl")
+    monkeypatch.setattr(bank, "_looked_in_the_file", False)
+
+
 @pytest.fixture
 def db(tmp_path):
     connection = store.connect(tmp_path / "bank.db")
@@ -295,3 +308,114 @@ def test_what_students_did_does_not_travel(shelf):
 def test_loading_nothing_is_not_an_error(shelf):
     """A fresh clone has no shelf file yet. That is a normal state."""
     assert bank.load() == 0
+
+
+# ---- Reaching for the file before reaching for the model -------------------
+#
+# The database is the machine's, and a host with an ephemeral disk empties it
+# on every deploy. Without the file being consulted first, the first student
+# through each skill after a deploy pays to have five questions written that
+# are already committed to the repository.
+
+
+@pytest.fixture
+def fresh(tmp_path, monkeypatch):
+    """An empty database alongside the temporary shelf every test already has."""
+    monkeypatch.setattr(store, "DEFAULT_PATH", tmp_path / "live.db")
+    return tmp_path
+
+
+def _shelve_then_wipe(shelf, skill_id="index_laws", how_many=2):
+    """Put questions in the file, then start from an empty database."""
+    connection = store.connect()
+    for n in range(how_many):
+        store.bank_question(connection, skill_id, a_question(f"Banked question {n}"))
+    connection.close()
+
+    bank.save()
+    (shelf / "live.db").unlink()
+
+
+def test_the_file_is_used_before_the_model(fresh, monkeypatch):
+    """The whole point. An empty database must not mean a bill."""
+    _shelve_then_wipe(fresh)
+
+    def must_not_be_called(*args, **kwargs):
+        raise AssertionError("generated a question when the file had one")
+
+    monkeypatch.setattr(bank, "generate_batch", must_not_be_called)
+
+    banked_id, question = bank.question_for("index_laws")
+
+    assert banked_id is not None
+    assert "Banked question" in question.question
+
+
+def test_using_the_file_is_not_recorded_as_running_dry(fresh, monkeypatch):
+    """Nothing was paid for, so nothing should appear in the ledger."""
+    _shelve_then_wipe(fresh)
+    monkeypatch.setattr(bank, "generate_batch", lambda *a, **k: [])
+
+    bank.question_for("index_laws")
+
+    connection = store.connect()
+    try:
+        assert store.ran_dry(connection) == []
+    finally:
+        connection.close()
+
+
+def test_a_skill_in_neither_place_is_generated_and_recorded(fresh, monkeypatch):
+    """A skill with nothing anywhere is either new or has had everything under
+    it retired, and both are worth being able to see."""
+    _shelve_then_wipe(fresh, skill_id="index_laws")
+
+    written = [a_question("Freshly written")]
+    monkeypatch.setattr(bank, "generate_batch", lambda skill_id, count: written)
+
+    banked_id, question = bank.question_for("surds")
+
+    assert question.question == "Freshly written"
+
+    connection = store.connect()
+    try:
+        dry = store.ran_dry(connection)
+        assert [(r["skill_id"], r["times"]) for r in dry] == [("surds", 1)]
+    finally:
+        connection.close()
+
+
+def test_the_file_is_only_read_once(fresh, monkeypatch):
+    """Restocking reads the whole shelf, so doing it per skill would read the
+    file again for every question in a walk."""
+    _shelve_then_wipe(fresh)
+
+    reads = []
+    real_load = bank.load
+    monkeypatch.setattr(bank, "load", lambda *a, **k: (reads.append(1), real_load())[1])
+    monkeypatch.setattr(bank, "generate_batch", lambda *a, **k: [a_question("new")])
+
+    bank.question_for("surds")
+    bank.question_for("surds")
+    bank.question_for("surds")
+
+    assert len(reads) == 1
+
+
+def test_a_missing_shelf_file_is_not_an_error(fresh, monkeypatch):
+    """A fresh clone has no file yet, and that must still serve a student."""
+    monkeypatch.setattr(bank, "generate_batch", lambda *a, **k: [a_question("written")])
+
+    banked_id, question = bank.question_for("index_laws")
+
+    assert question.question == "written"
+
+
+def test_an_unreadable_shelf_file_does_not_stop_a_session(fresh, monkeypatch):
+    """Rather than failing the student, it falls through to writing one."""
+    (fresh / "question_bank.jsonl").write_text("{not json at all", encoding="utf-8")
+    monkeypatch.setattr(bank, "generate_batch", lambda *a, **k: [a_question("written")])
+
+    banked_id, question = bank.question_for("index_laws")
+
+    assert question.question == "written"

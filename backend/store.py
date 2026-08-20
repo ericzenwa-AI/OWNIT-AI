@@ -152,6 +152,16 @@ CREATE TABLE IF NOT EXISTS waitlist (
     studying   TEXT
 );
 
+-- Every time a question had to be written live because nothing was banked for
+-- that skill. Each row is a call to the model that the shelf was supposed to
+-- have made unnecessary, so a skill appearing here repeatedly is either new or
+-- has had everything under it retired.
+CREATE TABLE IF NOT EXISTS live_generation (
+    id         INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    skill_id   TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS answers_by_skill ON answers(skill_id);
 CREATE INDEX IF NOT EXISTS bank_by_skill ON question_bank(skill_id, retired);
 """
@@ -548,6 +558,25 @@ def open_walk(
     )
     connection.commit()
     return cursor.lastrowid
+
+
+def record_live_generation(connection: sqlite3.Connection, skill_id: str) -> None:
+    """Note that a question had to be written rather than taken off the shelf."""
+    connection.execute(
+        "INSERT INTO live_generation (created_at, skill_id) VALUES (?, ?)",
+        (_now(), skill_id),
+    )
+    connection.commit()
+
+
+def ran_dry(connection: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Which skills have needed a live question written, and how often."""
+    return connection.execute(
+        """SELECT skill_id, COUNT(*) AS times, MAX(created_at) AS last_time
+           FROM live_generation
+           GROUP BY skill_id
+           ORDER BY times DESC, skill_id"""
+    ).fetchall()
 
 
 def join_waitlist(

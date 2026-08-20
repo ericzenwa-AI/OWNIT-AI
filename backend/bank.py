@@ -15,12 +15,14 @@ doing before a busy week rather than being a thing you must remember.
     python backend/bank.py --weak          # questions that teach us nothing
     python backend/bank.py --save          # write the shelf out to be committed
     python backend/bank.py --load          # put a committed shelf back
+    python backend/bank.py --dry           # skills that cost a live generation
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import logging
 import random
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -29,6 +31,10 @@ from pathlib import Path
 import store
 from graph import SKILLS
 from questions import MultipleChoiceQuestion, generate_batch
+
+# Falling back to a live generation costs money, so it goes to the log where
+# the host will show it, as well as to the database where it can be counted.
+log = logging.getLogger("ownit.bank")
 
 # Enough that a student meeting a skill twice probably sees a different
 # question, few enough that filling the whole graph stays cheap.
@@ -74,8 +80,43 @@ def load(path: Path | None = None) -> int:
         connection.close()
 
 
+# Whether this process has already tried the file. Restocking reads the whole
+# shelf in one go, so it is worth doing once rather than per skill, and worth
+# not repeating when the file genuinely has nothing for a skill.
+_looked_in_the_file = False
+
+
+def restock(force: bool = False) -> int:
+    """Fill an empty database from the committed shelf.
+
+    This is what stands between a deploy and a large bill. The database is the
+    machine's, and on a host with an ephemeral disk it is empty every time the
+    app restarts - so without this, the first student through each skill pays
+    to have five questions written that are already sitting in the repository.
+    """
+    global _looked_in_the_file
+    if _looked_in_the_file and not force:
+        return 0
+    _looked_in_the_file = True
+
+    try:
+        added = load()
+    except Exception as error:  # noqa: BLE001 - a bad shelf file must not stop a session
+        log.warning("could not read the shelf file: %s", error)
+        return 0
+
+    if added:
+        log.info("restocked %s questions from %s", added, SHELF_FILE.name)
+    return added
+
+
 def question_for(skill_id: str, *, connection=None) -> tuple[int | None, MultipleChoiceQuestion]:
     """A question for this skill: off the shelf if there is one, else written.
+
+    Three places are tried, cheapest first: the database, then the committed
+    shelf file, then the model. The model is the only one that costs anything,
+    and reaching it means this skill has nothing anywhere - which is worth
+    knowing about, so it is recorded rather than done quietly.
 
     Returns the bank id alongside it so the answer can be recorded against the
     question that was actually asked. The id is None when banking failed, which
@@ -94,8 +135,25 @@ def question_for(skill_id: str, *, connection=None) -> tuple[int | None, Multipl
         if taken is not None:
             return taken
 
-        # Nothing on the shelf. Write a batch, keep them, hand one back - the
-        # next student through this skill costs nothing.
+        # Nothing in the database for this skill. Before paying for a question,
+        # look in the file - after a deploy the database is empty and the whole
+        # shelf is sitting in the repository, unread.
+        if restock():
+            taken = store.take_question(connection, skill_id)
+            if taken is not None:
+                return taken
+
+        # Nothing anywhere. This is the only path that costs money, so say so
+        # loudly and write it down: a skill arriving here is either new or has
+        # had everything retired under it, and both are worth seeing.
+        log.warning(
+            "no banked question for %r - generating live, which costs money", skill_id
+        )
+        try:
+            store.record_live_generation(connection, skill_id)
+        except Exception:  # noqa: BLE001 - bookkeeping must not break a session
+            pass
+
         written = generate_batch(skill_id, PER_SKILL)
         if not written:
             from questions import generate_question
@@ -157,6 +215,29 @@ def show_shelf() -> None:
             print(f"  ... and {len(empty) - 15} more")
 
 
+def show_dry() -> None:
+    """Skills that have cost money because the shelf had nothing for them."""
+    connection = store.connect()
+    try:
+        dry = store.ran_dry(connection)
+        held = store.bank_counts(connection)
+    finally:
+        connection.close()
+
+    if not dry:
+        print("No question has ever had to be written live. The shelf has held.")
+        return
+
+    print("Skills that ran dry, and what they hold now:")
+    for row in dry:
+        name = SKILLS[row["skill_id"]].name if row["skill_id"] in SKILLS else row["skill_id"]
+        now = held.get(row["skill_id"], 0)
+        print(f"  {row['times']:>3}x  {name:<40} holds {now} now")
+        print(f"        last: {row['last_time'][:16]}")
+    print()
+    print("Run --fill to top these up, then --save and commit.")
+
+
 def show_weak() -> None:
     connection = store.connect()
     try:
@@ -187,12 +268,19 @@ def main(argv: list[str] | None = None) -> int:
         "--save", action="store_true", help="write the shelf to a committable file"
     )
     parser.add_argument("--load", action="store_true", help="put a saved shelf back")
+    parser.add_argument(
+        "--dry", action="store_true", help="skills that have cost a live generation"
+    )
     parser.add_argument("--per-skill", type=int, default=PER_SKILL)
     parser.add_argument("--workers", type=int, default=WORKERS)
     args = parser.parse_args(argv)
 
     if args.weak:
         show_weak()
+        return 0
+
+    if args.dry:
+        show_dry()
         return 0
 
     if args.save:
