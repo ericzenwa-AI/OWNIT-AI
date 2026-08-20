@@ -695,3 +695,22 @@ def test_an_old_session_link_still_finds_its_question(client):
 
     assert response.status_code in (302, 307)
     assert response.headers["location"] == "/start?s=42"
+
+
+def test_health_says_whether_the_data_is_being_kept(client, monkeypatch):
+    """A disk that failed to mount looks exactly like a working app until the
+    day somebody notices the waitlist is empty."""
+    monkeypatch.delenv("OWNIT_DB", raising=False)
+    assert client.get("/api/health").json()["storage"] == "default"
+
+    monkeypatch.setenv("OWNIT_DB", "/var/data/ownit.db")
+    assert client.get("/api/health").json()["storage"] == "kept"
+
+
+def test_health_reports_how_many_questions_are_banked(client):
+    """Zero after a deploy means the shelf did not restock, which is the
+    difference between a free session and a bill for every question."""
+    body = client.get("/api/health").json()
+
+    assert "questions" in body
+    assert isinstance(body["questions"], int)

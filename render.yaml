@@ -1,0 +1,52 @@
+# Deploying OwnIt.
+#
+# The one thing this file exists for is the disk. Without it the filesystem is
+# thrown away on every deploy and on every idle restart, which for SQLite means
+# the database is thrown away with it - waitlist signups, tutor verdicts, and
+# every question a student could not get placed. The question bank would
+# survive, because it is committed to the repository as data/question_bank.jsonl
+# and restocked on first use, but nothing else would.
+#
+# A disk needs a paid instance. That is the actual cost of keeping the data.
+#
+#   render.com -> New -> Blueprint -> point it at this repository
+#
+# ANTHROPIC_API_KEY is deliberately not in here. It is set once in the Render
+# dashboard and never committed.
+
+services:
+  - type: web
+    name: ownit
+    runtime: python
+    plan: starter
+    region: frankfurt          # closest to UK students
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT --app-dir backend
+    healthCheckPath: /api/health
+
+    # Mounted before the app starts, and kept across deploys and restarts.
+    disk:
+      name: ownit-data
+      mountPath: /var/data
+      sizeGB: 1
+
+    envVars:
+      # The database goes on the disk rather than next to the code. This one
+      # line is the whole difference between keeping the data and not.
+      - key: OWNIT_DB
+        value: /var/data/ownit.db
+
+      # Matches runtime.txt. Worth pinning in both places, because the two
+      # disagreeing is the kind of thing that only shows up in production.
+      - key: PYTHON_VERSION
+        value: 3.12.7
+
+      # How many questions may be read in a day. Every one is a call to the
+      # best model, and the page is public with no sign-in.
+      - key: OWNIT_DAILY_STARTS
+        value: 200
+
+      # Set by hand in the dashboard. sync: false stops Render asking for it
+      # again on every deploy, and keeps it out of this file.
+      - key: ANTHROPIC_API_KEY
+        sync: false

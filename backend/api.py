@@ -532,9 +532,37 @@ def waitlist(request: WaitlistRequest) -> dict:
 
 @app.get("/api/health")
 def health() -> dict:
+    """Enough to tell, from outside, whether a deploy went as intended.
+
+    The two that matter after a deploy are `storage` and `questions`. A disk
+    that failed to mount looks exactly like a working app until the day
+    somebody notices the waitlist is empty, so it is worth being able to ask
+    rather than find out. Counts only - nothing here says who anyone is.
+    """
     from graph import topics
 
-    return {"status": "ok", "skills": len(SKILLS), "topics": topics()}
+    on_a_disk = "OWNIT_DB" in os.environ
+
+    try:
+        connection = store.connect()
+        try:
+            banked = connection.execute(
+                "SELECT COUNT(*) AS n FROM question_bank WHERE retired = 0"
+            ).fetchone()["n"]
+        finally:
+            connection.close()
+    except Exception:  # noqa: BLE001 - health must answer even when the store cannot
+        banked = None
+
+    return {
+        "status": "ok",
+        "skills": len(SKILLS),
+        "topics": topics(),
+        # "kept" means the database was put somewhere chosen. "default" means
+        # it is sitting next to the code, which on most hosts is wiped.
+        "storage": "kept" if on_a_disk else "default",
+        "questions": banked,
+    }
 
 
 @app.get("/start")
