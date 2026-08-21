@@ -897,3 +897,137 @@ def test_the_admin_page_is_not_indexed(client, monkeypatch):
     page = client.get("/admin/feedback", auth=("me", "letmein")).text
 
     assert "noindex" in page
+
+
+# ---- Questions with lettered parts -----------------------------------------
+
+
+def _multipart(monkeypatch, covered_last=False):
+    """A question read as four parts, the last one off the map by default."""
+    from entry import QuestionPart
+
+    monkeypatch.setattr(
+        api,
+        "identify_entry",
+        lambda question, attachment=None, **kw: EntryMatch(
+            skill_id="simplify_index_expression",
+            confidence="high",
+            plain_summary="Part a, the easy one.",
+            reason="",
+            recognised_as="indices",
+            other_parts=[
+                QuestionPart(label="b", skill_id="use_discriminant",
+                             plain_summary="Show it has no stationary points."),
+                QuestionPart(label="c", skill_id="polynomial_division",
+                             plain_summary="Divide by (x - 4)."),
+                QuestionPart(label="d",
+                             skill_id="solve_quadratic" if covered_last else None,
+                             plain_summary="Graph transformations."),
+            ],
+        ),
+    )
+
+
+def test_all_the_parts_come_back(client, monkeypatch):
+    """Someone who sends a whole question is rarely stuck on part (a)."""
+    _multipart(monkeypatch)
+
+    state = client.post("/api/start", json={"question": "q"}).json()
+
+    assert [p["label"] for p in state["parts"]] == ["a", "b", "c", "d"]
+    assert [p["current"] for p in state["parts"]] == [True, False, False, False]
+
+
+def test_a_part_we_cannot_reach_is_marked_as_such(client, monkeypatch):
+    _multipart(monkeypatch)
+
+    parts = client.post("/api/start", json={"question": "q"}).json()["parts"]
+
+    assert [p["covered"] for p in parts] == [True, True, True, False]
+
+
+def test_a_question_with_one_part_offers_nothing(client):
+    """The bar would be noise on a question that has no other parts."""
+    assert client.post("/api/start", json={"question": "q"}).json()["parts"] is None
+
+
+def test_switching_part_does_not_read_the_question_again(client, monkeypatch):
+    """The skill was worked out when the question was first read. Identifying
+    it again would be paying the best model twice for the same answer."""
+    _multipart(monkeypatch)
+    state = client.post("/api/start", json={"question": "q"}).json()
+
+    def must_not_be_called(*args, **kwargs):
+        raise AssertionError("read the question again just to change part")
+
+    monkeypatch.setattr(api, "identify_entry", must_not_be_called)
+
+    switched = client.post(
+        "/api/start",
+        json={"question": "q", "start_at": "polynomial_division",
+              "start_summary": "Divide by (x - 4)."},
+    ).json()
+
+    assert switched["session_id"] != state["session_id"]
+    assert switched["matched"] == "Divide by (x - 4)."
+
+
+def test_switching_starts_a_walk_on_that_part(client, monkeypatch):
+    _multipart(monkeypatch)
+    client.post("/api/start", json={"question": "q"})
+
+    switched = client.post(
+        "/api/start", json={"question": "q", "start_at": "polynomial_division"}
+    ).json()
+
+    connection = store.connect()
+    try:
+        row = store.walk_state(connection, session_id=switched["session_id"])
+    finally:
+        connection.close()
+    assert row["entry_skill_id"] == "polynomial_division"
+
+
+def test_a_part_that_is_not_a_doorway_is_refused(client):
+    """A skill can be real and still not be somewhere a question starts."""
+    response = client.post(
+        "/api/start", json={"question": "q", "start_at": "negatives"}
+    )
+    assert response.status_code == 400
+
+
+def test_a_skill_that_does_not_exist_is_refused(client):
+    response = client.post(
+        "/api/start", json={"question": "q", "start_at": "not_a_skill_at_all"}
+    )
+    assert response.status_code == 400
+
+
+def test_an_uncovered_part_is_filed_as_a_coverage_gap(client, monkeypatch):
+    """The whole question places fine on part (a), so nothing was being filed -
+    and a gap somebody actually hit is the only kind worth ranking by."""
+    _multipart(monkeypatch)
+
+    client.post("/api/start", json={"question": "q"})
+
+    connection = store.connect()
+    try:
+        rows = connection.execute("SELECT question FROM unplaced").fetchall()
+    finally:
+        connection.close()
+
+    assert len(rows) == 1
+    assert "(d)" in rows[0]["question"]
+    assert "Graph transformations" in rows[0]["question"]
+
+
+def test_nothing_is_filed_when_every_part_is_covered(client, monkeypatch):
+    _multipart(monkeypatch, covered_last=True)
+
+    client.post("/api/start", json={"question": "q"})
+
+    connection = store.connect()
+    try:
+        assert connection.execute("SELECT COUNT(*) c FROM unplaced").fetchone()["c"] == 0
+    finally:
+        connection.close()

@@ -285,6 +285,19 @@
 
   .error { color: var(--broke); }
 
+  /* Quieter than a question card - it is a note about the question, not part
+     of the diagnosis. */
+  .card.parts { padding: 1rem 1.25rem; background: var(--sunk); box-shadow: none; }
+  .card.parts .note { margin: 0; }
+  button.quiet-link.part {
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    margin: 0 0.15rem;
+  }
+  button.quiet-link.part:hover { filter: none; transform: none; opacity: 0.75; }
+
   /* Sits a touch up on Outfit, which has a taller x-height than the serif
      this used to be set in. For the notation only. */
   .katex { font-size: 1.05em; }
@@ -320,6 +333,13 @@
 <script>
 const screen = document.getElementById('screen');
 let state = {};
+
+// The lettered parts of the question, kept here rather than sent back and
+// forth. Switching part starts a fresh walk, and the reply to that only knows
+// about the part it was asked for - this is what remembers the rest.
+let parts = null;
+// What was typed or photographed, so a switch does not need it again.
+let asked = null;
 
 // The session id goes in the address bar, so the page a student is looking at
 // is a page they can bookmark, and a link a tutor can send them back to. It is
@@ -405,6 +425,8 @@ async function start() {
 
   try {
     state = await post('/api/start', body);
+    asked = body;
+    parts = state.parts || null;
     rememberSession(state.session_id);
     draw();
   } catch (error) {
@@ -412,6 +434,65 @@ async function start() {
     msg.className = 'error';
     msg.textContent = error.message;
   }
+}
+
+// Someone who sends a whole exam question is rarely stuck on part (a) - that
+// is usually the one they could do. Switching starts a new walk on the part
+// they choose, using the skill we worked out when the question was first read,
+// so it costs nothing to change your mind.
+async function switchTo(label) {
+  const part = (parts || []).find(p => p.label === label);
+  if (!part || !part.covered || part.current) return;
+
+  screen.innerHTML = '<div class="card"><p class="note">Starting on part (' +
+    escape(label) + ')...</p></div>';
+
+  try {
+    state = await post('/api/start', {
+      question: asked ? asked.question : '',
+      attempt: asked ? asked.attempt : null,
+      start_at: part.skill_id,
+      start_summary: part.summary,
+    });
+    parts = (parts || []).map(p => Object.assign({}, p, {current: p.label === label}));
+    rememberSession(state.session_id);
+    draw();
+  } catch (error) {
+    screen.innerHTML = `<div class="card"><p class="error">${escape(error.message)}</p></div>
+      <p><button onclick="newQuestion()">Start again</button></p>`;
+  }
+}
+
+// Reads as a sentence rather than a row of buttons, because it is telling
+// someone something they did not know - that the rest of their question was
+// read - as much as it is offering them a control.
+function partsBar() {
+  if (!parts || parts.length < 2) return '';
+
+  const here = parts.find(p => p.current);
+  const others = parts.filter(p => !p.current);
+  const offer = others.filter(p => p.covered);
+  const cannot = others.filter(p => !p.covered);
+
+  const links = offer.map(p =>
+    `<button class="quiet-link part" data-part="${escape(p.label)}"
+             title="${escape(p.summary)}">(${escape(p.label)})</button>`).join(' ');
+
+  const missing = cannot.length
+    ? ` I can't help with ${listOf(cannot.map(p => '(' + escape(p.label) + ')'))} yet.`
+    : '';
+
+  return `<div class="card parts">
+    <p class="note">This question has ${parts.length} parts. Working on
+    <strong>(${escape(here ? here.label : 'a')})</strong>.${
+      offer.length ? ` Stuck on a different one? ${links}` : ''}${missing}</p>
+  </div>`;
+}
+
+function wireParts() {
+  document.querySelectorAll('button.part').forEach(b => {
+    b.onclick = () => switchTo(b.dataset.part);
+  });
 }
 
 async function answer(label) {
@@ -450,6 +531,8 @@ async function resume(id) {
 function newQuestion() {
   forgetSession();
   state = {};
+  parts = null;
+  asked = null;
   askScreen();
 }
 
@@ -463,6 +546,7 @@ function question() {
   const q = state.asking;
   screen.innerHTML = `
     ${state.matched ? `<p class="note">Looking at: ${escape(state.matched)}</p>` : ''}
+    ${partsBar()}
     <div class="card">
       <!-- Says why this is being asked without naming the chain. The chain is
            most of how you would approach their question, and announcing what
@@ -483,6 +567,8 @@ function question() {
     button.onclick = () => answer(o.label);
     box.appendChild(button);
   });
+
+  wireParts();
 }
 
 function report() {
@@ -517,6 +603,7 @@ function report() {
     : '';
 
   screen.innerHTML = `
+    ${partsBar()}
     <div class="card">
       <p class="note">Stuck on ${escape(r.stuck_on)}</p>
       <p class="label">Teach this first</p>
@@ -545,6 +632,7 @@ function report() {
 
     <p><button onclick="newQuestion()">Another question</button></p>`;
 
+  wireParts();
   if (isTutor()) wireVerdict();
 }
 

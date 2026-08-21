@@ -132,6 +132,14 @@ class StartRequest(BaseModel):
     attempt: str | None = Field(None, max_length=MAX_QUESTION_CHARS)
     student_ref: str | None = Field(None, max_length=200)
     role: str = "student"
+    # Switching to another part of a question already read. The skill is one we
+    # handed over ourselves a moment ago, so reading it is free: identifying
+    # the question again would be a second call to the best model for an answer
+    # we already have. The page keeps the list of parts itself rather than
+    # sending it back, so nothing here has to be trusted beyond a skill id that
+    # is checked against the graph anyway.
+    start_at: str | None = Field(None, max_length=100)
+    start_summary: str | None = Field(None, max_length=500)
 
 
 class AnswerRequest(BaseModel):
@@ -174,6 +182,19 @@ class FeedbackRequest(BaseModel):
     note: str | None = None
 
 
+class PartOut(BaseModel):
+    """One lettered part of a question, as offered to the student."""
+
+    label: str
+    summary: str
+    # The doorway it would start at. None when the part is about something the
+    # map does not cover, and then it cannot be chosen.
+    skill_id: str | None = None
+    covered: bool = True
+    # Which part the walk on screen is actually about.
+    current: bool = False
+
+
 class Option(BaseModel):
     label: str
     text: str
@@ -196,6 +217,10 @@ class StateOut(BaseModel):
     report: dict | None = None
     message: str | None = None
     asked_so_far: int = 0
+    # Set when the question has lettered parts. The walk is on one of them and
+    # the others are offered, because the part someone is stuck on is very
+    # often not the one the question opens with.
+    parts: list[PartOut] | None = None
 
 
 # ---- Starting a walk ------------------------------------------------------
@@ -237,6 +262,21 @@ def start(request: StartRequest) -> StateOut:
             "are saved.",
         )
 
+    # Moving to another part of a question already read. We handed this skill
+    # over a moment ago, so identifying the whole thing again would be paying
+    # the best model a second time for an answer we already have.
+    if request.start_at:
+        if request.start_at not in SKILLS or not SKILLS[request.start_at].topic:
+            raise HTTPException(400, "That is not somewhere a question can start.")
+        match = EntryMatch(
+            skill_id=request.start_at,
+            confidence="high",
+            plain_summary=(request.start_summary or "").strip(),
+            reason="",
+            recognised_as=SKILLS[request.start_at].topic or "",
+        )
+        return _begin(request, match)
+
     attachment = (
         _save_attachment(request.attachment, request.attachment_type)
         if request.attachment
@@ -251,6 +291,81 @@ def start(request: StartRequest) -> StateOut:
         if attachment:
             attachment.unlink(missing_ok=True)
 
+    _file_uncovered_parts(request, match)
+    return _begin(request, match)
+
+
+class _MissingPart:
+    """A single part we cannot place, shaped the way record_unplaced reads."""
+
+    def __init__(self, part):
+        self.skill_id = None
+        self.confidence = "high"
+        self.looks_incomplete = False
+        self.reason = part.plain_summary
+
+
+def _file_uncovered_parts(request: StartRequest, match: EntryMatch) -> None:
+    """File the parts of a question the map cannot reach.
+
+    A question where every part is off the map already gets filed. One where
+    only part (d) is - graph transformations, say - was being placed happily on
+    part (a) and the gap went nowhere. That is a coverage gap somebody actually
+    hit, which is the only kind worth ranking a backlog by.
+    """
+    missing = [part for part in match.other_parts if not part.skill_id]
+    if not missing:
+        return
+
+    connection = store.connect()
+    try:
+        for part in missing:
+            store.record_unplaced(
+                connection,
+                f"({part.label}) {part.plain_summary}",
+                _MissingPart(part),
+                from_image=bool(request.attachment),
+                role=request.role,
+                student_ref=request.student_ref,
+            )
+    except Exception as error:  # noqa: BLE001 - bookkeeping must not stop a walk
+        log.warning("could not file uncovered parts: %s", error)
+    finally:
+        connection.close()
+
+
+def _parts_of(match: EntryMatch, starting_at: str | None) -> list[PartOut] | None:
+    """Every lettered part, with the one being walked marked.
+
+    Someone who sends a whole question is rarely stuck on part (a) - it is
+    usually the one they could do. Showing the others is most of the value of
+    having read them.
+    """
+    if not match.other_parts:
+        return None
+
+    first = PartOut(
+        label="a",
+        summary=match.plain_summary,
+        skill_id=match.skill_id,
+        covered=bool(match.skill_id),
+        current=match.skill_id == starting_at,
+    )
+    rest = [
+        PartOut(
+            label=part.label,
+            summary=part.plain_summary,
+            skill_id=part.skill_id,
+            covered=bool(part.skill_id),
+            current=bool(part.skill_id) and part.skill_id == starting_at,
+        )
+        for part in match.other_parts
+    ]
+    return [first] + rest
+
+
+def _begin(request: StartRequest, match: EntryMatch) -> StateOut:
+    """Open a walk on a matched question and ask the first thing."""
     connection = store.connect()
     try:
         if not is_usable(match):
@@ -288,6 +403,7 @@ def start(request: StartRequest) -> StateOut:
 
     state = _advance(session_id)
     state.matched = match.plain_summary
+    state.parts = _parts_of(match, match.skill_id)
     return state
 
 
