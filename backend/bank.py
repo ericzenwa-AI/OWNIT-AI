@@ -65,7 +65,10 @@ def save(path: Path | None = None) -> int:
 
 
 def load(path: Path | None = None) -> int:
-    """Put a saved shelf back. Returns how many questions were new."""
+    """Put the committed shelf back and make the database agree with it.
+
+    Returns how many rows changed - added, or retired because the file says so.
+    """
     path = Path(path or SHELF_FILE)
     if not path.exists():
         return 0

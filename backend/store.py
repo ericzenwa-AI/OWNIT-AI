@@ -859,36 +859,48 @@ def export_bank(connection: sqlite3.Connection) -> list[dict]:
 
 
 def restore_bank(connection: sqlite3.Connection, records: list[dict]) -> int:
-    """Put exported questions back, skipping any already here.
+    """Put the committed shelf back, and make the database agree with it.
 
-    Safe to run twice, and safe to run against a shelf that already has things
-    on it - a question is the same question if it asks the same thing about the
-    same skill. Returns how many were actually new.
+    The file is the truth about the shelf, including which questions are
+    retired. Adding what is missing is not enough on its own: a question that
+    was live when a machine last restored, and has since been found wrong and
+    retired, is still sitting live on that machine. Adding a retired copy
+    alongside it changes nothing, because the live one is what gets served.
+
+    That is not hypothetical - it is what the deployed machine was doing with
+    nineteen questions that had already been retired here for having the wrong
+    answer.
+
+    So a row already present has its retired flag brought into line with the
+    file. Returns how many rows this changed, whether by adding or retiring.
     """
-    added = 0
+    changed = 0
     for record in records:
-        # What makes a question the same question: the skill, the wording, the
-        # answer, and whether it is retired. All four are needed.
+        # What makes a question the same question: the skill, the wording and
+        # the answer. Retired is deliberately not part of that - it is a fact
+        # about the question we are here to update, not part of its identity.
         #
-        # Without retired, a retired question and a live replacement that read
-        # the same collapse into one, and since the retired one comes first in
-        # the file the live one is dropped - a skill silently losing a question.
-        #
-        # Without the answer, two attempts at the same wording that disagree
-        # about what is correct collapse too, which is exactly what a question
-        # and its rewrite look like.
-        already = connection.execute(
-            """SELECT 1 FROM question_bank
-               WHERE skill_id = ? AND question = ? AND correct_option = ?
-                 AND retired = ? LIMIT 1""",
-            (
-                record["skill_id"],
-                record["question"],
-                record["correct_option"],
-                record.get("retired", 0),
-            ),
-        ).fetchone()
-        if already:
+        # The answer has to be in there. Two attempts at the same wording that
+        # disagree about what is correct are different questions, and that is
+        # exactly what a wrong question and its rewrite look like.
+        retired = 1 if record.get("retired", 0) else 0
+        here = connection.execute(
+            """SELECT id, retired FROM question_bank
+               WHERE skill_id = ? AND question = ? AND correct_option = ?""",
+            (record["skill_id"], record["question"], record["correct_option"]),
+        ).fetchall()
+
+        if here:
+            # Bring every copy into line. There can be more than one on a
+            # machine that restored under the older rule, which added a second
+            # copy instead of updating the first.
+            stale = [row["id"] for row in here if row["retired"] != retired]
+            if stale:
+                connection.executemany(
+                    "UPDATE question_bank SET retired = ? WHERE id = ?",
+                    [(retired, row_id) for row_id in stale],
+                )
+                changed += len(stale)
             continue
 
         connection.execute(
@@ -902,10 +914,10 @@ def restore_bank(connection: sqlite3.Connection, records: list[dict]) -> int:
                 json.dumps(record["distractors"]),
                 record.get("model"),
                 _now(),
-                record.get("retired", 0),
+                retired,
             ),
         )
-        added += 1
+        changed += 1
 
     connection.commit()
-    return added
+    return changed

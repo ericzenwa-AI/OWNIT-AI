@@ -292,16 +292,19 @@ def test_a_live_question_is_not_dropped_for_a_retired_twin(db):
     assert store.bank_counts(db)["factorise_cubic"] == 1
 
 
-def test_restoring_the_same_file_twice_still_adds_nothing(db):
-    records = [
-        {"skill_id": "surds", "question": "q", "correct_option": "a",
-         "distractors": [], "retired": 0},
-        {"skill_id": "surds", "question": "q", "correct_option": "a",
-         "distractors": [], "retired": 1},
-    ]
+def test_the_same_question_live_and_retired_settles_on_the_file_ordering(db):
+    """An export cannot produce this - a question is one row - but the file is
+    committed and hand-editable, so a bad merge could. The last entry wins and
+    the database stays on that answer rather than flipping between them."""
+    live = {"skill_id": "surds", "question": "q", "correct_option": "a",
+            "distractors": [], "retired": 0}
+    records = [live, {**live, "retired": 1}]
 
-    assert store.restore_bank(db, records) == 2
-    assert store.restore_bank(db, records) == 0
+    store.restore_bank(db, records)
+    assert store.bank_counts(db) == {}
+
+    store.restore_bank(db, records)
+    assert store.bank_counts(db) == {}
 
 
 def test_a_rewrite_is_not_mistaken_for_the_question_it_replaced(db):
@@ -317,4 +320,68 @@ def test_a_rewrite_is_not_mistaken_for_the_question_it_replaced(db):
     ]
 
     assert store.restore_bank(db, records) == 2
+    assert store.restore_bank(db, records) == 0
+
+
+def test_a_question_retired_in_the_file_is_retired_here_too(db):
+    """What the deployed machine was getting wrong.
+
+    It restored while the question was live, the question was later found to
+    have the wrong answer and retired, and the next restore only added a
+    retired copy alongside. The live one is what gets served, so the server
+    carried on handing out an answer we knew was wrong.
+    """
+    wrong = {"skill_id": "factorise_cubic", "question": "Factorise it.",
+             "correct_option": "(x + 1)(2x - 3)(x + 1)", "distractors": [],
+             "retired": 0}
+
+    assert store.restore_bank(db, [wrong]) == 1
+    assert store.bank_counts(db)["factorise_cubic"] == 1
+
+    # The same question, now marked retired in the file.
+    assert store.restore_bank(db, [{**wrong, "retired": 1}]) == 1
+    assert store.bank_counts(db) == {}
+    assert store.take_question(db, "factorise_cubic") is None
+
+
+def test_a_question_brought_back_in_the_file_is_live_again(db):
+    """The rule is that the file decides, which has to work both ways."""
+    record = {"skill_id": "surds", "question": "q", "correct_option": "a",
+              "distractors": [], "retired": 1}
+
+    store.restore_bank(db, [record])
+    assert store.bank_counts(db) == {}
+
+    assert store.restore_bank(db, [{**record, "retired": 0}]) == 1
+    assert store.bank_counts(db)["surds"] == 1
+
+
+def test_duplicate_copies_left_by_the_old_rule_are_all_brought_into_line(db):
+    """A machine that restored under the older rule has two copies of the same
+    question, one live and one retired. Updating only one leaves it served."""
+    record = {"skill_id": "surds", "question": "q", "correct_option": "a",
+              "distractors": [], "retired": 0}
+    store.restore_bank(db, [record])
+    # The second copy the old rule would have inserted.
+    db.execute(
+        """INSERT INTO question_bank (skill_id, question, correct_option,
+               distractors, created_at, retired)
+           VALUES ('surds', 'q', 'a', '[]', '2026-01-01T00:00:00+00:00', 1)"""
+    )
+    db.commit()
+
+    store.restore_bank(db, [{**record, "retired": 1}])
+
+    live = db.execute(
+        "SELECT COUNT(*) c FROM question_bank WHERE retired = 0"
+    ).fetchone()["c"]
+    assert live == 0
+
+
+def test_restoring_an_unchanged_file_still_changes_nothing(db):
+    records = [{"skill_id": "surds", "question": "q", "correct_option": "a",
+                "distractors": [], "retired": 0}]
+
+    assert store.restore_bank(db, records) == 1
+    assert store.restore_bank(db, records) == 0
     assert store.restore_bank(db, records) == 0
