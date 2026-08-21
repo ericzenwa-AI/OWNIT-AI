@@ -6,6 +6,10 @@
 <title>OwnIt</title>
 <!-- Typesetting only. If either of these fails to load, mathHtml() falls back
      to the plain text the bank stores, which is what the page showed before. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
       crossorigin="anonymous">
@@ -13,76 +17,297 @@
         src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
         crossorigin="anonymous"></script>
 <style>
+  /* ------------------------------------------------------------------
+     The same two colour systems as the landing page, and the same rule
+     about which is which.
+
+     One accent, spent only on things you can act on: the Start button,
+     an option under the cursor, a focus ring.
+
+     Green and rust are not decoration here - they are the answer. Green
+     is a skill that held, rust is where it broke. The accent never
+     appears on a verdict, and a verdict colour never appears on a
+     control.
+     ------------------------------------------------------------------ */
   :root {
-    --ink: #1a1a1a;
-    --quiet: #6b6b6b;
-    --line: #e0ddd6;
-    --paper: #faf8f4;
-    --accent: #2f5d50;
-    --wrong: #8c3b2e;
+    --bg:      #FAFAFB;
+    --card:    #FFFFFF;
+    --sunk:    #F4F5F7;
+    --ink:     #0E1013;
+    --muted:   #464C5A;
+    --faint:   #666C7A;
+    --line:    #E9EAEE;
+    --accent:  #4F46E5;
+    --on-accent: #FFFFFF;
+
+    --held:    #2F5D50;
+    --broke:   #8C3B2E;
+
+    --lift: 0 1px 2px rgba(14, 16, 19, 0.04),
+            0 8px 24px -6px rgba(14, 16, 19, 0.08);
+
+    --sans: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:     #0A0B0E;
+      --card:   #131519;
+      --sunk:   #0F1114;
+      --ink:    #F1F2F5;
+      --muted:  #A2A8B4;
+      --faint:  #6F7583;
+      --line:   #23262D;
+      --accent: #8B84F5;
+      --on-accent: #0A0B0E;
+      --held:   #7FB9A5;
+      --broke:  #E08A72;
+      --lift: none;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:     #0A0B0E;
+    --card:   #131519;
+    --sunk:   #0F1114;
+    --ink:    #F1F2F5;
+    --muted:  #A2A8B4;
+    --faint:  #6F7583;
+    --line:   #23262D;
+    --accent: #8B84F5;
+    --on-accent: #0A0B0E;
+    --held:   #7FB9A5;
+    --broke:  #E08A72;
+    --lift: none;
+  }
+
   * { box-sizing: border-box; }
+
   body {
     margin: 0;
-    padding: 1.5rem 1rem 4rem;
-    background: var(--paper);
+    padding: 2.5rem 1.25rem 5rem;
+    background: var(--bg);
     color: var(--ink);
-    font: 17px/1.55 Georgia, 'Times New Roman', serif;
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
   }
-  main { max-width: 34rem; margin: 0 auto; }
-  h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
-  .sub { color: var(--quiet); font-size: 0.9rem; margin: 0 0 1.75rem; }
+  main { max-width: 36rem; margin: 0 auto; }
+
+  h1 {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  h1::before {
+    content: "";
+    width: 0.6rem; height: 0.6rem;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+  .sub { color: var(--muted); font-size: 1rem; margin: 0 0 2.5rem; }
+
+  /* ---- what you fill in ---- */
+
+  label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--ink);
+    /* The three things being asked for are three separate questions, and
+       ran together as one block of form. This is most of the gap. */
+    margin: 2.25rem 0 0.6rem;
+  }
+  .card > label:first-child { margin-top: 0; }
+
   textarea, input[type=text] {
-    width: 100%; padding: 0.7rem; font: inherit; font-size: 0.95rem;
-    border: 1px solid var(--line); border-radius: 6px; background: #fff;
+    width: 100%;
+    padding: 0.9rem 1rem;
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
   }
-  textarea { min-height: 5rem; resize: vertical; }
-  label { display: block; font-size: 0.85rem; color: var(--quiet); margin: 1rem 0 0.35rem; }
-  button {
-    font: inherit; padding: 0.7rem 1.2rem; border-radius: 6px;
-    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  textarea { min-height: 5.5rem; resize: vertical; }
+  ::placeholder { color: var(--faint); }
+
+  /* The default control is a grey system button and the word "unstyled".
+     ::file-selector-button reaches it without changing the markup. */
+  input[type=file] {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 0.92rem;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
     cursor: pointer;
   }
+  input[type=file]::file-selector-button {
+    font-family: var(--sans);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    margin-right: 0.9rem;
+    cursor: pointer;
+  }
+  input[type=file]:hover { border-color: var(--accent); }
+  input[type=file]::file-selector-button:hover { border-color: var(--accent); }
+
+  /* ---- things you press ---- */
+
+  button {
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    padding: 0.9rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+  button:active:not(:disabled) { transform: translateY(0); }
   button:disabled { opacity: 0.5; cursor: default; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  #go { width: 100%; margin-top: 2rem; }
+
   button.option {
-    display: block; width: 100%; text-align: left; margin: 0.5rem 0;
-    background: #fff; color: var(--ink); border-color: var(--line);
-    padding: 0.8rem 1rem;
+    display: block; width: 100%; text-align: left;
+    margin: 0.6rem 0;
+    font-size: 1rem;
+    font-weight: 400;
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    transition: border-color 0.15s ease, background 0.15s ease;
   }
-  button.option:hover:not(:disabled) { border-color: var(--accent); }
-  button.option .letter { color: var(--quiet); margin-right: 0.6rem; }
+  button.option:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--sunk);
+    transform: none;
+    filter: none;
+  }
+  button.option .letter {
+    color: var(--faint);
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-right: 0.8rem;
+  }
+
+  /* ---- the blocks ---- */
+
   .card {
-    background: #fff; border: 1px solid var(--line);
-    border-radius: 8px; padding: 1.25rem; margin: 1rem 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 2rem 1.75rem;
+    margin: 1.25rem 0;
+    box-shadow: var(--lift);
   }
-  .skill { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
-           color: var(--quiet); margin-bottom: 0.6rem; }
-  .question { font-size: 1.05rem; margin-bottom: 1rem; white-space: pre-wrap; }
-  .chain { color: var(--quiet); font-size: 0.9rem; margin-top: 0.4rem; }
-  .gap { font-size: 1.35rem; color: var(--accent); font-weight: bold;
-         margin: 0.2rem 0 0.8rem; }
-  .note { color: var(--quiet); font-size: 0.88rem; }
-  /* The same small uppercase heading the rest of the page uses, so a card
-     always says what it is before it says anything else. */
-  .label { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase;
-           color: var(--quiet); margin-bottom: 0.2rem; }
+
+  /* Small, spaced and quiet: a card says what it is before it says
+     anything else. The same treatment as the landing page's eyebrows. */
+  .skill, .label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 0.9rem;
+  }
+  .label { color: var(--accent); }
+
+  .question {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    white-space: pre-wrap;
+  }
+
+  /* The one statement on this page, so it gets the room a statement gets. */
+  .gap {
+    font-size: clamp(1.7rem, 6vw, 2.2rem);
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+    color: var(--held);
+    font-weight: 700;
+    margin: 0 0 1.1rem;
+    text-wrap: balance;
+  }
+
+  .chain { color: var(--muted); font-size: 0.95rem; margin-top: 0.4rem; }
+  .note { color: var(--muted); font-size: 0.95rem; }
+  p { margin: 0 0 1rem; }
+  p:last-child { margin-bottom: 0; }
+
   /* A tick or a cross, not our internal words for it. */
-  .held::before { content: "\2713\00a0\00a0"; color: var(--accent); }
-  .missed::before { content: "\2717\00a0\00a0"; color: var(--wrong); }
-  li { margin: 0.4rem 0; }
-  details summary { cursor: pointer; color: var(--quiet); font-size: 0.88rem; }
-  details[open] summary { margin-bottom: 0.8rem; }
-  strong { color: var(--ink); }
-  .quiet-link { background: none; border: none; color: var(--quiet);
-                text-decoration: underline; padding: 0; font-size: 0.85rem; }
-  .error { color: var(--wrong); }
-  /* Slightly up on the surrounding serif, which sets a small x-height next to
-     KaTeX's. Nothing else about the page's type changes - this is for the
-     notation, not for the writing around it. */
-  .katex { font-size: 1.08em; }
+  .held::before { content: "\2713\00a0\00a0"; color: var(--held); }
+  .missed::before { content: "\2717\00a0\00a0"; color: var(--broke); }
+  ul { padding-left: 1.2rem; }
+  li { margin: 0.5rem 0; }
+
+  details summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 500;
+  }
+  details[open] summary { margin-bottom: 1rem; }
+  strong { color: var(--ink); font-weight: 600; }
+
+  .quiet-link {
+    background: none; border: none; color: var(--muted);
+    text-decoration: underline; padding: 0;
+    font-size: 0.9rem; font-weight: 400;
+  }
+  .quiet-link:hover { transform: none; filter: none; color: var(--accent); }
+
+  .error { color: var(--broke); }
+
+  /* Sits a touch up on Outfit, which has a taller x-height than the serif
+     this used to be set in. For the notation only. */
+  .katex { font-size: 1.05em; }
   /* A long quotient must not push the card sideways on a phone. */
   .question, button.option { overflow-x: auto; }
-  .counter { color: var(--quiet); font-size: 0.8rem; text-align: right; }
+
+  .counter {
+    color: var(--faint); font-size: 0.8rem; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The verdict card: two buttons side by side rather than stacked full width. */
+  #verdict button { width: auto; margin-top: 0.5rem; margin-right: 0.5rem; }
+  #verdict #send-verdict { margin-top: 1.25rem; }
+
+  @media (max-width: 34rem) {
+    .card { padding: 1.5rem 1.25rem; border-radius: 16px; }
+    label { margin-top: 1.75rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
 </style>
 </head>
 <body>
