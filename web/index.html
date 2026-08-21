@@ -298,6 +298,28 @@
   }
   button.quiet-link.part:hover { filter: none; transform: none; opacity: 0.75; }
 
+  /* The chooser. Each part reads as a line of the question rather than a
+     control, because that is what someone is scanning for. */
+  .choices { margin-top: 1rem; }
+  .choices .option {
+    font-size: 1rem;
+    line-height: 1.6;
+    padding: 1rem 1.1rem;
+    margin: 0.6rem 0;
+  }
+  .choices .letter { font-weight: 700; color: var(--accent); }
+  /* A part we cannot reach is shown rather than hidden - knowing it was read
+     and cannot be helped with is worth more than it quietly missing. */
+  .option.dead {
+    display: block;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    background: var(--sunk);
+    color: var(--faint);
+  }
+  .option.dead .letter { color: var(--faint); }
+  .option.dead .note { font-size: inherit; }
+
   /* Sits a touch up on Outfit, which has a taller x-height than the serif
      this used to be set in. For the notation only. */
   .katex { font-size: 1.05em; }
@@ -427,7 +449,9 @@ async function start() {
     state = await post('/api/start', body);
     asked = body;
     parts = state.parts || null;
-    rememberSession(state.session_id);
+    // A multi-part question comes back with no session: nothing is walked
+    // until a part is chosen, so there is nothing to remember yet.
+    if (state.session_id) rememberSession(state.session_id);
     draw();
   } catch (error) {
     button.disabled = false;
@@ -446,6 +470,7 @@ async function switchTo(label) {
 
   screen.innerHTML = '<div class="card"><p class="note">Starting on part (' +
     escape(label) + ')...</p></div>';
+
 
   try {
     state = await post('/api/start', {
@@ -470,6 +495,7 @@ function partsBar() {
   if (!parts || parts.length < 2) return '';
 
   const here = parts.find(p => p.current);
+  if (!here) return '';
   const others = parts.filter(p => !p.current);
   const offer = others.filter(p => p.covered);
   const cannot = others.filter(p => !p.covered);
@@ -538,8 +564,33 @@ function newQuestion() {
 
 function draw() {
   if (state.message) return outOfScope();
+  if (state.parts && !state.session_id) return chooseScreen();
   if (state.finished) return report();
   question();
+}
+
+// A question with lettered parts asks which one before starting on any of
+// them. Starting at (a) was starting on the part they are least likely to be
+// stuck on - it is usually the one they could do - and two questions about the
+// wrong part is a worse price than one tap.
+function chooseScreen() {
+  const rows = parts.map(part => part.covered
+    ? `<button class="option part" data-part="${escape(part.label)}">
+         <span class="letter">(${escape(part.label)})</span>${escape(part.summary)}
+       </button>`
+    : `<div class="option dead">
+         <span class="letter">(${escape(part.label)})</span>${escape(part.summary)}
+         <span class="note"> &mdash; not something I can help with yet.</span>
+       </div>`).join('');
+
+  screen.innerHTML = `
+    <div class="card">
+      <div class="skill">This question has ${parts.length} parts</div>
+      <p class="note">Which one are you stuck on?</p>
+      <div class="choices">${rows}</div>
+    </div>`;
+
+  wireParts();
 }
 
 function question() {

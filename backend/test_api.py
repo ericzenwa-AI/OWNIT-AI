@@ -935,7 +935,41 @@ def test_all_the_parts_come_back(client, monkeypatch):
     state = client.post("/api/start", json={"question": "q"}).json()
 
     assert [p["label"] for p in state["parts"]] == ["a", "b", "c", "d"]
-    assert [p["current"] for p in state["parts"]] == [True, False, False, False]
+
+
+def test_a_question_with_parts_asks_which_one_first(client, monkeypatch):
+    """Part (a) is usually the one they could do, so starting there is
+    starting on the part they are least likely to be stuck on."""
+    _multipart(monkeypatch)
+
+    state = client.post("/api/start", json={"question": "q"}).json()
+
+    assert state["session_id"] is None
+    assert state["asking"] is None
+    assert not any(p["current"] for p in state["parts"])
+
+
+def test_nothing_is_walked_until_a_part_is_chosen(client, monkeypatch):
+    _multipart(monkeypatch)
+    client.post("/api/start", json={"question": "q"})
+
+    connection = store.connect()
+    try:
+        assert connection.execute("SELECT COUNT(*) c FROM sessions").fetchone()["c"] == 0
+    finally:
+        connection.close()
+
+
+def test_choosing_a_part_is_what_starts_the_walk(client, monkeypatch):
+    _multipart(monkeypatch)
+    client.post("/api/start", json={"question": "q"})
+
+    state = client.post(
+        "/api/start", json={"question": "q", "start_at": "polynomial_division"}
+    ).json()
+
+    assert state["session_id"] is not None
+    assert state["asking"] is not None
 
 
 def test_a_part_we_cannot_reach_is_marked_as_such(client, monkeypatch):

@@ -97,6 +97,21 @@ CREATE TABLE IF NOT EXISTS feedback (
     note        TEXT
 );
 
+-- One row every time a question is read by the model.
+--
+-- This is what the daily ceiling counts, because this is what costs money. It
+-- used to count walks and refusals instead, which stood in for the same thing
+-- right up until a question could be read without either happening - someone
+-- sending a multi-part question and never choosing a part would have been read
+-- for free, forever.
+CREATE TABLE IF NOT EXISTS question_read (
+    id         INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    -- Whether we could place it. Not used for the ceiling, but it makes the
+    -- table answer "how often do we turn people away" without a join.
+    placed     INTEGER NOT NULL DEFAULT 0
+);
+
 -- Anything a tutor wanted to say that was not a verdict on one diagnosis.
 --
 -- Kept apart from `feedback` rather than folded into it. That table requires a
@@ -689,22 +704,27 @@ def waitlist_size(connection: sqlite3.Connection) -> int:
     return connection.execute("SELECT COUNT(*) AS n FROM waitlist").fetchone()["n"]
 
 
+def record_question_read(connection: sqlite3.Connection, placed: bool) -> None:
+    """Note that the model was asked to read a question."""
+    connection.execute(
+        "INSERT INTO question_read (created_at, placed) VALUES (?, ?)",
+        (_now(), 1 if placed else 0),
+    )
+    connection.commit()
+
+
 def starts_today(connection: sqlite3.Connection) -> int:
     """How many questions have been read since midnight.
 
-    Counts the ones we could not place as well as the ones we could. Both spend
-    a call on the best model, and a run of unplaceable questions is exactly the
-    shape an abusive one takes - so counting only successful walks would leave
-    the hole open.
+    Counts readings rather than walks, because a reading is the thing that
+    costs money and a walk is not: one question can be read once and walked
+    three times as someone moves between its parts, and it can be read without
+    being walked at all if they never pick a part.
     """
     since = _now()[:10]
-    walks = connection.execute(
-        "SELECT COUNT(*) AS n FROM sessions WHERE created_at >= ?", (since,)
+    return connection.execute(
+        "SELECT COUNT(*) AS n FROM question_read WHERE created_at >= ?", (since,)
     ).fetchone()["n"]
-    refused = connection.execute(
-        "SELECT COUNT(*) AS n FROM unplaced WHERE created_at >= ?", (since,)
-    ).fetchone()["n"]
-    return walks + refused
 
 
 def walk_state(connection: sqlite3.Connection, session_id: int):

@@ -251,30 +251,30 @@ def test_a_reused_answer_is_not_stored_twice(db):
     assert [r["skill_id"] for r in rows] == ["index_laws", "surds"]
 
 
-def test_todays_count_includes_questions_we_could_not_place(db):
-    """Both spend a call on the best model, and a run of unplaceable questions
-    is exactly the shape an abusive one takes."""
-    import walk
-    from entry import EntryMatch
-
+def test_the_ceiling_counts_readings_not_walks(db):
+    """A reading is what costs money. A walk is not: one question can be read
+    once and walked three times as someone moves between its parts, and it can
+    be read without being walked at all if they never pick one."""
     assert store.starts_today(db) == 0
 
-    store.open_walk(db, entry_skill_id="index_laws", reading=walk.Reading())
+    store.record_question_read(db, placed=True)
     assert store.starts_today(db) == 1
 
-    store.record_unplaced(
-        db,
-        "something about vectors",
-        EntryMatch(
-            skill_id="",
-            confidence="low",
-            plain_summary="",
-            reason="not on the map",
-            recognised_as="vectors",
-        ),
-    )
+    # A question we could not place still cost a call to read it.
+    store.record_question_read(db, placed=False)
     assert store.starts_today(db) == 2
 
+
+def test_walking_the_same_question_again_does_not_count_twice(db):
+    """Switching part opens a second walk without reading anything, so the
+    ceiling must not move."""
+    import walk
+
+    store.record_question_read(db, placed=True)
+    store.open_walk(db, entry_skill_id="index_laws", reading=walk.Reading())
+    store.open_walk(db, entry_skill_id="surds", reading=walk.Reading())
+
+    assert store.starts_today(db) == 1
 
 def test_a_live_question_is_not_dropped_for_a_retired_twin(db):
     """A retired question and a live replacement can read exactly the same. The

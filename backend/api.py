@@ -291,7 +291,22 @@ def start(request: StartRequest) -> StateOut:
         if attachment:
             attachment.unlink(missing_ok=True)
 
+    connection = store.connect()
+    try:
+        store.record_question_read(connection, placed=is_usable(match))
+    finally:
+        connection.close()
+
     _file_uncovered_parts(request, match)
+
+    # A question with lettered parts asks which one before starting on any of
+    # them. Beginning at (a) was starting on the part they are least likely to
+    # be stuck on - it is usually the one they could do - and answering two
+    # questions about it before noticing the others is worse than one tap.
+    parts = _parts_of(match, starting_at=None)
+    if parts and any(part.covered for part in parts):
+        return StateOut(parts=parts, matched=None)
+
     return _begin(request, match)
 
 
