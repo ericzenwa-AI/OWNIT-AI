@@ -116,8 +116,29 @@ function sessionInUrl() {
 // Only a tutor should be judging a diagnosis. There is no sign-in yet, so this
 // is a flag on the link rather than an account - enough to keep it away from
 // students without pretending to be security.
+//
+// It sticks once set, because the flag was on the link and nowhere else: a
+// tutor had to remember to type it every time, and every session they forgot
+// was a verdict nobody recorded. ?tutor=0 turns it off again, which matters on
+// a laptop a student also uses.
 function isTutor() {
-  return new URLSearchParams(location.search).has('tutor');
+  const asked = new URLSearchParams(location.search).get('tutor');
+  if (asked !== null) {
+    const on = asked !== '0' && asked !== 'no';
+    remember('ownit.tutor', on ? '1' : '');
+    return on;
+  }
+  return recall('ownit.tutor') === '1';
+}
+
+// Storage throws rather than returning null in some private modes, so both of
+// these have to be able to fail without taking the page down with them.
+function remember(key, value) {
+  try { localStorage.setItem(key, value); } catch (error) { /* not available */ }
+}
+
+function recall(key) {
+  try { return localStorage.getItem(key); } catch (error) { return null; }
 }
 
 // A photo keeps the layout that copy-pasting destroys - powers and fractions
@@ -306,8 +327,14 @@ function report() {
 // how the walk behaved, not whether it was right.
 function verdictCard() {
   if (!isTutor()) return '';
+  // The note sits above the buttons rather than inside the correction, so it
+  // can be left on either verdict. "Right, but it took nine questions" is worth
+  // as much as a correction, and it had nowhere to go when the box only
+  // appeared for people who disagreed.
   return `<div class="card" id="verdict">
     <p class="label">Was this right?</p>
+    <label for="verdict-note">Anything worth knowing (optional)</label>
+    <textarea id="verdict-note" placeholder="Right skill, but they got there by guessing."></textarea>
     <p>
       <button id="was-right">Yes, that was the gap</button>
       <button id="was-wrong">No</button>
@@ -315,8 +342,6 @@ function verdictCard() {
     <div id="correction" hidden>
       <label for="real-gap">What was it really?</label>
       <input type="text" id="real-gap" placeholder="Expanding brackets">
-      <label for="verdict-note">Anything worth remembering (optional)</label>
-      <textarea id="verdict-note" placeholder="They could expand, but not with a negative outside."></textarea>
       <p><button id="send-verdict">Save</button></p>
     </div>
     <p id="verdict-msg" class="note"></p>
@@ -336,9 +361,9 @@ function wireVerdict() {
 
   async function sendVerdict(verdict) {
     const body = {session_id: state.session_id, verdict};
+    body.note = document.getElementById('verdict-note').value.trim() || null;
     if (verdict === 'wrong') {
       body.actual_gap = document.getElementById('real-gap').value.trim() || null;
-      body.note = document.getElementById('verdict-note').value.trim() || null;
     }
     try {
       const saved = await post('/api/feedback', body);

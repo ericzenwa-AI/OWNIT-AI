@@ -726,3 +726,51 @@ def test_health_reports_how_many_questions_are_banked(client):
 
     assert "questions" in body
     assert isinstance(body["questions"], int)
+
+
+def test_a_note_can_be_left_when_the_diagnosis_was_right(client):
+    """"Right skill, but they guessed it" is worth as much as a correction, and
+    there was nowhere to put it while the box only opened for disagreement."""
+    session_id, _ = _finish(client)
+
+    response = client.post(
+        "/api/feedback",
+        json={
+            "session_id": session_id,
+            "verdict": "right",
+            "note": "Right skill, but they got there by guessing.",
+        },
+    )
+
+    assert response.status_code == 200
+
+    connection = store.connect()
+    try:
+        row = connection.execute(
+            "SELECT verdict, note FROM feedback WHERE session_id = ?", (session_id,)
+        ).fetchone()
+    finally:
+        connection.close()
+
+    assert row["verdict"] == "right"
+    assert row["note"] == "Right skill, but they got there by guessing."
+
+
+def test_the_same_session_can_be_commented_on_more_than_once(client):
+    """A tutor who says more later should not overwrite what they said first."""
+    session_id, _ = _finish(client)
+    client.post("/api/feedback", json={"session_id": session_id, "verdict": "right"})
+    client.post(
+        "/api/feedback",
+        json={"session_id": session_id, "verdict": "wrong", "actual_gap": "surds"},
+    )
+
+    connection = store.connect()
+    try:
+        rows = connection.execute(
+            "SELECT verdict FROM feedback WHERE session_id = ? ORDER BY id", (session_id,)
+        ).fetchall()
+    finally:
+        connection.close()
+
+    assert [r["verdict"] for r in rows] == ["right", "wrong"]
