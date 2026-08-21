@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OwnIt &mdash; find what you're actually missing</title>
-<meta name="description" content="You're not bad at maths. Something underneath the question is missing, and this finds it.">
+<title>OwnIt &mdash; find what your student is actually missing</title>
+<meta name="description" content="Your student isn't bad at maths. Something underneath the question is missing, and this finds it.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,8 +28,13 @@
     --card:    #FFFFFF;
     --sunk:    #F4F5F7;
     --ink:     #0E1013;
-    --muted:   #5A6070;
-    --faint:   #8A909E;
+    /* Both darkened after measuring them rather than looking at them. On the
+       off-white ground the old muted was 6.0:1 and read washed out on a phone
+       at low brightness; faint was 3.07:1, which is below the 4.5:1 minimum for
+       body text and was being used for the footer and the examiner citation.
+       Now 8.2:1 and 5.0:1. */
+    --muted:   #464C5A;
+    --faint:   #666C7A;
     --line:    #E9EAEE;
     --accent:  #4F46E5;
     --on-accent: #FFFFFF;
@@ -241,6 +246,15 @@
   }
   .rule b { font-family: var(--mono); font-size: 0.85rem; color: var(--broke); font-weight: 500; }
 
+  /* Sits under the diagnostic, saying what it is. Quiet on purpose - it is a
+     note about the picture, not part of the argument. */
+  .caption {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--faint);
+    margin: -0.75rem 0 0;
+  }
+
   blockquote {
     margin: 2rem 0;
     padding: 1.5rem 1.6rem;
@@ -378,22 +392,23 @@
 
 <header>
   <p class="wordmark">OwnIt</p>
-  <h1>You're probably not bad at maths.</h1>
-  <p class="lead">You're missing something underneath the question &mdash; and
+  <h1>Your student isn't bad at maths. They just haven't met the tutor who found out why.</h1>
+  <p class="lead">They're missing something underneath the question &mdash; and
   nobody has ever gone looking for it.</p>
 </header>
 
 <section>
   <h2>Why doing more past papers isn't working</h2>
   <p>Every A-level question sits on top of other things. Differentiation sits on
-  indices. Indices sit on knowing what a power means. When you get a question
-  wrong, the mark scheme says you got <em>that topic</em> wrong &mdash; so that's
-  the topic you go back and revise.</p>
+  indices. Indices sit on knowing what a power means. When a student gets a
+  question wrong, the mark scheme says they got <em>that topic</em> wrong
+  &mdash; so that's the topic they go back and revise.</p>
   <p>But if the actual problem is two years further down, revising the topic
-  changes nothing. You do it again, it still doesn't stick, and you conclude
-  you're just bad at maths.</p>
-  <p>You're not. You just can't see where it broke, because if you could see it,
-  you wouldn't be stuck.</p>
+  changes nothing. They do it again, it still doesn't stick, and they conclude
+  they're just bad at maths.</p>
+  <p>They're not. They just can't see where it broke, because if they could see
+  it they wouldn't be stuck &mdash; and from the outside, it doesn't show
+  either.</p>
 </section>
 
 <section>
@@ -427,6 +442,8 @@
     <div class="rule">Four questions. The thing to fix is <b>expanding brackets</b>
     &mdash; and everything underneath it is solid, so that's where to start, not lower.</div>
   </div>
+  <p class="caption">A real run of the diagnostic, against the real skill map.
+  The mistake it is answering with is the one AQA's examiners reported.</p>
 
   <p>The second thing the examiners reported on that question was students
   using <span style="font-family: var(--mono)">h&nbsp;=&nbsp;0</span> instead of
@@ -435,6 +452,7 @@
 </section>
 
 <section>
+  <p class="eyebrow">What your student sees</p>
   <h2>How it works</h2>
   <ol class="steps">
     <li>
@@ -463,12 +481,13 @@
 </section>
 
 <section>
-  <h2>It won't do your homework</h2>
-  <p>It never gives you the answer to the question you sent. That's deliberate,
-  and it's the whole point &mdash; an answer gets you through tonight, and you're
-  stuck again next week on the same thing wearing a different hat.</p>
-  <p>You can show the result to your teacher or your tutor without it looking
-  like you cheated, because you didn't.</p>
+  <h2>It won't do their homework</h2>
+  <p>It never gives the student the answer to the question they sent. That's
+  deliberate, and it's the whole point &mdash; an answer gets them through
+  tonight, and they're stuck again next week on the same thing wearing a
+  different hat.</p>
+  <p>They can show the result to their teacher without it looking like they
+  cheated, because they didn't.</p>
 </section>
 
 <section id="join">
@@ -483,9 +502,9 @@
     <input type="email" id="email" name="email" autocomplete="email"
            placeholder="you@example.com" required>
 
-    <label for="studying">What are you stuck on? (optional)</label>
+    <label for="studying">What do you teach? (optional)</label>
     <input type="text" id="studying" name="studying"
-           placeholder="Edexcel Year 13 &mdash; integration is destroying me">
+           placeholder="Edexcel A-level &mdash; mostly Year 12 and 13">
 
     <button type="submit" id="go">Join the waitlist</button>
     <p class="said" id="said" role="status" aria-live="polite"></p>
@@ -501,7 +520,7 @@
   <p>Right now it covers Pure maths &mdash; differentiation, integration, logs,
   sequences, quadratics, functions, indices, binomial expansion, coordinate
   geometry and polynomials. Trigonometry, statistics and mechanics aren't in
-  yet. If it can't place your question it says so rather than guessing.</p>
+  yet. If it can't place a question it says so rather than guessing.</p>
   <p>Built by a tutor, in the open.</p>
 </footer>
 
