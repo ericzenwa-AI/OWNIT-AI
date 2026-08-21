@@ -774,3 +774,126 @@ def test_the_same_session_can_be_commented_on_more_than_once(client):
         connection.close()
 
     assert [r["verdict"] for r in rows] == ["right", "wrong"]
+
+
+# ---- Saying something without having run a diagnosis -----------------------
+
+
+def test_a_comment_needs_no_session(client):
+    """The whole reason this exists. Most of what a tutor wants to say is not a
+    verdict on one walk."""
+    response = client.post(
+        "/api/comment",
+        json={"comment": "Nothing here covers trigonometry, which is half my week."},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["saved"] is True
+
+
+def test_a_comment_can_name_a_skill_we_know(client):
+    body = client.post(
+        "/api/comment",
+        json={"comment": "The questions here are too easy", "about": "Expanding brackets"},
+    ).json()
+
+    assert body["matched_a_known_skill"] is True
+    assert body["about"] == "expand_brackets"
+
+
+def test_a_comment_about_something_not_on_the_map_is_kept_as_written(client):
+    body = client.post(
+        "/api/comment",
+        json={"comment": "no trig at all", "about": "trigonometry"},
+    ).json()
+
+    assert body["matched_a_known_skill"] is False
+    assert body["about"] == "trigonometry"
+
+
+def test_an_empty_comment_is_refused(client):
+    assert client.post("/api/comment", json={"comment": "   "}).status_code == 400
+
+
+def test_a_comment_can_be_tied_to_a_session_when_there_is_one(client):
+    session_id, _ = _finish(client)
+
+    body = client.post(
+        "/api/comment",
+        json={"comment": "took too many questions", "session_id": session_id},
+    ).json()
+
+    assert body["saved"] is True
+
+    connection = store.connect()
+    try:
+        row = connection.execute("SELECT session_id FROM comments").fetchone()
+    finally:
+        connection.close()
+    assert row["session_id"] == session_id
+
+
+def test_a_comment_against_a_session_that_does_not_exist(client):
+    response = client.post(
+        "/api/comment", json={"comment": "hello", "session_id": 9999}
+    )
+    assert response.status_code == 404
+
+
+# ---- Reading it back -------------------------------------------------------
+
+
+def test_the_admin_page_will_not_open_without_a_password_set(client, monkeypatch):
+    """No default and no fallback. The failure mode of a default is a page of
+    what tutors said, open on the internet."""
+    monkeypatch.delenv("OWNIT_ADMIN_PASSWORD", raising=False)
+
+    assert client.get("/admin/feedback").status_code == 503
+
+
+def test_the_admin_page_refuses_a_wrong_password(client, monkeypatch):
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "the-real-one")
+
+    assert client.get("/admin/feedback").status_code == 401
+    assert client.get(
+        "/admin/feedback", auth=("me", "guessing")
+    ).status_code == 401
+
+
+def test_the_admin_page_shows_both_kinds(client, monkeypatch):
+    session_id, _ = _finish(client)
+    client.post(
+        "/api/feedback",
+        json={"session_id": session_id, "verdict": "wrong", "actual_gap": "surds"},
+    )
+    client.post("/api/comment", json={"comment": "trigonometry is missing"})
+
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    page = client.get("/admin/feedback", auth=("me", "letmein"))
+
+    assert page.status_code == 200
+    assert "Diagnosis marked wrong" in page.text
+    assert "surds" in page.text
+    assert "trigonometry is missing" in page.text
+
+
+def test_a_comment_cannot_put_a_tag_in_the_admin_page(client, monkeypatch):
+    """Anyone on the internet can reach the comment form, and this page is
+    rendered for one person who would have no reason to suspect it."""
+    client.post(
+        "/api/comment",
+        json={"comment": "<script>alert(1)</script>", "about": "<b>x</b>"},
+    )
+
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    page = client.get("/admin/feedback", auth=("me", "letmein")).text
+
+    assert "<script>alert(1)</script>" not in page
+    assert "&lt;script&gt;" in page
+
+
+def test_the_admin_page_is_not_indexed(client, monkeypatch):
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    page = client.get("/admin/feedback", auth=("me", "letmein")).text
+
+    assert "noindex" in page

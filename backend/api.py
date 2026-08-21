@@ -21,14 +21,21 @@ import logging
 import os
 import re
 import json
+import secrets
 from contextlib import asynccontextmanager
+from html import escape
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from anthropic import APIError
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+)
 from pydantic import BaseModel, Field
 
 import bank
@@ -142,6 +149,17 @@ class WaitlistRequest(BaseModel):
     # What they are studying, in their words. Optional, and the most useful
     # thing on the form for deciding which topic to build next.
     studying: str | None = Field(None, max_length=300)
+
+
+class CommentRequest(BaseModel):
+    comment: str = Field(max_length=4000)
+    # Set when it came from someone who had just run a diagnosis, absent when
+    # it did not. Optional is the point of this endpoint.
+    session_id: int | None = None
+    # A skill or topic they think is missing or wrong, put through the same
+    # matching the verdict form uses.
+    about: str | None = Field(None, max_length=300)
+    contact: str | None = Field(None, max_length=254)
 
 
 class FeedbackRequest(BaseModel):
@@ -554,6 +572,56 @@ def waitlist(request: WaitlistRequest) -> dict:
     }
 
 
+@app.post("/api/comment")
+def comment(request: CommentRequest) -> dict:
+    """Take a comment from someone who has not just run a diagnosis.
+
+    The verdict endpoint needs a finished walk to judge. Most of what a tutor
+    wants to say is not that: a topic that is missing, a question that felt
+    wrong for the level, something that simply reads badly. None of it had
+    anywhere to go.
+    """
+    text = (request.comment or "").strip()
+    if not text:
+        raise HTTPException(400, "There is nothing in the comment.")
+
+    if request.session_id is not None:
+        connection = store.connect()
+        try:
+            if store.walk_state(connection, session_id=request.session_id) is None:
+                raise HTTPException(404, "No such session.")
+        finally:
+            connection.close()
+
+    about = (request.about or "").strip()
+    recognised = _as_known_skill(about) if about else None
+
+    connection = store.connect()
+    try:
+        store.leave_comment(
+            connection,
+            text,
+            session_id=request.session_id,
+            about_skill=recognised or (about or None),
+            matched=bool(recognised),
+            contact=request.contact,
+        )
+    finally:
+        connection.close()
+
+    return {
+        "saved": True,
+        "about": recognised or (about or None),
+        "matched_a_known_skill": bool(recognised),
+        "message": (
+            "Thank you - that is noted against "
+            f"{SKILLS[recognised].name}."
+            if recognised
+            else "Thank you. That is worth knowing."
+        ),
+    }
+
+
 @app.get("/api/health")
 def health() -> dict:
     """Enough to tell, from outside, whether a deploy went as intended.
@@ -587,6 +655,121 @@ def health() -> dict:
         "storage": "kept" if on_a_disk else "default",
         "questions": banked,
     }
+
+
+# ---- Reading what came in --------------------------------------------------
+
+
+def _admin_ok(request: Request) -> None:
+    """Basic auth against one password held in the environment.
+
+    There is no default and no fallback: with nothing set the page refuses to
+    open at all, because the failure mode of a default is a page listing what
+    tutors said sitting open on the internet.
+    """
+    expected = os.environ.get("OWNIT_ADMIN_PASSWORD", "")
+    if not expected:
+        raise HTTPException(503, "No admin password is set, so this is closed.")
+
+    header = request.headers.get("authorization", "")
+    given = ""
+    if header.lower().startswith("basic "):
+        try:
+            decoded = base64.b64decode(header[6:]).decode("utf-8", "replace")
+            given = decoded.partition(":")[2]
+        except (binascii.Error, ValueError):
+            given = ""
+
+    # Constant time, so the response cannot be timed to guess the password.
+    if not secrets.compare_digest(given, expected):
+        raise HTTPException(
+            401,
+            "Not authorised.",
+            headers={"WWW-Authenticate": 'Basic realm="OwnIt"'},
+        )
+
+
+@app.get("/admin/feedback", response_class=HTMLResponse)
+def admin_feedback(request: Request) -> str:
+    """Everything anyone has said, newest first.
+
+    Deliberately plain. This exists so the feedback can be read without opening
+    the database by hand, not to be a dashboard.
+    """
+    _admin_ok(request)
+
+    connection = store.connect()
+    try:
+        rows = store.everything_said(connection)
+        waiting = store.waitlist_size(connection)
+    finally:
+        connection.close()
+
+    def out(text) -> str:
+        """Everything here was typed by someone else, including into a form
+        that anyone on the internet can reach."""
+        return escape("" if text is None else str(text))
+
+    items = []
+    for row in rows:
+        when = out(row["created_at"][:16].replace("T", " "))
+        bits = [f'<div class="when">{when}</div>']
+
+        if row["kind"] == "verdict":
+            right = row["headline"] == "right"
+            bits.append(
+                f'<div class="head {"right" if right else "wrong"}">'
+                f'Diagnosis marked {out(row["headline"])}'
+                f' &middot; session {out(row["session_id"])}</div>'
+            )
+            if row["about"]:
+                bits.append(f'<div class="about">Real gap: {out(row["about"])}</div>')
+        else:
+            where = (
+                f' &middot; session {out(row["session_id"])}'
+                if row["session_id"] is not None
+                else " &middot; not from a diagnosis"
+            )
+            bits.append(f'<div class="head comment">Comment{where}</div>')
+            if row["about"]:
+                mark = "" if row["matched"] else " (not a skill on the map)"
+                bits.append(
+                    f'<div class="about">About: {out(row["about"])}{mark}</div>'
+                )
+            if row["contact"]:
+                bits.append(f'<div class="about">Reply to: {out(row["contact"])}</div>')
+
+        if row["body"]:
+            bits.append(f'<div class="body">{out(row["body"])}</div>')
+
+        items.append('<li>' + "".join(bits) + '</li>')
+
+    listing = "".join(items) or "<li><em>Nothing yet.</em></li>"
+
+    return f"""<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Feedback</title>
+<style>
+  body {{ font: 15px/1.6 ui-monospace, Consolas, monospace; max-width: 44rem;
+         margin: 2rem auto; padding: 0 1rem; background: #fff; color: #111; }}
+  h1 {{ font-size: 1.1rem; }}
+  ul {{ list-style: none; padding: 0; }}
+  li {{ border-top: 1px solid #ddd; padding: 1rem 0; }}
+  .when {{ color: #777; font-size: 0.8rem; }}
+  .head {{ font-weight: 700; margin: 0.2rem 0; }}
+  .right {{ color: #2F5D50; }}
+  .wrong {{ color: #8C3B2E; }}
+  .comment {{ color: #333; }}
+  .about {{ color: #555; font-size: 0.9rem; }}
+  .body {{ white-space: pre-wrap; margin-top: 0.4rem; }}
+  .count {{ color: #777; font-size: 0.85rem; }}
+</style>
+<h1>Feedback</h1>
+<p class="count">{len(rows)} shown &middot; {waiting} on the waitlist</p>
+<ul>{listing}</ul>
+"""
 
 
 @app.get("/start")

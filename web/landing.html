@@ -373,6 +373,31 @@
   }
   footer a { color: var(--muted); }
 
+  /* Quiet on purpose. Someone who wants to say something will look for it;
+     nobody arriving for the first time needs it in the way. */
+  #thoughts { margin-top: 1.5rem; }
+  #thoughts summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 500;
+    font-size: 0.92rem;
+  }
+  #thoughts form { margin-top: 0.5rem; }
+  #thoughts textarea {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    resize: vertical;
+  }
+  #thoughts input { background: var(--card); }
+  #thoughts button { margin-top: 1.25rem; }
+
   @media (max-width: 34rem) {
     section { padding: 2.25rem 1.5rem; border-radius: 16px; }
     header { padding: 4rem 0 3rem; }
@@ -522,6 +547,24 @@
   geometry and polynomials. Trigonometry, statistics and mechanics aren't in
   yet. If it can't place a question it says so rather than guessing.</p>
   <p>Built by a tutor, in the open.</p>
+
+  <details id="thoughts">
+    <summary>Tried it and have thoughts? Tell me.</summary>
+    <form id="comment-form">
+      <label for="comment">What's missing, or what feels off?</label>
+      <textarea id="comment" rows="4"
+                placeholder="No trigonometry, which is half of what I teach."></textarea>
+
+      <label for="about">A skill or topic in particular? (optional)</label>
+      <input type="text" id="about" placeholder="Trigonometry">
+
+      <label for="contact">Your email, if you want an answer (optional)</label>
+      <input type="email" id="contact" placeholder="you@example.com">
+
+      <button type="submit" id="send">Send</button>
+      <p class="said" id="comment-said" role="status" aria-live="polite"></p>
+    </form>
+  </details>
 </footer>
 
 <script>
@@ -568,6 +611,56 @@ form.addEventListener('submit', async (event) => {
 function tell(text, good) {
   said.textContent = text;
   said.className = 'said ' + (good ? 'ok' : 'bad');
+}
+
+// Somewhere to say something without having run a diagnosis first. Most of
+// what a tutor wants to tell you is not a verdict on one walk.
+const commentForm = document.getElementById('comment-form');
+const commentSaid = document.getElementById('comment-said');
+const send = document.getElementById('send');
+
+commentForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const comment = document.getElementById('comment').value.trim();
+
+  if (!comment) {
+    saidComment('Write something first.', false);
+    return;
+  }
+
+  send.disabled = true;
+  saidComment('Sending...', true);
+
+  try {
+    const response = await fetch('/api/comment', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        comment,
+        about: document.getElementById('about').value.trim() || null,
+        contact: document.getElementById('contact').value.trim() || null,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      send.disabled = false;
+      saidComment(data.detail || 'That did not go through. Try again in a moment.', false);
+      return;
+    }
+
+    commentForm.querySelectorAll('textarea, input').forEach(i => i.disabled = true);
+    send.textContent = 'Sent';
+    saidComment(data.message, true);
+  } catch (error) {
+    send.disabled = false;
+    saidComment('That did not go through. Check your connection and try again.', false);
+  }
+});
+
+function saidComment(text, good) {
+  commentSaid.textContent = text;
+  commentSaid.className = 'said ' + (good ? 'ok' : 'bad');
 }
 </script>
 </body>

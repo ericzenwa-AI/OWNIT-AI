@@ -46,7 +46,14 @@ services:
       - key: OWNIT_DAILY_STARTS
         value: 200
 
-      # Set by hand in the dashboard. sync: false stops Render asking for it
-      # again on every deploy, and keeps it out of this file.
+      # Both set by hand in the dashboard. sync: false stops Render asking for
+      # them again on every deploy, and keeps them out of this file.
       - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # Opens /admin/feedback, which lists everything anyone has said. With
+      # nothing set the page refuses to open rather than falling back to a
+      # default - the failure mode of a default here is that page sitting open
+      # on the internet.
+      - key: OWNIT_ADMIN_PASSWORD
         sync: false

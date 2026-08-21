@@ -97,6 +97,30 @@ CREATE TABLE IF NOT EXISTS feedback (
     note        TEXT
 );
 
+-- Anything a tutor wanted to say that was not a verdict on one diagnosis.
+--
+-- Kept apart from `feedback` rather than folded into it. That table requires a
+-- session and a verdict, both of which are exactly right for judging a
+-- diagnosis and neither of which a general comment has. Relaxing them in place
+-- would mean a create-copy-drop-rename on a live database, and since the
+-- schema runs as CREATE TABLE IF NOT EXISTS, a deployed file would quietly
+-- keep the old shape while a fresh one got the new. The admin page reads both.
+CREATE TABLE IF NOT EXISTS comments (
+    id          INTEGER PRIMARY KEY,
+    created_at  TEXT    NOT NULL,
+    -- Set when the comment came from someone who had just run a diagnosis.
+    -- Absent otherwise, which is the whole point of this table existing.
+    session_id  INTEGER REFERENCES sessions(id),
+    comment     TEXT    NOT NULL,
+    -- What they named as missing, put through the same matching the verdict
+    -- form uses: a skill id when we recognise one, their own words when not.
+    about_skill TEXT,
+    matched     INTEGER NOT NULL DEFAULT 0,
+    -- Optional, and only so a question can be answered. Never used for
+    -- anything else.
+    contact     TEXT
+);
+
 -- Questions we could not place. Every one is a coverage gap named by someone
 -- who teaches the subject, and it costs them nothing to report - they report it
 -- by pasting a question. Fifty tutors using this writes the backlog by itself,
@@ -558,6 +582,56 @@ def open_walk(
     )
     connection.commit()
     return cursor.lastrowid
+
+
+def leave_comment(
+    connection: sqlite3.Connection,
+    comment: str,
+    *,
+    session_id: int | None = None,
+    about_skill: str | None = None,
+    matched: bool = False,
+    contact: str | None = None,
+) -> int:
+    """Keep something a tutor wanted to say, with or without a diagnosis."""
+    cursor = connection.execute(
+        """INSERT INTO comments
+               (created_at, session_id, comment, about_skill, matched, contact)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (
+            _now(),
+            session_id,
+            comment.strip(),
+            (about_skill or "").strip() or None,
+            1 if matched else 0,
+            (contact or "").strip() or None,
+        ),
+    )
+    connection.commit()
+    return cursor.lastrowid
+
+
+def everything_said(connection: sqlite3.Connection, limit: int = 300) -> list[sqlite3.Row]:
+    """Both kinds of feedback in one list, newest first.
+
+    Verdicts and comments are stored apart because they are shaped differently,
+    but there is no reason to read them apart - what matters is what people
+    said, in the order they said it.
+    """
+    return connection.execute(
+        """SELECT created_at, 'verdict' AS kind, session_id,
+                  verdict AS headline, actual_gap AS about, note AS body,
+                  NULL AS contact, NULL AS matched
+             FROM feedback
+           UNION ALL
+           SELECT created_at, 'comment' AS kind, session_id,
+                  NULL AS headline, about_skill AS about, comment AS body,
+                  contact, matched
+             FROM comments
+           ORDER BY created_at DESC, kind
+           LIMIT ?""",
+        (limit,),
+    ).fetchall()
 
 
 def record_live_generation(connection: sqlite3.Connection, skill_id: str) -> None:
