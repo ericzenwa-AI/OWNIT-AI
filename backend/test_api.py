@@ -17,6 +17,18 @@ from entry import EntryMatch
 from questions import Distractor, MultipleChoiceQuestion
 
 
+@pytest.fixture(autouse=True)
+def never_the_committed_shelf(tmp_path, monkeypatch):
+    """No test may read data/question_bank.jsonl.
+
+    Startup restocks the shelf, so without this every test database would be
+    filled with the 548 real questions and the canned ones below would never
+    be reached - the tests would still pass, while testing something else.
+    """
+    monkeypatch.setattr(bank, "SHELF_FILE", tmp_path / "question_bank.jsonl")
+    monkeypatch.setattr(bank, "_looked_in_the_file", False)
+
+
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(store, "DEFAULT_PATH", tmp_path / "api.db")

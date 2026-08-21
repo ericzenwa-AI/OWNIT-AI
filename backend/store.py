@@ -793,9 +793,15 @@ def restore_bank(connection: sqlite3.Connection, records: list[dict]) -> int:
     """
     added = 0
     for record in records:
+        # Retired counts as part of what makes a row distinct. Without it, a
+        # retired question and a live replacement that happen to read the same
+        # collapse into one - and since the retired one comes first in the
+        # file, the live one is the one dropped. That silently costs a skill a
+        # question, and the only sign is a count being one lower than the file.
         already = connection.execute(
-            "SELECT 1 FROM question_bank WHERE skill_id = ? AND question = ? LIMIT 1",
-            (record["skill_id"], record["question"]),
+            """SELECT 1 FROM question_bank
+               WHERE skill_id = ? AND question = ? AND retired = ? LIMIT 1""",
+            (record["skill_id"], record["question"], record.get("retired", 0)),
         ).fetchone()
         if already:
             continue

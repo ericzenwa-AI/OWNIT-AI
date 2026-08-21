@@ -274,3 +274,31 @@ def test_todays_count_includes_questions_we_could_not_place(db):
         ),
     )
     assert store.starts_today(db) == 2
+
+
+def test_a_live_question_is_not_dropped_for_a_retired_twin(db):
+    """A retired question and a live replacement can read exactly the same. The
+    retired one comes first in the file, so matching on text alone drops the
+    live one and quietly costs the skill a question."""
+    same = "Factorise 2x^3 + 5x^2 - 4x - 3 completely."
+    records = [
+        {"skill_id": "factorise_cubic", "question": same,
+         "correct_option": "wrong one", "distractors": [], "retired": 1},
+        {"skill_id": "factorise_cubic", "question": same,
+         "correct_option": "right one", "distractors": [], "retired": 0},
+    ]
+
+    assert store.restore_bank(db, records) == 2
+    assert store.bank_counts(db)["factorise_cubic"] == 1
+
+
+def test_restoring_the_same_file_twice_still_adds_nothing(db):
+    records = [
+        {"skill_id": "surds", "question": "q", "correct_option": "a",
+         "distractors": [], "retired": 0},
+        {"skill_id": "surds", "question": "q", "correct_option": "a",
+         "distractors": [], "retired": 1},
+    ]
+
+    assert store.restore_bank(db, records) == 2
+    assert store.restore_bank(db, records) == 0

@@ -17,9 +17,11 @@ from __future__ import annotations
 
 import base64
 import binascii
+import logging
 import os
 import re
 import json
+from contextlib import asynccontextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -36,7 +38,29 @@ from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_sco
 from graph import SKILLS
 from questions import DONT_KNOW_LABEL, DONT_KNOW_OPTION, shuffled_options
 
-app = FastAPI(title="OwnIt diagnostic")
+log = logging.getLogger("ownit.api")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Fill the shelf before the first student rather than during them.
+
+    Restocking already happens on the first question that finds nothing, so
+    this is not what makes the app work - it is what makes it honest. A freshly
+    deployed machine otherwise reports an empty bank until somebody uses it,
+    which reads identically to the restock having failed, and the first student
+    through wears the restore inside their own request.
+    """
+    try:
+        added = bank.restock()
+        if added:
+            log.info("shelf restocked: %s questions", added)
+    except Exception as error:  # noqa: BLE001 - never keep the app from starting
+        log.warning("could not restock the shelf at startup: %s", error)
+    yield
+
+
+app = FastAPI(title="OwnIt diagnostic", lifespan=lifespan)
 
 # The page is served from the same place, so this is only for running the
 # frontend separately while developing.
