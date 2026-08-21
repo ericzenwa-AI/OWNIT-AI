@@ -302,3 +302,19 @@ def test_restoring_the_same_file_twice_still_adds_nothing(db):
 
     assert store.restore_bank(db, records) == 2
     assert store.restore_bank(db, records) == 0
+
+
+def test_a_rewrite_is_not_mistaken_for_the_question_it_replaced(db):
+    """A question and its rewrite can read identically and disagree about the
+    answer - that is what a rewrite of a wrong question looks like. Matching on
+    wording alone folds them into one."""
+    same = "Factorise 2x^3 + 5x^2 - 4x - 3 completely."
+    records = [
+        {"skill_id": "factorise_cubic", "question": same,
+         "correct_option": "(x + 1)(2x - 1)(x + 3)", "distractors": [], "retired": 1},
+        {"skill_id": "factorise_cubic", "question": same,
+         "correct_option": "(x + 1)(2x - 3)(x + 1)", "distractors": [], "retired": 1},
+    ]
+
+    assert store.restore_bank(db, records) == 2
+    assert store.restore_bank(db, records) == 0

@@ -867,15 +867,26 @@ def restore_bank(connection: sqlite3.Connection, records: list[dict]) -> int:
     """
     added = 0
     for record in records:
-        # Retired counts as part of what makes a row distinct. Without it, a
-        # retired question and a live replacement that happen to read the same
-        # collapse into one - and since the retired one comes first in the
-        # file, the live one is the one dropped. That silently costs a skill a
-        # question, and the only sign is a count being one lower than the file.
+        # What makes a question the same question: the skill, the wording, the
+        # answer, and whether it is retired. All four are needed.
+        #
+        # Without retired, a retired question and a live replacement that read
+        # the same collapse into one, and since the retired one comes first in
+        # the file the live one is dropped - a skill silently losing a question.
+        #
+        # Without the answer, two attempts at the same wording that disagree
+        # about what is correct collapse too, which is exactly what a question
+        # and its rewrite look like.
         already = connection.execute(
             """SELECT 1 FROM question_bank
-               WHERE skill_id = ? AND question = ? AND retired = ? LIMIT 1""",
-            (record["skill_id"], record["question"], record.get("retired", 0)),
+               WHERE skill_id = ? AND question = ? AND correct_option = ?
+                 AND retired = ? LIMIT 1""",
+            (
+                record["skill_id"],
+                record["question"],
+                record["correct_option"],
+                record.get("retired", 0),
+            ),
         ).fetchone()
         if already:
             continue
