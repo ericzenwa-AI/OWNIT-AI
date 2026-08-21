@@ -523,10 +523,15 @@ function toLatex(run) {
   out = out.replace(/!=/g, ' \\ne ');
   // Whatever angle brackets are left are inequalities, and LaTeX has words for
   // those. Turning them into relations here means no run can carry a tag as
-  // far as the renderer: a question containing </script> arrives with a slash
-  // in it, which is enough to make it look like a fraction and get typeset.
-  // KaTeX escapes its own output, but nothing student-facing should rest on
-  // that being true of whichever version is on the CDN.
+  // far as the renderer: a question containing a closing script tag arrives
+  // with a slash in it, which is enough to make it look like a fraction and
+  // get typeset. KaTeX escapes its own output, but nothing student-facing
+  // should rest on that being true of whichever version is on the CDN.
+  //
+  // That tag is described rather than written here on purpose. The HTML parser
+  // ends a script block at the first one it sees, inside a comment or a string
+  // or not - which is exactly how this comment, in an earlier form, took the
+  // page down and printed the rest of the file on screen as text.
   out = out.replace(/</g, ' \\lt ').replace(/>/g, ' \\gt ');
   return out;
 }
