@@ -170,9 +170,11 @@ def generate_question(
 
     client = client or Anthropic()
 
-    settings = llm.QUESTION.kwargs()
-    if model:
-        settings["model"] = model
+    # Rebuild the task rather than patching the model into settings already
+    # built. Effort is not universal - Haiku rejects it outright - so swapping
+    # the model alone leaves a parameter behind that the new model refuses,
+    # and the override fails with a 400 instead of just using another model.
+    settings = (llm.QUESTION if not model else llm.for_model(model)).kwargs()
 
     response = client.messages.parse(
         system=SYSTEM_PROMPT,
@@ -221,9 +223,11 @@ def generate_batch(
     if skill is None:
         raise UnknownSkillError(f"'{skill_id}' is not a skill in the graph")
 
-    settings = llm.QUESTION.kwargs()
-    if model:
-        settings["model"] = model
+    # Rebuild the task rather than patching the model into settings already
+    # built. Effort is not universal - Haiku rejects it outright - so swapping
+    # the model alone leaves a parameter behind that the new model refuses,
+    # and the override fails with a 400 instead of just using another model.
+    settings = (llm.QUESTION if not model else llm.for_model(model)).kwargs()
 
     response = client_or_new(client).messages.parse(
         system=SYSTEM_PROMPT,

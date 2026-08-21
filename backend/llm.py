@@ -77,6 +77,19 @@ READ_SCHEME = Task(SONNET, effort="medium")
 MAP_HINTS = Task(SONNET, effort="medium")
 
 
+def for_model(model: str, like: Task | None = None) -> Task:
+    """The same job on a different model.
+
+    Settings are not portable between models - effort is the one that bites,
+    since Haiku rejects it and the others expect it - so swapping a model means
+    rebuilding the task and letting kwargs() decide what that model will take.
+    Patching the name into settings already built produces a combination no
+    model accepts.
+    """
+    like = like or QUESTION
+    return Task(model, effort=like.effort, max_tokens=like.max_tokens)
+
+
 def cached(text: str) -> dict:
     """A text block the API should keep, so repeat calls do not re-read it.
 
