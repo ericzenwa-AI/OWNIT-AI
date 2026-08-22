@@ -965,12 +965,24 @@ def admin_feedback(request: Request) -> str:
 """
 
 
+# The whole app is one HTML file with the JavaScript inside it, so a cached
+# copy is a cached version of the product. Without this the response carries an
+# ETag and no Cache-Control, which lets a browser guess how long to keep it and
+# never ask - so somebody can be running last week's build with no way to tell.
+# It happened: a question that should have offered its parts went straight to
+# asking, because the page offering them had not been fetched.
+#
+# no-cache does not mean do not store. It means ask first, and the ETag makes
+# that a 304 and a few bytes when nothing has changed.
+FRESH = {"Cache-Control": "no-cache, must-revalidate"}
+
+
 @app.get("/start")
 def diagnostic():
     """The diagnostic itself."""
     if not PAGE.exists():
         raise HTTPException(404, "The page has not been built yet.")
-    return FileResponse(PAGE)
+    return FileResponse(PAGE, headers=FRESH)
 
 
 @app.get("/")
@@ -984,7 +996,7 @@ def front(s: str | None = None):
     if s:
         return RedirectResponse(f"/start?s={s}")
     if not LANDING.exists():
-        return FileResponse(PAGE) if PAGE.exists() else JSONResponse(
+        return FileResponse(PAGE, headers=FRESH) if PAGE.exists() else JSONResponse(
             status_code=404, content={"detail": "The page has not been built yet."}
         )
-    return FileResponse(LANDING)
+    return FileResponse(LANDING, headers=FRESH)

@@ -1281,3 +1281,14 @@ def test_the_working_photo_is_deleted_afterwards(client, monkeypatch):
 
     assert kept["path"] is not None
     assert not kept["path"].exists()
+
+
+def test_the_pages_are_never_served_from_cache_without_asking(client):
+    """The whole app is one file with the JavaScript inside it, so a cached
+    copy is a cached version of the product. A browser left to guess how long
+    to keep it will happily run last week's build."""
+    for path in ("/", "/start"):
+        headers = client.get(path).headers
+        assert "no-cache" in headers.get("cache-control", ""), path
+        # The ETag is what makes revalidating cheap rather than a full refetch.
+        assert headers.get("etag"), path
