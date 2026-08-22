@@ -1163,3 +1163,121 @@ def test_the_report_still_carries_the_list(client):
     session_id, finished = _finish(client)
 
     assert len(finished["so_far"]) == finished["asked_so_far"]
+
+
+def test_switching_part_works_when_the_question_came_as_a_photo(client, monkeypatch):
+    """A photo carries the maths, so the text is empty. Switching sends no
+    photo back - there is nothing to read - and asking for one anyway told
+    somebody who had just sent a photo to send a photo."""
+    _multipart(monkeypatch)
+    client.post(
+        "/api/start",
+        json={"question": "", "attachment": "aGVsbG8=", "attachment_type": "image/png"},
+    )
+
+    switched = client.post(
+        "/api/start",
+        json={"question": "", "start_at": "polynomial_division",
+              "start_summary": "Divide by (x - 4)."},
+    )
+
+    assert switched.status_code == 200
+    assert switched.json()["asking"] is not None
+
+
+def test_switching_part_is_not_stopped_by_the_days_ceiling(client, monkeypatch):
+    """Nothing is being read, so nothing is being paid for - and someone part
+    way through a question should not be stranded on one part of it."""
+    _multipart(monkeypatch)
+    client.post("/api/start", json={"question": "q"})
+    monkeypatch.setattr(api, "DAILY_STARTS", 0)
+
+    switched = client.post(
+        "/api/start", json={"question": "q", "start_at": "polynomial_division"}
+    )
+
+    assert switched.status_code == 200
+
+
+# ---- Working sent as a photo -----------------------------------------------
+
+
+def test_a_photo_of_the_working_is_read(client, monkeypatch):
+    """Working is done on paper. Typing it out is where the notation goes."""
+    seen = {}
+
+    def fake_read(entry, attempt, attachment=None, client=None):
+        seen["attempt"] = attempt
+        seen["had_photo"] = attachment is not None
+        return walk_module.Reading()
+
+    import walk as walk_module
+    monkeypatch.setattr(api.walk, "read_attempt", fake_read)
+
+    client.post(
+        "/api/start",
+        json={
+            "question": "q",
+            "attempt_attachment": "aGVsbG8=",
+            "attempt_attachment_type": "image/png",
+        },
+    )
+
+    assert seen["had_photo"] is True
+    assert seen["attempt"] == ""
+
+
+def test_typing_and_a_photo_both_arrive(client, monkeypatch):
+    seen = {}
+
+    def fake_read(entry, attempt, attachment=None, client=None):
+        seen["attempt"] = attempt
+        seen["had_photo"] = attachment is not None
+        import walk as w
+        return w.Reading()
+
+    monkeypatch.setattr(api.walk, "read_attempt", fake_read)
+
+    client.post(
+        "/api/start",
+        json={
+            "question": "q",
+            "attempt": "I got 15x^4",
+            "attempt_attachment": "aGVsbG8=",
+            "attempt_attachment_type": "image/png",
+        },
+    )
+
+    assert seen["attempt"] == "I got 15x^4"
+    assert seen["had_photo"] is True
+
+
+def test_no_attempt_at_all_reads_nothing(client, monkeypatch):
+    """Two model calls that must not happen when there is nothing to read."""
+    def must_not_be_called(*args, **kwargs):
+        raise AssertionError("read an attempt that was never sent")
+
+    monkeypatch.setattr(api.walk, "read_attempt", must_not_be_called)
+
+    assert client.post("/api/start", json={"question": "q"}).status_code == 200
+
+
+def test_the_working_photo_is_deleted_afterwards(client, monkeypatch):
+    """It is a child's handwriting on a server disk. It goes as soon as it has
+    been read."""
+    kept = {}
+
+    def fake_read(entry, attempt, attachment=None, client=None):
+        kept["path"] = attachment
+        import walk as w
+        return w.Reading()
+
+    monkeypatch.setattr(api.walk, "read_attempt", fake_read)
+    client.post(
+        "/api/start",
+        json={"question": "q", "attempt_attachment": "aGVsbG8=",
+              "attempt_attachment_type": "image/png"},
+    )
+
+    assert kept["path"] is not None
+    assert not kept["path"].exists()

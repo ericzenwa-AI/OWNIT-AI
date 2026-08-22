@@ -439,7 +439,8 @@ function askScreen() {
       <label for="text">Or type it out</label>
       <textarea id="text" placeholder="Simplify (x^5 * x^2) / x^3"></textarea>
       <label for="attempt">What you tried, if anything (optional)</label>
-      <textarea id="attempt" placeholder="I don't know how to start"></textarea>
+      <input type="file" id="working" accept="image/*,application/pdf">
+      <textarea id="attempt" placeholder="Or type it out - I don't know how to start"></textarea>
       <p><button id="go">Start</button></p>
       <p id="msg" class="note"></p>
     </div>`;
@@ -457,6 +458,8 @@ async function start() {
   button.disabled = true;
   msg.textContent = 'Reading the question...';
 
+  const working = document.getElementById('working').files[0];
+
   const body = {
     question: text,
     attempt: document.getElementById('attempt').value.trim() || null,
@@ -464,6 +467,13 @@ async function start() {
   if (file) {
     body.attachment = await asBase64(file);
     body.attachment_type = file.type;
+  }
+  // A photo of the working is read the same way the question is, and for the
+  // same reason: it is done on paper, and typing it out loses the notation.
+  if (working) {
+    body.attempt_attachment = await asBase64(working);
+    body.attempt_attachment_type = working.type;
+    msg.textContent = 'Reading the question and your working...';
   }
 
   try {

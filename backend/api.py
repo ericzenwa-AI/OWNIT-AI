@@ -130,6 +130,11 @@ class StartRequest(BaseModel):
     attachment: str | None = Field(None, max_length=MAX_ATTACHMENT_CHARS)
     attachment_type: str | None = Field(None, max_length=100)
     attempt: str | None = Field(None, max_length=MAX_QUESTION_CHARS)
+    # Working is done on paper far more often than it is typed, and typing it
+    # out is where the notation goes - the same reason the question itself is
+    # better sent as a photo.
+    attempt_attachment: str | None = Field(None, max_length=MAX_ATTACHMENT_CHARS)
+    attempt_attachment_type: str | None = Field(None, max_length=100)
     student_ref: str | None = Field(None, max_length=200)
     role: str = "student"
     # Switching to another part of a question already read. The skill is one we
@@ -256,6 +261,29 @@ def _save_attachment(encoded: str, media_type: str | None) -> Path:
 @app.post("/api/start", response_model=StateOut)
 def start(request: StartRequest) -> StateOut:
     """Work out what the question is asking, and ask the first thing."""
+    # Moving to another part of a question already read. We handed this skill
+    # over a moment ago, so identifying the whole thing again would be paying
+    # the best model a second time for an answer we already have.
+    #
+    # This is settled before anything else is asked of the request, because
+    # neither of the checks below applies to it. There is nothing to read, so
+    # there is nothing to send - a question that arrived as a photo has no text
+    # at all, and demanding it back was telling someone who had already sent a
+    # photo to send a photo. And nothing is being paid for, so the day's
+    # ceiling has no business stopping someone moving around a question they
+    # are already working on.
+    if request.start_at:
+        if request.start_at not in SKILLS or not SKILLS[request.start_at].topic:
+            raise HTTPException(400, "That is not somewhere a question can start.")
+        match = EntryMatch(
+            skill_id=request.start_at,
+            confidence="high",
+            plain_summary=(request.start_summary or "").strip(),
+            reason="",
+            recognised_as=SKILLS[request.start_at].topic or "",
+        )
+        return _begin(request, match)
+
     if not (request.question or "").strip() and not request.attachment:
         raise HTTPException(400, "Send the question, or a photo of it.")
 
@@ -272,21 +300,6 @@ def start(request: StartRequest) -> StateOut:
             "again tomorrow - and if you were part way through, your answers "
             "are saved.",
         )
-
-    # Moving to another part of a question already read. We handed this skill
-    # over a moment ago, so identifying the whole thing again would be paying
-    # the best model a second time for an answer we already have.
-    if request.start_at:
-        if request.start_at not in SKILLS or not SKILLS[request.start_at].topic:
-            raise HTTPException(400, "That is not somewhere a question can start.")
-        match = EntryMatch(
-            skill_id=request.start_at,
-            confidence="high",
-            plain_summary=(request.start_summary or "").strip(),
-            reason="",
-            recognised_as=SKILLS[request.start_at].topic or "",
-        )
-        return _begin(request, match)
 
     attachment = (
         _save_attachment(request.attachment, request.attachment_type)
@@ -390,6 +403,28 @@ def _parts_of(match: EntryMatch, starting_at: str | None) -> list[PartOut] | Non
     return [first] + rest
 
 
+def _read_attempt(request: StartRequest, entry) -> walk.Reading:
+    """Read what they tried, from text or from a photo of their working.
+
+    A photo with nothing typed is a perfectly good attempt - it is how working
+    usually exists - so either one on its own is enough to be worth reading.
+    """
+    typed = (request.attempt or "").strip()
+    if not typed and not request.attempt_attachment:
+        return walk.Reading()
+
+    photo = (
+        _save_attachment(request.attempt_attachment, request.attempt_attachment_type)
+        if request.attempt_attachment
+        else None
+    )
+    try:
+        return walk.read_attempt(entry, typed, attachment=photo)
+    finally:
+        if photo:
+            photo.unlink(missing_ok=True)
+
+
 def _begin(request: StartRequest, match: EntryMatch) -> StateOut:
     """Open a walk on a matched question and ask the first thing."""
     connection = store.connect()
@@ -409,11 +444,7 @@ def _begin(request: StartRequest, match: EntryMatch) -> StateOut:
 
         # Reading the attempt costs two model calls and cannot change part
         # way through, so it is done once here and carried in the session.
-        reading = (
-            walk.read_attempt(SKILLS[match.skill_id], request.attempt)
-            if request.attempt
-            else walk.Reading()
-        )
+        reading = _read_attempt(request, SKILLS[match.skill_id])
         session_id = store.open_walk(
             connection,
             entry_skill_id=match.skill_id,

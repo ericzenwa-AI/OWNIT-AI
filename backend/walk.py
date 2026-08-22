@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from typing import Callable
 
@@ -113,10 +114,39 @@ class PresentationCheck(BaseModel):
     note: str
 
 
+def _attempt_content(text: str, attachment, body: str):
+    """The attempt as the model should see it: the page first, then the ask.
+
+    Working is written by hand on paper far more often than it is typed, and
+    typing it out is exactly where the notation gets lost - the same reason the
+    question itself is better sent as a photo.
+    """
+    if attachment is None:
+        return body
+
+    from entry import attachment_block
+
+    return [
+        attachment_block(attachment),
+        {"type": "text", "text": body},
+    ]
+
+
+def _their_working(attempt: str, attachment) -> str:
+    """How to refer to the attempt in the prompt, given where it came from."""
+    written = (attempt or "").strip()
+    if attachment is not None and written:
+        return f"Their attempt is in the image, and they also wrote:\n{written}"
+    if attachment is not None:
+        return "Their attempt is in the image."
+    return f"Their attempt:\n{written}"
+
+
 def narrow_to_branch(
     entry: Skill,
     attempt: str,
     *,
+    attachment=None,
     client: Anthropic | None = None,
     model: str = MODEL,
 ) -> Narrowing:
@@ -143,9 +173,9 @@ def narrow_to_branch(
         messages=[
             {
                 "role": "user",
-                "content": (
+                "content": _attempt_content(attempt, attachment, (
                     f"The question asks the student to: {entry.probe}\n\n"
-                    f"Their attempt:\n{attempt}\n\n"
+                    f"{_their_working(attempt, attachment)}\n\n"
                     "These are the prerequisites that skill rests on:\n"
                     f"{options}\n\n"
                     "Find the first step where the working actually goes wrong, "
@@ -156,7 +186,7 @@ def narrow_to_branch(
                     "genuinely does not distinguish between them.\n"
                     "- If the attempt is too thin to tell, return every id.\n"
                     "- Judge what the working shows, not how it is written out."
-                ),
+                )),
             }
         ],
         output_format=Narrowing,
@@ -182,6 +212,7 @@ def check_presentation(
     entry: Skill,
     attempt: str,
     *,
+    attachment=None,
     client: Anthropic | None = None,
     model: str = MODEL,
 ) -> PresentationCheck:
@@ -203,9 +234,9 @@ def check_presentation(
         messages=[
             {
                 "role": "user",
-                "content": (
+                "content": _attempt_content(attempt, attachment, (
                     f"The question asks the student to: {entry.probe}\n\n"
-                    f"Their attempt:\n{attempt}\n\n"
+                    f"{_their_working(attempt, attachment)}\n\n"
                     "Set `presentation_only` true only if the method is right "
                     "the whole way through and what let them down is how the "
                     "work is set out: notation, an answer left unsimplified or "
@@ -214,7 +245,7 @@ def check_presentation(
                     "Set it false if any step depends on a rule or idea they "
                     "have got wrong, however tidily it is written.\n"
                     "In `note`, say in one or two sentences what you saw."
-                ),
+                )),
             }
         ],
         output_format=PresentationCheck,
@@ -378,11 +409,24 @@ class Step:
 
 
 def read_attempt(
-    entry: Skill, attempt: str, *, client: Anthropic | None = None
+    entry: Skill, attempt: str, *, attachment=None, client: Anthropic | None = None
 ) -> Reading:
-    """The two judgements we make about an attempt, before any question."""
-    presentation = check_presentation(entry, attempt, client=client)
-    narrowing = narrow_to_branch(entry, attempt, client=client)
+    """The two judgements we make about an attempt, before any question.
+
+    Run together rather than one after the other. Neither reads the other's
+    answer, and they were costing about twelve seconds between them while a
+    student sat looking at a spinner - measured at 5.3 and 7.3. Side by side
+    that is the slower of the two.
+    """
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        reading_presentation = pool.submit(
+            check_presentation, entry, attempt, attachment=attachment, client=client
+        )
+        reading_branch = pool.submit(
+            narrow_to_branch, entry, attempt, attachment=attachment, client=client
+        )
+        presentation = reading_presentation.result()
+        narrowing = reading_branch.result()
 
     return Reading(
         had_attempt=True,
