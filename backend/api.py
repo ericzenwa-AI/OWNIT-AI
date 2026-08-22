@@ -195,6 +195,14 @@ class PartOut(BaseModel):
     current: bool = False
 
 
+class AnsweredOut(BaseModel):
+    """One question already answered, for the running list."""
+
+    skill_name: str
+    held: bool
+    dont_know: bool = False
+
+
 class Option(BaseModel):
     label: str
     text: str
@@ -221,6 +229,9 @@ class StateOut(BaseModel):
     # the others are offered, because the part someone is stuck on is very
     # often not the one the question opens with.
     parts: list[PartOut] | None = None
+    # Every skill answered so far, in order. The descent as it happens rather
+    # than only in the report at the end.
+    so_far: list[AnsweredOut] = []
 
 
 # ---- Starting a walk ------------------------------------------------------
@@ -460,6 +471,19 @@ def answer(request: AnswerRequest) -> StateOut:
     return _advance(request.session_id)
 
 
+def _descent(answers) -> list[AnsweredOut]:
+    """What has been established, in the order it was established."""
+    return [
+        AnsweredOut(
+            skill_name=SKILLS[result.skill_id].name,
+            held=result.held,
+            dont_know=result.dont_know,
+        )
+        for result in answers
+        if result.skill_id in SKILLS
+    ]
+
+
 def _advance(session_id: int) -> StateOut:
     """Work out where this walk is up to, and either ask or finish.
 
@@ -484,6 +508,7 @@ def _advance(session_id: int) -> StateOut:
                 finished=True,
                 report=_report(current.diagnosis),
                 asked_so_far=len(answers),
+                so_far=_descent(answers),
             )
 
         skill = SKILLS[current.ask]
@@ -521,6 +546,7 @@ def _advance(session_id: int) -> StateOut:
                 options=[Option(label=o["label"], text=o["text"]) for o in options],
             ),
             asked_so_far=len(answers),
+            so_far=_descent(answers),
         )
     finally:
         connection.close()
@@ -542,7 +568,7 @@ def resume(session_id: int) -> StateOut:
             raise HTTPException(404, "No such session.")
 
         pending = store.pending_question(connection, session_id)
-        answered = len(store.answers_so_far(connection, session_id))
+        answered = store.answers_so_far(connection, session_id)
 
         if pending is not None:
             options = json.loads(pending["options"])
@@ -555,7 +581,12 @@ def resume(session_id: int) -> StateOut:
                         Option(label=o["label"], text=o["text"]) for o in options
                     ],
                 ),
-                asked_so_far=answered,
+                asked_so_far=len(answered),
+                # This path hands back the stored question rather than working
+                # out the next one, so it has to carry the working itself -
+                # otherwise following a link back shows a blank list beside a
+                # walk that is several questions in.
+                so_far=_descent(answered),
             )
     finally:
         connection.close()

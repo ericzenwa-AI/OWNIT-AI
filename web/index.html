@@ -320,6 +320,27 @@
   .option.dead .letter { color: var(--faint); }
   .option.dead .note { font-size: inherit; }
 
+  /* Quieter than a question card - it is the working, not the question. */
+  .card.descent {
+    padding: 1.25rem 1.5rem;
+    background: var(--sunk);
+    box-shadow: none;
+  }
+  .card.descent ul { margin: 0; padding-left: 0; list-style: none; }
+  .card.descent li {
+    font-size: 0.95rem;
+    margin: 0.35rem 0;
+    color: var(--muted);
+  }
+  /* Each answer sits one step further in than the last, because that is what
+     the walk is doing - going down, not along. */
+  .card.descent li + li { padding-left: 0.9rem; }
+  .card.descent li + li + li { padding-left: 1.8rem; }
+  .card.descent li + li + li + li { padding-left: 2.7rem; }
+  .card.descent li + li + li + li + li { padding-left: 3.6rem; }
+  /* Said they did not know: not a mistake, and not a pass either. */
+  .unsure::before { content: "?\00a0\00a0"; color: var(--faint); }
+
   /* Sits a touch up on Outfit, which has a taller x-height than the serif
      this used to be set in. For the notation only. */
   .katex { font-size: 1.05em; }
@@ -593,6 +614,27 @@ function chooseScreen() {
   wireParts();
 }
 
+// The descent as it happens, rather than only in the report at the end.
+//
+// Tutor only, and for the same reason the question card does not name the
+// skill it is asking about: the skill's name is our vocabulary, and a student
+// watching a column of crosses build up while they answer is being told
+// something discouraging that they cannot act on until the end. A tutor
+// watching the same list is watching the thing they came to see.
+function descent() {
+  if (!isTutor() || !state.so_far || !state.so_far.length) return '';
+
+  const rows = state.so_far.map(a => {
+    const how = a.dont_know ? 'unsure' : (a.held ? 'held' : 'missed');
+    return `<li class="${how}">${escape(a.skill_name)}</li>`;
+  }).join('');
+
+  return `<div class="card descent">
+    <div class="skill">Where it has got to</div>
+    <ul>${rows}</ul>
+  </div>`;
+}
+
 function question() {
   const q = state.asking;
   screen.innerHTML = `
@@ -608,6 +650,7 @@ function question() {
       <div class="question">${mathHtml(q.question)}</div>
       <div id="options"></div>
     </div>
+    ${descent()}
     <p class="counter">${state.asked_so_far} answered</p>`;
 
   const box = document.getElementById('options');

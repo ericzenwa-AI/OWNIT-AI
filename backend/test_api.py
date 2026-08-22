@@ -1065,3 +1065,101 @@ def test_nothing_is_filed_when_every_part_is_covered(client, monkeypatch):
         assert connection.execute("SELECT COUNT(*) c FROM unplaced").fetchone()["c"] == 0
     finally:
         connection.close()
+
+
+# ---- The descent as it happens ---------------------------------------------
+
+
+def test_nothing_answered_yet_is_an_empty_descent(client):
+    state = client.post("/api/start", json={"question": "q"}).json()
+
+    assert state["so_far"] == []
+
+
+def test_each_answer_joins_the_list(client):
+    started = client.post("/api/start", json={"question": "q"}).json()
+    first = started["asking"]["skill_name"]
+
+    state = client.post(
+        "/api/answer",
+        json={
+            "session_id": started["session_id"],
+            "label": label_of(started, "right"),
+            "answered_before": 0,
+        },
+    ).json()
+
+    assert [a["skill_name"] for a in state["so_far"]] == [first]
+    assert state["so_far"][0]["held"] is True
+
+
+def test_the_list_says_what_happened_to_each_one(client):
+    started = client.post("/api/start", json={"question": "q"}).json()
+    state = client.post(
+        "/api/answer",
+        json={
+            "session_id": started["session_id"],
+            "label": label_of(started, "wrong one"),
+            "answered_before": 0,
+        },
+    ).json()
+
+    assert state["so_far"][0]["held"] is False
+    assert state["so_far"][0]["dont_know"] is False
+
+
+def test_not_knowing_is_kept_apart_in_the_list(client):
+    """It is not a mistake and it is not a pass, and a tutor watching wants to
+    see which of the two it was."""
+    started = client.post("/api/start", json={"question": "q"}).json()
+    state = client.post(
+        "/api/answer",
+        json={"session_id": started["session_id"], "label": "E", "answered_before": 0},
+    ).json()
+
+    assert state["so_far"][0]["held"] is False
+    assert state["so_far"][0]["dont_know"] is True
+
+
+def test_the_list_is_in_the_order_they_were_answered(client):
+    state = client.post("/api/start", json={"question": "q"}).json()
+    session_id = state["session_id"]
+    asked = []
+
+    for _ in range(3):
+        if not state.get("asking"):
+            break
+        asked.append(state["asking"]["skill_name"])
+        state = client.post(
+            "/api/answer",
+            json={
+                "session_id": session_id,
+                "label": label_of(state, "wrong one"),
+                "answered_before": state["asked_so_far"],
+            },
+        ).json()
+
+    assert [a["skill_name"] for a in state["so_far"]] == asked
+
+
+def test_the_list_survives_being_picked_up_again(client):
+    """A tutor who follows the link back should see the working, not a blank."""
+    started = client.post("/api/start", json={"question": "q"}).json()
+    client.post(
+        "/api/answer",
+        json={
+            "session_id": started["session_id"],
+            "label": label_of(started, "wrong one"),
+            "answered_before": 0,
+        },
+    )
+
+    resumed = client.get(f"/api/session/{started['session_id']}").json()
+
+    assert len(resumed["so_far"]) == 1
+
+
+def test_the_report_still_carries_the_list(client):
+    session_id, finished = _finish(client)
+
+    assert len(finished["so_far"]) == finished["asked_so_far"]
