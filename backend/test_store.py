@@ -385,3 +385,65 @@ def test_restoring_an_unchanged_file_still_changes_nothing(db):
     assert store.restore_bank(db, records) == 1
     assert store.restore_bank(db, records) == 0
     assert store.restore_bank(db, records) == 0
+
+
+def test_the_drop_off_counts_questions_the_way_a_person_would(db):
+    """Someone who answered one question has answered one, not two. The count
+    is read straight off a page and acted on, so an off-by-one there is a wrong
+    decision about where people are giving up."""
+    import walk
+
+    first = store.save_session(db, a_walk([answered("surds", held=True)]))
+    store.save_session(
+        db,
+        a_walk([answered("surds", held=True), answered("index_laws", held=False)]),
+    )
+
+    reached = store.how_it_is_going(db)["reached"]
+
+    assert reached[0] == (1, 2)   # both walks answered a first question
+    assert reached[1] == (2, 1)   # only one of them answered a second
+
+
+def test_the_funnel_counts_each_step(db):
+    import walk
+
+    store.record_page_view(db, "/")
+    store.record_page_view(db, "/start")
+    store.record_question_read(db, placed=True)
+    store.record_question_read(db, placed=False)
+    session_id = store.open_walk(db, entry_skill_id="index_laws", reading=walk.Reading())
+
+    figures = store.how_it_is_going(db)
+
+    assert figures["landing"] == 1
+    assert figures["opened"] == 1
+    assert figures["read"] == 2
+    assert figures["placed"] == 1
+    assert figures["refused"] == 1
+    assert figures["started"] == 1
+    assert figures["finished"] == 0
+
+
+def test_whether_it_helped_is_counted_apart_from_whether_it_was_right(db):
+    """A diagnosis can be correct and useless, or wrong and still worth the ten
+    minutes. Counting them together would hide both."""
+    session_id = store.save_session(db, a_walk())
+    store.record_rating(db, session_id, useful=True)
+    store.record_feedback(db, session_id, "wrong", actual_gap="surds")
+
+    figures = store.how_it_is_going(db)
+
+    assert figures["useful"] == 1
+    assert figures["not_useful"] == 0
+    assert figures["wrong"] == 1
+    assert figures["right"] == 0
+
+
+def test_an_empty_week_reads_back_as_zeroes(db):
+    """It will be empty on the day the link goes out."""
+    figures = store.how_it_is_going(db)
+
+    assert figures["started"] == 0
+    assert figures["reached"] == []
+    assert figures["seconds_per_answer"] is None

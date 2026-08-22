@@ -1313,3 +1313,117 @@ def test_a_changed_page_is_sent_again(client):
 
     assert response.status_code == 200
     assert b"askScreen" in response.content
+
+
+# ---- Knowing whether anyone is using it ------------------------------------
+
+
+def test_opening_a_page_is_counted(client):
+    """The top of the funnel, and the only part of it that was missing. A
+    hundred people opening and three starting is a different problem from a
+    hundred opening and ninety starting, and both look the same without this."""
+    client.get("/")
+    client.get("/start")
+    client.get("/start")
+
+    connection = store.connect()
+    try:
+        rows = connection.execute(
+            "SELECT page, COUNT(*) c FROM page_view GROUP BY page ORDER BY page"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    assert [(r["page"], r["c"]) for r in rows] == [("/", 1), ("/start", 2)]
+
+
+def test_a_visit_is_counted_even_when_the_page_is_not_re_sent(client):
+    """A 304 still means somebody is looking at it."""
+    etag = client.get("/start").headers["etag"]
+    client.get("/start", headers={"If-None-Match": etag})
+
+    connection = store.connect()
+    try:
+        n = connection.execute(
+            "SELECT COUNT(*) c FROM page_view WHERE page = '/start'"
+        ).fetchone()["c"]
+    finally:
+        connection.close()
+
+    assert n == 2
+
+
+def test_nothing_about_who_is_kept(client):
+    """Counts, not people. No address, no cookie, no identifier."""
+    client.get("/")
+
+    connection = store.connect()
+    try:
+        columns = [r[1] for r in connection.execute("PRAGMA table_info(page_view)")]
+    finally:
+        connection.close()
+
+    assert columns == ["id", "created_at", "page"]
+
+
+def test_anyone_can_say_whether_it_helped(client):
+    """Not gated on being a tutor - it is the only question everybody can
+    answer, and the one that says whether this is worth anything."""
+    session_id, _ = _finish(client)
+
+    response = client.post(
+        "/api/rating", json={"session_id": session_id, "useful": True}
+    )
+
+    assert response.status_code == 200
+    connection = store.connect()
+    try:
+        row = connection.execute("SELECT useful FROM rating").fetchone()
+    finally:
+        connection.close()
+    assert row["useful"] == 1
+
+
+def test_saying_it_did_not_help_is_kept_too(client):
+    session_id, _ = _finish(client)
+    client.post("/api/rating", json={"session_id": session_id, "useful": False})
+
+    connection = store.connect()
+    try:
+        assert connection.execute("SELECT useful FROM rating").fetchone()["useful"] == 0
+    finally:
+        connection.close()
+
+
+def test_rating_a_session_that_does_not_exist(client):
+    response = client.post("/api/rating", json={"session_id": 9999, "useful": True})
+    assert response.status_code == 404
+
+
+def test_the_numbers_page_needs_the_password(client, monkeypatch):
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    assert client.get("/admin/numbers").status_code == 401
+
+
+def test_the_numbers_page_counts_the_funnel(client, monkeypatch):
+    client.get("/")
+    session_id, _ = _finish(client)
+    client.post("/api/rating", json={"session_id": session_id, "useful": True})
+
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    page = client.get("/admin/numbers", auth=("me", "letmein"))
+
+    assert page.status_code == 200
+    assert "walks started" in page.text
+    assert "Where people stop" in page.text
+
+
+def test_the_numbers_page_is_fine_with_nothing_to_show(client, monkeypatch):
+    """It will be empty on the day the link goes out, and that must not be an
+    error page."""
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+
+    page = client.get("/admin/numbers", auth=("me", "letmein"))
+
+    assert page.status_code == 200
+    assert "Nobody has answered anything yet" in page.text

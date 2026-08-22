@@ -175,6 +175,13 @@ class CommentRequest(BaseModel):
     contact: str | None = Field(None, max_length=254)
 
 
+class RatingRequest(BaseModel):
+    session_id: int
+    # Whether it was any use to them. A different question from whether the
+    # diagnosis was correct, and the only one everybody can answer.
+    useful: bool
+
+
 class FeedbackRequest(BaseModel):
     session_id: int
     # Whether the diagnosis was right. Nothing else is worth recording if this
@@ -815,6 +822,28 @@ def comment(request: CommentRequest) -> dict:
     }
 
 
+@app.post("/api/rating")
+def rating(request: RatingRequest) -> dict:
+    """Was it any use? One tap, from whoever it was for.
+
+    Kept apart from the verdict a tutor gives. A diagnosis can be correct and
+    unhelpful, or wrong and still worth the ten minutes, and only one of these
+    two questions can be answered by everybody without thinking.
+    """
+    connection = store.connect()
+    try:
+        if store.walk_state(connection, session_id=request.session_id) is None:
+            raise HTTPException(404, "No such session.")
+        store.record_rating(connection, request.session_id, request.useful)
+    finally:
+        connection.close()
+
+    return {
+        "saved": True,
+        "message": "Thank you." if request.useful else "Noted - that is useful to know.",
+    }
+
+
 @app.get("/api/health")
 def health() -> dict:
     """Enough to tell, from outside, whether a deploy went as intended.
@@ -978,6 +1007,12 @@ def admin_feedback(request: Request) -> str:
 FRESH = {"Cache-Control": "no-cache, must-revalidate"}
 
 
+def _days_ago(days: int) -> str:
+    from datetime import datetime, timedelta, timezone
+
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+
 def _page(path: Path, request: Request):
     """Serve a page, and answer "still the same?" without re-sending it.
 
@@ -992,12 +1027,138 @@ def _page(path: Path, request: Request):
     stat = path.stat()
     etag = f'W/"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
 
+    # Counted whether the file is sent or not: a 304 still means somebody is
+    # looking at the page, they just already had it.
+    try:
+        connection = store.connect()
+        try:
+            store.record_page_view(connection, request.url.path)
+        finally:
+            connection.close()
+    except Exception as error:  # noqa: BLE001 - counting must not break serving
+        log.warning("could not count a visit: %s", error)
+
     # A browser may send several, and any match means its copy is current.
     offered = request.headers.get("if-none-match", "")
     if etag in [tag.strip() for tag in offered.split(",")]:
         return Response(status_code=304, headers={**FRESH, "ETag": etag})
 
     return FileResponse(path, headers={**FRESH, "ETag": etag})
+
+
+@app.get("/admin/numbers", response_class=HTMLResponse)
+def admin_numbers(request: Request) -> str:
+    """How it is going, in counts rather than rates.
+
+    At twenty users a percentage is a way of not saying "two people", and two
+    people is the useful fact. The rates that are shown are the two that stay
+    meaningful small: how many who started got to the end, and how many said it
+    helped.
+    """
+    _admin_ok(request)
+
+    connection = store.connect()
+    try:
+        now = store.how_it_is_going(connection)
+        week = store.how_it_is_going(connection, since=_days_ago(7))
+        gaps = store.gaps_by_topic(connection)
+        dry = store.ran_dry(connection)
+    finally:
+        connection.close()
+
+    def rate(top: int, bottom: int) -> str:
+        if not bottom:
+            return "&mdash;"
+        return f"{top / bottom:.0%}"
+
+    def funnel(figures: dict) -> str:
+        steps = [
+            ("Opened the front page", figures["landing"]),
+            ("Opened the diagnostic", figures["opened"]),
+            ("Sent a question", figures["read"]),
+            ("&hellip; which we could place", figures["placed"]),
+            ("Started a walk", figures["started"]),
+            ("Got to a diagnosis", figures["finished"]),
+        ]
+        rows = "".join(
+            f'<tr><td>{label}</td><td class="n">{count}</td></tr>' for label, count in steps
+        )
+        return f"<table>{rows}</table>"
+
+    drop = "".join(
+        f'<tr><td>Answered {q} question{"s" if q != 1 else ""}</td>'
+        f'<td class="n">{n}</td></tr>'
+        for q, n in now["reached"]
+    ) or '<tr><td colspan="2"><em>Nobody has answered anything yet.</em></td></tr>'
+
+    unplaced = "".join(
+        f'<tr><td>{escape(topic)}</td><td class="n">{count}</td></tr>'
+        for topic, count in gaps[:10]
+    ) or '<tr><td colspan="2"><em>Nothing has been turned away.</em></td></tr>'
+
+    thin = "".join(
+        f'<tr><td>{escape(row["skill_id"])}</td><td class="n">{row["times"]}</td></tr>'
+        for row in dry[:10]
+    ) or '<tr><td colspan="2"><em>The shelf has held.</em></td></tr>'
+
+    return f"""<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Numbers</title>
+<style>
+  body {{ font: 15px/1.6 ui-monospace, Consolas, monospace; max-width: 44rem;
+         margin: 2rem auto; padding: 0 1rem; background: #fff; color: #111; }}
+  h1 {{ font-size: 1.1rem; }}
+  h2 {{ font-size: 0.95rem; margin: 2rem 0 0.5rem; }}
+  table {{ width: 100%; border-collapse: collapse; margin-bottom: 0.5rem; }}
+  td {{ padding: 0.35rem 0.5rem; border-bottom: 1px solid #eee; }}
+  td.n {{ text-align: right; font-variant-numeric: tabular-nums; width: 6rem; }}
+  .big {{ font-size: 1.6rem; }}
+  .side {{ display: flex; gap: 2.5rem; flex-wrap: wrap; margin: 0.5rem 0 1rem; }}
+  .side div {{ min-width: 8rem; }}
+  .k {{ color: #777; font-size: 0.8rem; }}
+  .warn {{ color: #8C3B2E; }}
+  .ok {{ color: #2F6B4F; }}
+  a {{ color: #2C4A7C; }}
+  .small {{ color: #777; font-size: 0.85rem; }}
+</style>
+<h1>Numbers</h1>
+<p class="small">All time. <a href="/admin/feedback">What people said &rarr;</a></p>
+
+<div class="side">
+  <div><div class="big">{now['started']}</div><div class="k">walks started</div></div>
+  <div><div class="big ok">{rate(now['finished'], now['started'])}</div>
+       <div class="k">of those got to a diagnosis</div></div>
+  <div><div class="big">{now['useful']}<span class="k"> / {now['useful'] + now['not_useful']}</span></div>
+       <div class="k">said it helped</div></div>
+  <div><div class="big">{now['waiting']}</div><div class="k">on the waitlist</div></div>
+</div>
+
+<h2>The funnel</h2>
+{funnel(now)}
+<p class="small">Last 7 days: {week['opened']} opened, {week['started']} started,
+{week['finished']} finished.</p>
+
+<h2>Where people stop</h2>
+{f'<table>{drop}</table>'}
+<p class="small">Average {now['seconds_per_answer'] or '&mdash;'} seconds per answer.</p>
+
+<h2>Did it help?</h2>
+<table>
+  <tr><td>Said it helped</td><td class="n ok">{now['useful']}</td></tr>
+  <tr><td>Said it did not</td><td class="n warn">{now['not_useful']}</td></tr>
+  <tr><td>Tutor called the diagnosis right</td><td class="n ok">{now['right']}</td></tr>
+  <tr><td>Tutor called it wrong</td><td class="n warn">{now['wrong']}</td></tr>
+</table>
+
+<h2>Questions we could not place</h2>
+{f'<table>{unplaced}</table>'}
+<p class="small">This is the build list, written by the people who wanted it.</p>
+
+<h2>Skills that cost a live question</h2>
+{f'<table>{thin}</table>'}
+"""
 
 
 @app.get("/start")

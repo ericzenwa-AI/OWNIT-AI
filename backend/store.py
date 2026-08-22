@@ -97,6 +97,34 @@ CREATE TABLE IF NOT EXISTS feedback (
     note        TEXT
 );
 
+-- One row every time a page is opened.
+--
+-- The top of the funnel, and the only part of it that was missing. Without it
+-- a link posted somewhere tells you nothing: a hundred people opening the page
+-- and three starting is a completely different problem from a hundred opening
+-- it and ninety starting, and both look identical from the sessions table.
+--
+-- Nothing about who. No address, no cookie, no identifier - just that a page
+-- was asked for and which one. That is enough to divide by.
+CREATE TABLE IF NOT EXISTS page_view (
+    id         INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    page       TEXT NOT NULL
+);
+
+-- Whether the person it was for thought it was any use.
+--
+-- Kept apart from `feedback`, which is a tutor judging whether the diagnosis
+-- was correct. These are different questions - a diagnosis can be right and
+-- unhelpful, or wrong and still worth their time - and only one of them can be
+-- answered by everybody in one tap.
+CREATE TABLE IF NOT EXISTS rating (
+    id         INTEGER PRIMARY KEY,
+    created_at TEXT    NOT NULL,
+    session_id INTEGER NOT NULL REFERENCES sessions(id),
+    useful     INTEGER NOT NULL
+);
+
 -- One row every time a question is read by the model.
 --
 -- This is what the daily ceiling counts, because this is what costs money. It
@@ -702,6 +730,89 @@ def join_waitlist(
 
 def waitlist_size(connection: sqlite3.Connection) -> int:
     return connection.execute("SELECT COUNT(*) AS n FROM waitlist").fetchone()["n"]
+
+
+def record_page_view(connection: sqlite3.Connection, page: str) -> None:
+    """Note that a page was opened. Nothing about who opened it."""
+    connection.execute(
+        "INSERT INTO page_view (created_at, page) VALUES (?, ?)", (_now(), page)
+    )
+    connection.commit()
+
+
+def record_rating(connection: sqlite3.Connection, session_id: int, useful: bool) -> None:
+    """Whether the person it was for thought it was any use."""
+    connection.execute(
+        "INSERT INTO rating (created_at, session_id, useful) VALUES (?, ?, ?)",
+        (_now(), session_id, 1 if useful else 0),
+    )
+    connection.commit()
+
+
+def how_it_is_going(connection: sqlite3.Connection, since: str | None = None) -> dict:
+    """The funnel, the drop-off, and what people said.
+
+    Deliberately counts rather than rates. At twenty users a percentage is a
+    way of not saying "two people", and two people is the useful fact.
+    """
+    where = " WHERE created_at >= ?" if since else ""
+    args = (since,) if since else ()
+
+    def one(sql: str, extra: tuple = ()) -> int:
+        return connection.execute(sql, args + extra).fetchone()["n"]
+
+    landing = one(f"SELECT COUNT(*) n FROM page_view{where or ' WHERE 1=1'} AND page = ?", ("/",))
+    opened = one(f"SELECT COUNT(*) n FROM page_view{where or ' WHERE 1=1'} AND page = ?", ("/start",))
+    read = one(f"SELECT COUNT(*) n FROM question_read{where}")
+    placed = one(f"SELECT COUNT(*) n FROM question_read{where or ' WHERE 1=1'} AND placed = 1")
+    started = one(f"SELECT COUNT(*) n FROM sessions{where}")
+    finished = one(f"SELECT COUNT(*) n FROM sessions{where or ' WHERE 1=1'} AND finished = 1")
+
+    # Where people stop: how many walks got at least this far. Position already
+    # counts from one, so it is the question number as a person would say it.
+    reached = connection.execute(
+        f"""SELECT position AS q, COUNT(DISTINCT session_id) AS n
+              FROM answers
+             WHERE session_id IN (SELECT id FROM sessions{where})
+             GROUP BY position ORDER BY position""",
+        args,
+    ).fetchall()
+
+    ratings = connection.execute(
+        f"""SELECT SUM(useful) AS yes, COUNT(*) - SUM(useful) AS no
+              FROM rating{where}""",
+        args,
+    ).fetchone()
+
+    verdicts = connection.execute(
+        f"""SELECT SUM(verdict = 'right') AS right_, SUM(verdict = 'wrong') AS wrong_
+              FROM feedback{where}""",
+        args,
+    ).fetchone()
+
+    seconds = connection.execute(
+        f"""SELECT AVG(seconds) AS s FROM answers
+             WHERE seconds IS NOT NULL
+               AND session_id IN (SELECT id FROM sessions{where})""",
+        args,
+    ).fetchone()["s"]
+
+    return {
+        "landing": landing,
+        "opened": opened,
+        "read": read,
+        "placed": placed,
+        "refused": read - placed,
+        "started": started,
+        "finished": finished,
+        "reached": [(row["q"], row["n"]) for row in reached],
+        "useful": ratings["yes"] or 0,
+        "not_useful": ratings["no"] or 0,
+        "right": verdicts["right_"] or 0,
+        "wrong": verdicts["wrong_"] or 0,
+        "seconds_per_answer": round(seconds, 1) if seconds else None,
+        "waiting": waitlist_size(connection),
+    }
 
 
 def record_question_read(connection: sqlite3.Connection, placed: bool) -> None:
