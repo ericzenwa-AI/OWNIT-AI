@@ -1290,5 +1290,26 @@ def test_the_pages_are_never_served_from_cache_without_asking(client):
     for path in ("/", "/start"):
         headers = client.get(path).headers
         assert "no-cache" in headers.get("cache-control", ""), path
-        # The ETag is what makes revalidating cheap rather than a full refetch.
         assert headers.get("etag"), path
+
+
+def test_asking_costs_a_round_trip_and_not_the_whole_file(client):
+    """Always revalidating is only affordable if revalidating is cheap.
+    FileResponse sets an ETag and ignores the one that comes back, so every
+    visit was re-sending the whole page to a browser that already had it."""
+    for path in ("/", "/start"):
+        etag = client.get(path).headers["etag"]
+
+        again = client.get(path, headers={"If-None-Match": etag})
+
+        assert again.status_code == 304, path
+        assert again.content == b"", path
+
+
+def test_a_changed_page_is_sent_again(client):
+    """The other half: a browser holding an old copy must not be told to keep
+    it, or this becomes the bug it was meant to fix."""
+    response = client.get("/start", headers={"If-None-Match": 'W/"something-else"'})
+
+    assert response.status_code == 200
+    assert b"askScreen" in response.content

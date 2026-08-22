@@ -28,7 +28,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from anthropic import APIError
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
     FileResponse,
@@ -972,21 +972,42 @@ def admin_feedback(request: Request) -> str:
 # It happened: a question that should have offered its parts went straight to
 # asking, because the page offering them had not been fetched.
 #
-# no-cache does not mean do not store. It means ask first, and the ETag makes
-# that a 304 and a few bytes when nothing has changed.
+# no-cache does not mean do not store. It means ask first - and asking is
+# answered below with a 304 and no body when nothing has changed, so the cost
+# of always asking is a round trip rather than the whole file.
 FRESH = {"Cache-Control": "no-cache, must-revalidate"}
 
 
-@app.get("/start")
-def diagnostic():
-    """The diagnostic itself."""
-    if not PAGE.exists():
+def _page(path: Path, request: Request):
+    """Serve a page, and answer "still the same?" without re-sending it.
+
+    FileResponse puts an ETag on the way out but does nothing with the one that
+    comes back - conditional responses live in StaticFiles, not here - so every
+    visit was re-sending the whole file to a browser that already had it. The
+    tag is built here so both halves agree on what it means.
+    """
+    if not path.exists():
         raise HTTPException(404, "The page has not been built yet.")
-    return FileResponse(PAGE, headers=FRESH)
+
+    stat = path.stat()
+    etag = f'W/"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
+
+    # A browser may send several, and any match means its copy is current.
+    offered = request.headers.get("if-none-match", "")
+    if etag in [tag.strip() for tag in offered.split(",")]:
+        return Response(status_code=304, headers={**FRESH, "ETag": etag})
+
+    return FileResponse(path, headers={**FRESH, "ETag": etag})
+
+
+@app.get("/start")
+def diagnostic(request: Request):
+    """The diagnostic itself."""
+    return _page(PAGE, request)
 
 
 @app.get("/")
-def front(s: str | None = None):
+def front(request: Request, s: str | None = None):
     """The front door.
 
     A session id here is from a link made before the diagnostic moved to
@@ -996,7 +1017,5 @@ def front(s: str | None = None):
     if s:
         return RedirectResponse(f"/start?s={s}")
     if not LANDING.exists():
-        return FileResponse(PAGE, headers=FRESH) if PAGE.exists() else JSONResponse(
-            status_code=404, content={"detail": "The page has not been built yet."}
-        )
-    return FileResponse(LANDING, headers=FRESH)
+        return _page(PAGE, request)
+    return _page(LANDING, request)
