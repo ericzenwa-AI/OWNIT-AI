@@ -1,0 +1,853 @@
+<title>Inside OwnIt v2</title>
+<style>
+  :root {
+    --paper:      #F6F7F9;
+    --card:       #FFFFFF;
+    --ink:        #171A21;
+    --muted:      #464C58;
+    --faint:      #6B7280;
+    --rule:       #DDE1E8;
+    --accent:     #2C4A7C;
+    --accent-bg:  #ECF1F8;
+    --flag:       #B0442C;
+    --flag-bg:    #FAEEEA;
+    --good:       #2F6B4F;
+
+    --measure: 68ch;
+    --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+    --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #12141A;
+      --card:       #181B22;
+      --ink:        #E8EAEF;
+      --muted:      #A8B0BD;
+      --faint:      #7C8494;
+      --rule:       #272C36;
+      --accent:     #8FAEDC;
+      --accent-bg:  #1B2230;
+      --flag:       #E08265;
+      --flag-bg:    #2A1D19;
+      --good:       #6FB894;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #12141A;
+    --card:       #181B22;
+    --ink:        #E8EAEF;
+    --muted:      #A8B0BD;
+    --faint:      #7C8494;
+    --rule:       #272C36;
+    --accent:     #8FAEDC;
+    --accent-bg:  #1B2230;
+    --flag:       #E08265;
+    --flag-bg:    #2A1D19;
+    --good:       #6FB894;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 1.5rem 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--measure);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  header {
+    padding: 4.5rem 0 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 6vw, 2.9rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 650;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.5rem;
+  }
+  .facts b { color: var(--ink); font-weight: 600; }
+
+  .live {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    margin: 0;
+  }
+  .live a { color: var(--accent); }
+  .live .dot {
+    display: inline-block;
+    width: 0.5rem; height: 0.5rem;
+    border-radius: 50%;
+    background: var(--good);
+    margin-right: 0.45rem;
+  }
+
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  h2 {
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    font-weight: 620;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 620;
+    margin: 1rem 0 -0.4rem;
+    letter-spacing: -0.01em;
+  }
+
+  p { margin: 0; text-wrap: pretty; }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--accent-bg);
+    color: var(--ink);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1rem 1.1rem;
+    margin: 0;
+    overflow-x: auto;
+    color: var(--ink);
+  }
+  pre code { background: none; padding: 0; font-size: 1em; }
+
+  .dim { color: var(--faint); }
+  .flag { color: var(--flag); }
+  .good { color: var(--good); }
+
+  ol.stages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+    counter-reset: stage;
+  }
+  ol.stages > li {
+    counter-increment: stage;
+    display: grid;
+    grid-template-columns: 2.2rem 1fr;
+    gap: 0 1rem;
+    align-items: start;
+  }
+  ol.stages > li::before {
+    content: counter(stage);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: grid;
+    place-items: center;
+    background: var(--card);
+    font-variant-numeric: tabular-nums;
+  }
+  ol.stages .what { font-weight: 620; }
+  ol.stages .file {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--faint);
+    margin-left: 0.5rem;
+    font-weight: 400;
+  }
+  ol.stages p { margin-top: 0.2rem; color: var(--muted); }
+
+  .trace {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.3rem 1.4rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    overflow-x: auto;
+  }
+  .trace .row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.28rem 0;
+    white-space: nowrap;
+  }
+  .trace .name { flex: 1; min-width: 15rem; }
+  .trace .verdict { font-size: 0.72rem; letter-spacing: 0.05em; }
+  .trace .lvl { color: var(--faint); font-size: 0.72rem; }
+  .d1 { padding-left: 1.2rem; }
+  .d2 { padding-left: 2.4rem; }
+  .d3 { padding-left: 3.6rem; }
+  .trace .head {
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.6rem;
+    font-weight: 600;
+    white-space: normal;
+  }
+
+  dl.files { margin: 0; display: flex; flex-direction: column; }
+  dl.files > div {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    gap: 0.3rem 1.2rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--rule);
+    align-items: baseline;
+  }
+  dl.files > div:last-child { border-bottom: 1px solid var(--rule); }
+  dt {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  dt .lines {
+    display: block;
+    color: var(--faint);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+  }
+  dd { margin: 0; color: var(--muted); font-size: 0.95rem; }
+  dd b { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 33rem) {
+    dl.files > div { grid-template-columns: 1fr; }
+    ol.stages > li { grid-template-columns: 1.6rem 1fr; gap: 0 0.7rem; }
+  }
+
+  .note {
+    border-left: 2px solid var(--rule);
+    padding: 0.1rem 0 0.1rem 1.1rem;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .note.warn { border-left-color: var(--flag); }
+  .note .label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .note.warn .label { color: var(--flag); }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .metric {
+    background: var(--card);
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .metric .n {
+    font-family: var(--mono);
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .metric .k { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 500;
+  }
+  td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .scroll { overflow-x: auto; }
+
+  details { border-top: 1px solid var(--rule); padding: 0.9rem 0; }
+  details:last-of-type { border-bottom: 1px solid var(--rule); }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.98rem;
+    list-style: none;
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before {
+    content: "+";
+    font-family: var(--mono);
+    color: var(--accent);
+    font-size: 0.9rem;
+  }
+  details[open] summary::before { content: "\2212"; }
+  details .body {
+    padding: 0.7rem 0 0 1.55rem;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  ul.plain {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  ul.plain b { color: var(--ink); font-weight: 600; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.5rem;
+    color: var(--faint);
+    font-size: 0.82rem;
+    font-family: var(--mono);
+  }
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Branch v2-diagnostic &middot; 57 commits</p>
+  <h1>Inside OwnIt v2</h1>
+  <p class="standfirst">A tutor sends the A-level maths question a student is stuck on. The system
+  works downwards through what that question rests on, one question at a time, until it finds the
+  thing that is actually missing.</p>
+  <div class="facts">
+    <span><b>108</b> skills</span>
+    <span><b>49</b> doorways</span>
+    <span><b>10</b> topics</span>
+    <span><b>550</b> questions</span>
+    <span><b>308</b> tests</span>
+  </div>
+  <p class="live"><span class="dot"></span>Deployed and running at
+  <a href="https://ownit-tzsv.onrender.com">ownit-tzsv.onrender.com</a></p>
+</header>
+
+<section>
+  <h2>The one-sentence version</h2>
+  <p>Say this out loud and most people get it: <em>&ldquo;A student who can&rsquo;t do a differentiation
+  question usually isn&rsquo;t missing differentiation. This finds what they&rsquo;re actually
+  missing.&rdquo;</em></p>
+  <p>Every exam question sits on top of other skills, which sit on top of other skills. A student
+  stuck at the top could be broken anywhere below. Asking them &ldquo;what do you not
+  understand?&rdquo; doesn&rsquo;t work, because if they knew, they wouldn&rsquo;t be stuck. So
+  instead it tests downwards until something fails, then keeps going under that failure until it
+  reaches solid ground.</p>
+  <p>It is written to <b>tutors</b>, not students. That decision drives the whole front end: a tutor
+  is the one who can act on the answer, and it avoids collecting children&rsquo;s email addresses.</p>
+</section>
+
+<section>
+  <h2>What happens, end to end</h2>
+
+  <ol class="stages">
+    <li>
+      <div>
+        <span class="what">A question arrives<span class="file">entry.py</span></span>
+        <p>Typed, or a photo, or a PDF. A photo is better &mdash; copying maths into text destroys it,
+        and there is proof: <code>(1&nbsp;&minus;&nbsp;9x)^&frac12;</code> arrived as
+        <code>19 1 2 x</code> when pasted, and read perfectly from a picture. The model reads it and
+        matches it to one of the 49 <b>doorways</b>. If it can&rsquo;t, it says so rather than
+        guessing.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <span class="what">If it has parts, it asks which one<span class="file">api.py</span></span>
+        <p>A past paper question is usually (a) to (d). It reads all of them, shows all of them, and
+        asks which one the student is stuck on. Part (a) is not assumed &mdash; that is normally the
+        part they could do. Parts the map cannot reach are shown too, and filed as coverage gaps.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <span class="what">The walk<span class="file">walk.py</span></span>
+        <p>The diagnostic itself, covered below. A tutor watching sees the descent build up a
+        question at a time rather than only at the end.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <span class="what">The report<span class="file">api.py &middot; index.html</span></span>
+        <p>Leads with <b>&ldquo;Teach this first&rdquo;</b> &mdash; one skill. Then why that one, then
+        what was not checked and an offer to look.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <span class="what">Was it right?<span class="file">store.py</span></span>
+        <p>A tutor marks the diagnosis right or wrong, names the real gap, and adds a note. This is
+        the only signal that can correct the map &mdash; everything else measures how the walk
+        behaved, not whether it was correct.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>The map everything rests on</h2>
+  <p>One file, <code>data/skills.yaml</code>, holds 108 skills. Nothing else in the system knows any
+  maths &mdash; it all comes from here.</p>
+
+  <pre><code>- id: first_principles
+  name: Differentiation from first principles
+  level: 1
+  topic: differentiation
+  kind: procedure
+  probe: Derive the derivative of a simple function using the limit definition.
+  needs: [limit_h_to_zero, expand_brackets, algebraic_fractions]</code></pre>
+
+  <ul class="plain">
+    <li><b>level</b> &mdash; how far from the exam. 0 is what a paper asks; 4 is bedrock like negative
+    numbers.</li>
+    <li><b>needs</b> &mdash; what this rests on. These links are the whole map.</li>
+    <li><b>kind</b> &mdash; changes the shape of the question written about it. 70 are
+    <code>procedure</code>, 23 <code>concept</code>, 15 <code>fact</code>.</li>
+    <li><b>topic</b> &mdash; only on <b>doorways</b>. This is the subtle one.</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">Why only 49 of the 108 carry a topic</span>
+    <p>Index laws show up in differentiation, in logs, in surds, in binomials. If it carried a topic
+    it would be a doorway, and a question could get matched to it &mdash; starting the diagnosis
+    halfway down the ladder. So shared skills carry none. Having one means &ldquo;an exam question
+    can legitimately start here&rdquo;, and that is the entire difference between the 49 doorways and
+    the other 59 skills.</p>
+  </div>
+
+  <p>On load, <code>graph.py</code> refuses to start if any <code>needs</code> points at a skill that
+  doesn&rsquo;t exist, if the links form a loop, or if nothing has a topic. A broken map fails at
+  startup rather than halfway through a session.</p>
+</section>
+
+<section>
+  <h2>The walk</h2>
+  <p>Start at the doorway. Ask about one thing it rests on. If they can do it, try the next. If they
+  can&rsquo;t, go <em>underneath that failure</em>. Repeat. When something fails and everything
+  beneath it holds, that is the answer.</p>
+
+  <h3>The rules, and what each is for</h3>
+  <ul class="plain">
+    <li><b>Closest first.</b> Siblings are asked nearest-to-the-question first, so the questions feel
+    connected to what they came for.</li>
+    <li><b>Five levels deep.</b> Was two. Measuring it changed that &mdash; numbers below.</li>
+    <li><b>Fifteen questions maximum.</b> Rarely reached; the average is 5.9.</li>
+    <li><b>Three &ldquo;I don&rsquo;t know&rdquo;s in a row stops it.</b> Grinding to bedrock helps
+    nobody.</li>
+    <li><b>&ldquo;I don&rsquo;t know&rdquo; is always offered, always last.</b> It counts as not-held
+    so the walk descends, but it is stored separately from a wrong answer. Those are different
+    students.</li>
+    <li><b>Skipped branches are recorded.</b> Going down one branch means not going down others. The
+    report names them.</li>
+  </ul>
+
+  <h3>What a tutor watches</h3>
+  <p>Each answer sits one step further in than the last, because that is what the walk is doing.</p>
+
+  <div class="trace">
+    <div class="row"><span class="name">Chain rule</span><span class="verdict flag">NOT HELD</span></div>
+    <div class="row d1"><span class="name">Derivative of x to the n</span><span class="verdict flag">NOT HELD</span></div>
+    <div class="row d2"><span class="name">Laws of indices</span><span class="verdict flag">NOT HELD</span></div>
+    <div class="row d3"><span class="name">Fraction arithmetic</span><span class="verdict flag">NOT HELD</span></div>
+  </div>
+
+  <h3>A real one, from a real examiner report</h3>
+  <p>AQA 7357/1, June 2024, Q10 &mdash; prove from first principles that the derivative of
+  <code>x&sup3;</code> is <code>3x&sup2;</code>. The examiner report names two errors students
+  actually made.</p>
+
+  <div class="trace">
+    <div class="row head">Expanded (x+h)&sup3; wrongly and never collected like terms</div>
+    <div class="row d1"><span class="name">Limit as h approaches zero</span><span class="lvl">L2</span><span class="verdict good">HELD</span></div>
+    <div class="row d1"><span class="name">Algebraic fractions</span><span class="lvl">L3</span><span class="verdict good">HELD</span></div>
+    <div class="row d1"><span class="name">Expanding brackets</span><span class="lvl">L4</span><span class="verdict flag">NOT HELD</span></div>
+    <div class="row d2"><span class="name">Negative number arithmetic</span><span class="lvl">L4</span><span class="verdict good">HELD</span></div>
+    <div class="row head" style="border-bottom:none;border-top:1px solid var(--rule);margin:0.6rem 0 0;padding:0.8rem 0 0;font-weight:400;">
+      <span class="dim">teach first &rarr;</span> <span class="flag">Expanding brackets</span>
+      <span class="dim">&nbsp;&middot; 4 questions</span>
+    </div>
+  </div>
+
+  <p>The second error the examiners reported was using <code>h = 0</code> instead of the limit. That
+  one is found in <b>two</b> questions, because closest-first asks about limits before negative
+  numbers.</p>
+
+  <div class="note warn">
+    <span class="label">Be precise about what is real here</span>
+    <p>The walk, the order, the verdicts and the question count are genuine output of the real
+    diagnostic against the real map &mdash; re-run to confirm it still matches. The <em>student</em>
+    is simulated from the examiner report, not a person who sat down and answered. &ldquo;A real
+    captured run&rdquo; would overstate it.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The question bank, and why it was rebuilt</h2>
+  <p>Questions are written once per skill and served to many students, which makes a session nearly
+  free. 550 live questions cover all 108 skills; 77 are retired.</p>
+
+  <p>The important part is not the count. It is that <b>every one has been checked by a model that did
+  not write it</b>, and that checking found a lot.</p>
+
+  <h3>How the check works</h3>
+  <p>The checker is never told which option is marked correct. It gets the question and all four
+  options and has to work it out and pick one. Only then is its pick compared with the stored key.
+  Showing it the key would measure how agreeable it is, and comparing free-text answers would drown
+  in false alarms &mdash; <code>15x^4 - 4x^(-3)</code> and <code>15x^4 - 4/x^3</code> are the same
+  answer written twice. Picking a letter has neither problem. Anything the two disagree on goes to a
+  stronger model before being retired.</p>
+
+  <h3>What it found</h3>
+  <p>Across 531 questions written by Haiku: <b>55 wrong, 10%</b>, and not evenly.</p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Topic</th><th class="n">Wrong</th><th class="n">Rate</th></tr></thead>
+      <tbody>
+        <tr><td>Integration</td><td class="n">10 / 25</td><td class="n flag">40%</td></tr>
+        <tr><td>Sequences and series</td><td class="n">5 / 14</td><td class="n flag">36%</td></tr>
+        <tr><td>Binomial expansion</td><td class="n">7 / 20</td><td class="n flag">35%</td></tr>
+        <tr><td>Polynomials</td><td class="n">4 / 15</td><td class="n">27%</td></tr>
+        <tr><td>Differentiation</td><td class="n">9 / 65</td><td class="n">14%</td></tr>
+        <tr><td>Shared foundational skills</td><td class="n">12 / 296</td><td class="n good">4%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The harder the arithmetic, the more often the answer key was wrong. Expanding brackets and
+  negative numbers were almost always right; areas between curves were wrong a third of the time.</p>
+
+  <h3>Why that mattered more than it sounds</h3>
+  <p>A wrong answer key is the worst failure this system has, and <code>eval.py</code> cannot see it
+  &mdash; eval tests the walk&rsquo;s reasoning and takes the questions on trust. A student who
+  answers <em>correctly</em> gets recorded as not holding the skill, and the descent goes hunting a
+  gap that is not there. The report looks completely normal.</p>
+
+  <h3>The fix, measured rather than assumed</h3>
+  <p>Generation moved from Haiku to Sonnet. The comparison that justified it, run on the five
+  worst-hit skills, four questions each, checked blind:</p>
+
+  <div class="metrics">
+    <div class="metric"><span class="n flag">45%</span><span class="k">Haiku &mdash; 9 of 20 answer keys wrong</span></div>
+    <div class="metric"><span class="n good">0%</span><span class="k">Sonnet &mdash; 0 of 20 wrong</span></div>
+  </div>
+
+  <p>Then the 71 replacements Haiku had already written were audited: 19 wrong, 27%. Rewritten on
+  Sonnet, and all 22 rewrites passed on the first check.</p>
+
+  <p>The bank travels as <code>data/question_bank.jsonl</code>, committed to the repository, one
+  question per line. That is what stops any of this being paid for twice &mdash; and what fills an
+  empty database at startup, which matters because the host wipes the filesystem on every deploy.</p>
+</section>
+
+<section>
+  <h2>Which model does what</h2>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Job</th><th>Model</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Reading the question</td><td><code>opus</code></td><td>Decides where the whole diagnosis goes</td></tr>
+        <tr><td>Reading an attempt</td><td><code>opus</code></td><td>Narrowing, and judging presentation</td></tr>
+        <tr><td>Writing questions</td><td><code>sonnet</code></td><td>Was Haiku. Working out the answer was the hard part</td></tr>
+        <tr><td>Checking answer keys</td><td><code>sonnet</code> &rarr; <code>opus</code></td><td>Second opinion, then a third on disputes</td></tr>
+        <tr><td>Reading papers</td><td><code>sonnet</code></td><td>Long input, little reasoning</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>A session costs <b>one</b> model call &mdash; reading the question. An attempt adds two more, and
+  those now run side by side rather than one after the other, which took the wait from about 17
+  seconds to about 11. The questions themselves come off the shelf and cost nothing.</p>
+</section>
+
+<section>
+  <h2>What is actually measured</h2>
+  <p><code>eval.py</code> invents students. It hides one skill, breaks everything resting on it, runs
+  the walk, and checks whether the hidden skill comes back. Every skill under every doorway &mdash;
+  718 runs.</p>
+
+  <div class="metrics">
+    <div class="metric"><span class="n">87%</span><span class="k">gaps within reach, named correctly</span></div>
+    <div class="metric"><span class="n good">0</span><span class="k">false positives in 718 runs</span></div>
+    <div class="metric"><span class="n">5.9</span><span class="k">questions on average, 13 at worst</span></div>
+    <div class="metric"><span class="n">100%</span><span class="k">out-of-reach gaps left unconfirmed</span></div>
+  </div>
+
+  <p>Zero false positives is the one that matters. Missing a gap wastes a session; naming a skill the
+  student already has sends a tutor to teach the wrong thing <em>and</em> stops anyone looking
+  further. It is the failure that would make this actively harmful, and it has never happened in
+  testing.</p>
+
+  <p>Two other measured numbers: <b>60%</b> of questions on a real Edexcel Pure paper can be placed
+  at a doorway (up from 20% before five topics were added), and a diagnosis costs about
+  <b>$0.22</b>.</p>
+</section>
+
+<section>
+  <h2>Every file, plainly</h2>
+  <dl class="files">
+    <div>
+      <dt>skills.yaml<span class="lines">892 lines &middot; data</span></dt>
+      <dd><b>The map.</b> 108 skills and what each rests on. The only file that knows any maths.</dd>
+    </div>
+    <div>
+      <dt>graph.py<span class="lines">180 lines</span></dt>
+      <dd><b>Loads and checks the map.</b> Refuses to start on a broken link, a loop, or no doorways.</dd>
+    </div>
+    <div>
+      <dt>entry.py<span class="lines">537 lines</span></dt>
+      <dd><b>Question &rarr; doorway.</b> Reads text, photos and PDFs, reads every lettered part, and
+      says &ldquo;I can&rsquo;t place this&rdquo; rather than guessing.</dd>
+    </div>
+    <div>
+      <dt>walk.py<span class="lines">815 lines</span></dt>
+      <dd><b>The diagnostic.</b> The descent, the stopping rules, the chain, the skipped branches, the
+      report.</dd>
+    </div>
+    <div>
+      <dt>questions.py<span class="lines">403 lines</span></dt>
+      <dd><b>Writes one question about one skill.</b> Four options: one right, three wrong where each
+      is a named mistake, so a wrong answer says <em>which</em> misunderstanding. Plus a fixed
+      &ldquo;I don&rsquo;t know&rdquo;.</dd>
+    </div>
+    <div>
+      <dt>audit.py<span class="lines">343 lines</span></dt>
+      <dd><b>Checks the answer keys.</b> The file that found 10% of the bank was wrong.</dd>
+    </div>
+    <div>
+      <dt>store.py<span class="lines">943 lines</span></dt>
+      <dd><b>Memory.</b> SQLite: sessions, answers, feedback, comments, waitlist, the bank, coverage
+      gaps. Also what makes a walk resumable.</dd>
+    </div>
+    <div>
+      <dt>bank.py<span class="lines">326 lines</span></dt>
+      <dd><b>Serves questions off a shelf.</b> Database, then the committed file, then the model &mdash;
+      only the last costs anything, and reaching it is logged.</dd>
+    </div>
+    <div>
+      <dt>api.py<span class="lines">1,021 lines</span></dt>
+      <dd><b>The web layer.</b> Start, answer, resume, feedback, comment, waitlist, health, and the
+      admin page. Plus the daily spend ceiling.</dd>
+    </div>
+    <div>
+      <dt>index.html<span class="lines">1,028 lines</span></dt>
+      <dd><b>The diagnostic screen.</b> One question at a time, maths typeset with KaTeX, the descent
+      building up as it goes.</dd>
+    </div>
+    <div>
+      <dt>landing.html<span class="lines">666 lines</span></dt>
+      <dd><b>The front door.</b> Tutor-facing, with the waitlist and a feedback fold.</dd>
+    </div>
+    <div>
+      <dt>eval.py<span class="lines">194 lines</span></dt>
+      <dd><b>Is it right?</b> Invents students with known gaps and checks whether we find them.</dd>
+    </div>
+    <div>
+      <dt>coverage.py<span class="lines">315 lines</span></dt>
+      <dd><b>Is the map big enough?</b> Reads a real past paper and reports what could not be placed.</dd>
+    </div>
+    <div>
+      <dt>scheme.py<span class="lines">238 lines</span></dt>
+      <dd><b>Mines mark schemes</b> for evidence about what a question really needs.</dd>
+    </div>
+    <div>
+      <dt>llm.py<span class="lines">104 lines</span></dt>
+      <dd><b>Which model does which job</b>, and how hard it is allowed to think.</dd>
+    </div>
+  </dl>
+</section>
+
+<section>
+  <h2>Running it for real</h2>
+  <ul class="plain">
+    <li><b>Deployed on Render</b> from <code>render.yaml</code>, with a <b>persistent disk</b>. Without
+    one the filesystem goes on every deploy and every restart, and SQLite goes with it &mdash;
+    waitlist signups, tutor verdicts, coverage gaps. The bank would survive, being committed;
+    nothing else would.</li>
+    <li><b>Health answers two questions from outside.</b> <code>storage: kept</code> means the disk
+    mounted; <code>questions: 550</code> means the shelf restocked. A disk that failed to mount looks
+    exactly like a working app until somebody notices the waitlist is empty.</li>
+    <li><b>A daily ceiling on questions read</b>, because the page is public with no sign-in and
+    every reading is a call to the best model. It counts readings rather than walks, since a reading
+    is the thing that costs money.</li>
+    <li><b>Maths is typeset.</b> The bank stores <code>x^(-2)</code> and <code>sqrt(136)</code>
+    because that is what the model writes; it is converted to LaTeX at the moment of display.</li>
+    <li><b>Feedback is readable</b> at <code>/admin/feedback</code>, password-protected, which refuses
+    to open at all when no password is set.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>The questions people will ask you</h2>
+
+  <details>
+    <summary>Why multiple choice? Isn&rsquo;t that weak?</summary>
+    <div class="body">
+      <p>Because each wrong option is a <em>named mistake</em>. A student picking option C
+      doesn&rsquo;t just tell us they&rsquo;re wrong &mdash; it tells us they subtracted the indices
+      instead of adding them. Free text would need marking, which means another model call, more
+      cost, more failure.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Why five levels deep and not two?</summary>
+    <div class="body">
+      <p>Two was the original call, on the grounds that telling an A-level student they are missing
+      Year 7 arithmetic is true but useless. Measuring it: at two levels the walk finds the real cause
+      <b>40%</b> of the time, at five it is <b>87%</b>, and the cost is about three extra questions for
+      the students who genuinely have deep gaps.</p>
+      <p>The reasoning had been wrong in a specific way &mdash; confusing <em>what a tutor should
+      teach</em> with <em>how far we should look</em>. The report shows the whole chain, so a tutor
+      can start wherever they judge best, but only if we bothered to look.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>How do you know the diagnosis isn&rsquo;t confident nonsense?</summary>
+    <div class="body">
+      <p>This is the strongest question anyone can ask. The answer is <code>eval.py</code>: 718
+      invented students with known gaps, 87% found, zero cases of naming a skill the student could
+      actually do. It is not the same as testing on real students &mdash; that has not happened yet
+      &mdash; but it is considerably better than a demo and a good feeling.</p>
+      <p>And separately, <code>audit.py</code>: every question in the bank has been checked by a
+      model that did not write it.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Why doesn&rsquo;t the student see the prerequisite trail?</summary>
+    <div class="body">
+      <p>A student seeing &ldquo;your A-level question actually failed at fraction arithmetic&rdquo;
+      learns something demoralising and not actionable. The tutor needs the chain; the student needs
+      one next step. The same reasoning keeps the running descent tutor-only, and keeps skill names
+      off the question screen.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>What has actually gone wrong while building it?</summary>
+    <div class="body">
+      <p>Worth knowing, because the pattern repeats: <b>every one of these passed the whole test suite
+      while being visibly broken.</b></p>
+      <p>A comment containing a closing script tag ended the script block early and printed two
+      thousand characters of JavaScript on the page. A model override swapped the model but left an
+      incompatible setting behind. Restoring the bank only ever added, so retiring a wrong question
+      here left it live on the server. And both pages had no cache header, so a browser could run
+      last week&rsquo;s build indefinitely &mdash; which made two working features look broken at
+      once.</p>
+      <p>Each one produced a test that would now catch it. The pages are parsed as HTML on every run
+      specifically because a JavaScript engine cannot see that class of bug.</p>
+    </div>
+  </details>
+</section>
+
+<section>
+  <h2>What is not done</h2>
+  <ul class="plain">
+    <li><b>No real students yet.</b> Every accuracy number comes from simulations.</li>
+    <li><b>40% of a real paper still cannot be placed.</b> No trigonometry, circles, vectors, proof,
+    numerical methods, statistics or mechanics &mdash; and statistics and mechanics are roughly a
+    third of A-level Maths.</li>
+    <li><b>Tutor mode is a flag, not a login.</b> <code>?tutor=1</code> keeps the verdict form and the
+    running descent away from students; it stops nobody who edits a URL.</li>
+    <li><b>Anyone can call the API.</b> Cross-origin requests are unrestricted. The daily ceiling
+    limits the damage rather than preventing it.</li>
+    <li><b>Nothing has been read yet.</b> The feedback table, the comments table and the coverage
+    backlog all work and are all empty, because no tutor has used it.</li>
+  </ul>
+</section>
+
+<footer>
+  OwnIt v2 &middot; branch v2-diagnostic &middot; 57 commits &middot; 308 tests passing
+</footer>
+
+</div>
