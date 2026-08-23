@@ -44,7 +44,7 @@ services:
       # How many questions may be read in a day. Every one is a call to the
       # best model, and the page is public with no sign-in.
       - key: OWNIT_DAILY_STARTS
-        value: 200
+        value: 30
 
       # Both set by hand in the dashboard. sync: false stops Render asking for
       # them again on every deploy, and keeps them out of this file.

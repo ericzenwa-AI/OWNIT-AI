@@ -51,8 +51,12 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 # opinion, so it must not be the model that wrote the question.
 FIRST_PASS = llm.Task(llm.SONNET, effort="medium")
 
-# Only for the disagreements, which should be few.
-SECOND_PASS = llm.Task(llm.OPUS, effort="high")
+# Only for the disagreements, which should be few - but "few" is not "cheap".
+# This was Opus at high effort, which is the most expensive setting in the
+# codebase, and running it over two audits was most of one month's credit. A
+# tiebreak between a checker and a written answer does not need extended
+# thinking; it needs a better reader, which is the model rather than the dial.
+SECOND_PASS = llm.Task(llm.OPUS, effort="low")
 
 WORKERS = 8
 
@@ -259,6 +263,30 @@ def show(examples: list[Checked], limit: int = 8) -> None:
 # ---- Command line ----------------------------------------------------------
 
 
+# Rough, and rough is the point: enough to notice that a number is bigger than
+# expected before it is spent rather than after.
+PENCE_PER_CHECK = 2
+
+
+def _worth_it(count: int, agreed: bool) -> bool:
+    """Say what this will cost, and stop unless told to carry on.
+
+    Written after an audit run quietly cost several pounds. Nothing here knows
+    the real price - it only knows the order of magnitude, which is all that is
+    needed to catch "I meant to check twelve, not six hundred".
+    """
+    pounds = count * PENCE_PER_CHECK / 100
+    print(f"About to check {count} questions - roughly £{pounds:.2f}, "
+          f"more if many disagree.")
+    if agreed:
+        return True
+    answer = input("Go ahead? [y/N] ").strip().lower()
+    if answer not in ("y", "yes"):
+        print("Nothing checked.")
+        return False
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check the bank's answer keys.")
     parser.add_argument("--skill", help="check one skill only")
@@ -267,6 +295,9 @@ def main(argv: list[str] | None = None) -> int:
         "--fix", action="store_true", help="retire confirmed-wrong questions and refill"
     )
     parser.add_argument("--workers", type=int, default=WORKERS)
+    parser.add_argument(
+        "--yes", action="store_true", help="skip the what-will-this-cost prompt"
+    )
     args = parser.parse_args(argv)
 
     connection = store.connect()
@@ -279,6 +310,9 @@ def main(argv: list[str] | None = None) -> int:
         rows = rows[: args.limit]
     if not rows:
         print("Nothing on the shelf to check.")
+        return 0
+
+    if not _worth_it(len(rows), args.yes):
         return 0
 
     print(f"Checking {len(rows)} questions on {FIRST_PASS.model}...")

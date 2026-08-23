@@ -89,7 +89,12 @@ LANDING = WEB / "landing.html"
 #
 # A whole day is refused rather than degraded, because a diagnosis built on a
 # cheaper model would be a worse diagnosis and nobody would be told.
-DAILY_STARTS = int(os.environ.get("OWNIT_DAILY_STARTS", "200"))
+# 200 was chosen before anyone had looked at what a reading costs. At roughly
+# 2-8p each that is £4-16 in a day, which is more than the whole balance. Thirty
+# is a busy day for a beta with a handful of tutors and caps the damage at about
+# a pound. Raise it in the dashboard the moment it starts turning real people
+# away - it is one environment variable and no deploy.
+DAILY_STARTS = int(os.environ.get("OWNIT_DAILY_STARTS", "30"))
 
 # Base64 of a photo. A phone picture is comfortably under this; anything much
 # larger is not a question, and it is read into memory before anything checks
