@@ -12,7 +12,7 @@ import json
 load_dotenv()
 
 # This creates the API application. Everything hangs off this "app" object.
-app = FastAPI(title="OwnIt API")
+app = FastAPI(title="ownIT API")
 
 # This creates a connection to Claude's API. It reads the key from
 # the ANTHROPIC_API_KEY environment variable automatically.
@@ -47,7 +47,7 @@ def first_text(response) -> str:
 # run this function and send back whatever it returns.
 @app.get("/")
 def health_check():
-    return {"status": "OwnIt backend is running"}
+    return {"status": "ownIT backend is running"}
 
 
 # This defines WHAT the frontend must send us: just one field, "essay_text".

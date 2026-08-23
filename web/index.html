@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OwnIt</title>
+<title>ownIT</title>
 <!-- Typesetting only. If either of these fails to load, mathHtml() falls back
      to the plain text the bank stores, which is what the page showed before. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -386,7 +386,7 @@
 </head>
 <body>
 <main>
-  <h1>OwnIt</h1>
+  <h1>ownIT</h1>
   <p class="sub">Stuck on a maths question? Let's find what's actually missing.</p>
   <div id="screen"></div>
 </main>
@@ -407,7 +407,13 @@ let asked = null;
 // replaceState rather than pushState: every question is the same session, and
 // the back button should leave the diagnostic rather than undo a question.
 function rememberSession(id) {
-  if (id) history.replaceState(null, '', '?s=' + id);
+  if (!id) return;
+  // Keep whatever else was on the link. Writing '?s=42' wholesale dropped
+  // ?tutor=1 off the address on the very first question, so a link that had
+  // been opened as a tutor stopped looking like one the moment it was used.
+  const params = new URLSearchParams(location.search);
+  params.set('s', id);
+  history.replaceState(null, '', '?' + params.toString());
 }
 
 function forgetSession() {
@@ -474,7 +480,6 @@ async function start() {
   if (!file && !text) { msg.textContent = 'Give me the question, or a photo of it.'; return; }
 
   button.disabled = true;
-  msg.textContent = 'Reading the question...';
 
   const working = document.getElementById('working').files[0];
 
@@ -482,17 +487,25 @@ async function start() {
     question: text,
     attempt: document.getElementById('attempt').value.trim() || null,
   };
+
+  if (file || working) msg.textContent = 'Getting the photo ready...';
+
   if (file) {
-    body.attachment = await asBase64(file);
-    body.attachment_type = file.type;
+    const ready = await readyToSend(file);
+    body.attachment = await asBase64(ready);
+    body.attachment_type = ready.type;
   }
   // A photo of the working is read the same way the question is, and for the
   // same reason: it is done on paper, and typing it out loses the notation.
   if (working) {
-    body.attempt_attachment = await asBase64(working);
-    body.attempt_attachment_type = working.type;
-    msg.textContent = 'Reading the question and your working...';
+    const ready = await readyToSend(working);
+    body.attempt_attachment = await asBase64(ready);
+    body.attempt_attachment_type = ready.type;
   }
+
+  msg.textContent = working
+    ? 'Reading the question and your working...'
+    : 'Reading the question...';
 
   try {
     state = await post('/api/start', body);
@@ -644,13 +657,16 @@ function chooseScreen() {
 
 // The descent as it happens, rather than only in the report at the end.
 //
-// Tutor only, and for the same reason the question card does not name the
-// skill it is asking about: the skill's name is our vocabulary, and a student
-// watching a column of crosses build up while they answer is being told
-// something discouraging that they cannot act on until the end. A tutor
-// watching the same list is watching the thing they came to see.
+// This was tutor-only at first, on the grounds that a student watching a column
+// of crosses build up is being told something discouraging they cannot act on
+// until the end. That was the wrong call for two reasons: the person using this
+// is a tutor, so the gate mostly hid it from the people it was for, and it was
+// hidden behind a flag on a link that you had to already know about.
+//
+// It shows nothing until the first question is answered, which is correct - on
+// the opening screen there is nothing to show yet.
 function descent() {
-  if (!isTutor() || !state.so_far || !state.so_far.length) return '';
+  if (!state.so_far || !state.so_far.length) return '';
 
   const rows = state.so_far.map(a => {
     const how = a.dont_know ? 'unsure' : (a.held ? 'held' : 'missed');
@@ -901,6 +917,45 @@ async function post(path, body) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.detail || 'Something went wrong.');
   return data;
+}
+
+// The longest edge a photo needs to be for the maths on it to be readable.
+// A phone camera produces four times this, which is four megabytes of detail
+// nobody looks at - and base64 adds a third again on top, all of it uploaded
+// before the question has even been read.
+const LONGEST_EDGE = 1800;
+
+// Kept high on purpose. This is a picture of small handwriting and thin
+// fraction bars, and compression artefacts land exactly on the strokes that
+// tell a 3 from an 8.
+const QUALITY = 0.9;
+
+// Shrink an image before it goes anywhere. PDFs are passed through untouched -
+// they cannot be resized here, and their text is already sharp at any size.
+async function readyToSend(file) {
+  if (!file.type.startsWith('image/')) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, LONGEST_EDGE / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1) return file;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    const smaller = await new Promise(done =>
+      canvas.toBlob(done, 'image/jpeg', QUALITY));
+
+    // If shrinking somehow made it bigger, keep what we had.
+    if (!smaller || smaller.size >= file.size) return file;
+    return new File([smaller], 'photo.jpg', {type: 'image/jpeg'});
+  } catch (error) {
+    // An old browser, or an image it cannot decode. Sending the original is
+    // slower but it still works, and that matters more than it being small.
+    return file;
+  }
 }
 
 function asBase64(file) {

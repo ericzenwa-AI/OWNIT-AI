@@ -1,6 +1,6 @@
-# OwnIt
+# ownIT
 
-A student is stuck on an A-level maths question. OwnIt does not explain the
+A student is stuck on an A-level maths question. ownIT does not explain the
 question, and it does not re-teach the topic. It works downwards through what
 that question rests on — one short question at a time — until it reaches the
 thing that is actually missing.
@@ -25,7 +25,7 @@ number of them expanded `(x + h)³` wrongly and never collected like terms.
 
 Every one of those students lost marks on a *differentiation* question. Not one
 of them had a differentiation problem — they could not expand a bracket,
-something they were taught at fourteen. OwnIt finds that in four questions:
+something they were taught at fourteen. ownIT finds that in four questions:
 
 ```
 Prove from first principles…

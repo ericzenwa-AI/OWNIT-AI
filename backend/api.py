@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="OwnIt diagnostic", lifespan=lifespan)
+app = FastAPI(title="ownIT diagnostic", lifespan=lifespan)
 
 # The page is served from the same place, so this is only for running the
 # frontend separately while developing.
@@ -308,7 +308,7 @@ def start(request: StartRequest) -> StateOut:
     if started_today >= DAILY_STARTS:
         raise HTTPException(
             429,
-            "OwnIt has taken as many questions as it can today. It will start "
+            "ownIT has taken as many questions as it can today. It will start "
             "again tomorrow - and if you were part way through, your answers "
             "are saved.",
         )
@@ -912,7 +912,7 @@ def _admin_ok(request: Request) -> None:
         raise HTTPException(
             401,
             "Not authorised.",
-            headers={"WWW-Authenticate": 'Basic realm="OwnIt"'},
+            headers={"WWW-Authenticate": 'Basic realm="ownIT"'},
         )
 
 

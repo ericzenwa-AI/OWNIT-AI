@@ -1,4 +1,4 @@
-# Deploying OwnIt.
+# Deploying ownIT.
 #
 # The one thing this file exists for is the disk. Without it the filesystem is
 # thrown away on every deploy and on every idle restart, which for SQLite means
