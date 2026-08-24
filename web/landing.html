@@ -137,13 +137,16 @@
     background: var(--accent);
   }
 
+  /* Two sentences rather than one, so it is set a size down and given a wider
+     measure. At the old 4.5rem and 15ch this ran to eight lines on a phone and
+     read as a wall rather than a statement. */
   h1 {
-    font-size: clamp(2.75rem, 8.5vw, 4.5rem);
-    line-height: 1.02;
-    letter-spacing: -0.045em;
+    font-size: clamp(2.1rem, 6vw, 3.3rem);
+    line-height: 1.08;
+    letter-spacing: -0.04em;
     font-weight: 800;
-    margin: 0 0 1.75rem;
-    max-width: 15ch;
+    margin: 0 0 1.5rem;
+    max-width: 24ch;
     text-wrap: balance;
   }
 
@@ -157,17 +160,6 @@
     text-wrap: pretty;
   }
 
-  /* The second beat. Quieter than the line above it, so the hero reads as one
-     statement, one answer to it, and then the detail - rather than three
-     sentences competing at the same weight. */
-  .under {
-    font-size: 1.0625rem;
-    line-height: 1.6;
-    color: var(--muted);
-    margin: 0;
-    max-width: 40ch;
-    text-wrap: pretty;
-  }
 
   /* ---- every idea is its own block ---- */
 
@@ -465,10 +457,10 @@
 
 <header>
   <p class="wordmark">ownIT</p>
-  <h1>Your student isn't bad at maths.</h1>
+  <h1>Your student isn't bad at maths. They're missing something underneath the
+  question.</h1>
   <p class="lead">Most tutors already know this. They just don't have a system
   that finds it fast.</p>
-  <p class="under">They're missing something underneath the question.</p>
 </header>
 
 <section>
