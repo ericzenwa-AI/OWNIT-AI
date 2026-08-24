@@ -629,3 +629,59 @@ def _closest(entry_id):
     from walk import _closest_first
 
     return _closest_first(SKILLS[entry_id].needs)
+
+
+# ---- The way back up -------------------------------------------------------
+
+
+def test_the_chain_runs_from_the_question_down_to_the_gap(db=None):
+    """The tutor's plan is this reversed, so the order it is stored in is not
+    an implementation detail - it is read off a screen and taught from."""
+    everything = _cannot_do_everything_under("expand_brackets")
+
+    def check(skill):
+        return SkillResult(skill.id, held=skill.id not in everything, mistake="x")
+
+    diagnosis = diagnose("first_principles", check=check)
+    chain = diagnosis.chains[0]
+
+    assert chain[0] == "first_principles", "starts at the question they asked"
+    assert chain[-1] == diagnosis.root_gaps[0], "ends at the gap to teach first"
+
+
+def test_every_step_of_the_chain_rests_on_the_next(db=None):
+    """Reversed, this is claimed to be a teaching order. That is only true if
+    each step actually depends on the one before it."""
+    everything = _cannot_do_everything_under("expand_brackets")
+
+    def check(skill):
+        return SkillResult(skill.id, held=skill.id not in everything, mistake="x")
+
+    chain = diagnose("first_principles", check=check).chains[0]
+
+    for above, below in zip(chain, chain[1:]):
+        assert below in SKILLS[above].needs, f"{below} is not something {above} rests on"
+
+
+def test_a_gap_directly_under_the_question_has_a_two_step_chain(db=None):
+    """Nothing to work back up through except the question itself."""
+
+    def check(skill):
+        return SkillResult(skill.id, held=skill.id != "expand_brackets", mistake="x")
+
+    diagnosis = diagnose("first_principles", check=check)
+
+    assert diagnosis.chains[0] == ["first_principles", "expand_brackets"]
+
+
+def _cannot_do_everything_under(missing: str) -> set[str]:
+    """A student missing one skill cannot do what rests on it either."""
+    broken = {missing}
+    changed = True
+    while changed:
+        changed = False
+        for skill in SKILLS.values():
+            if skill.id not in broken and any(n in broken for n in skill.needs):
+                broken.add(skill.id)
+                changed = True
+    return broken

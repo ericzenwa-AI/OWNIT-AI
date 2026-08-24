@@ -339,6 +339,34 @@
     transform: none;
   }
 
+  /* Numbered, because the order is the point - each one is only reachable
+     once the one before it holds. */
+  ol.upwards {
+    margin: 1rem 0 0;
+    padding-left: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+  ol.upwards li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    gap: 0 0.9rem;
+    align-items: baseline;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--line);
+  }
+  ol.upwards li::before {
+    content: counter(step);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--on-accent);
+    background: var(--accent);
+    border-radius: 7px;
+    width: 1.9rem; height: 1.9rem;
+    display: grid; place-items: center;
+  }
+
   .card.descent {
     padding: 1.25rem 1.5rem;
     background: var(--sunk);
@@ -709,6 +737,40 @@ function question() {
   wireParts();
 }
 
+// Where to go after the gap is fixed.
+//
+// The report said where to start and stopped there, which leaves a tutor with
+// one lesson and no plan. The chain has been computed and sent to this page
+// the whole time - it is the route the walk took to get down there - and
+// reversed it is the order to teach in, ending at the question the student
+// actually came with.
+//
+// This is for the tutor. It is the same trail we deliberately keep off the
+// student's screen, where "your A-level question failed at fraction
+// arithmetic" is demoralising and not actionable. For the person teaching it
+// is the plan.
+function wayBack(gap, stuckOn) {
+  if (!gap || !gap.chain || gap.chain.length < 2) return '';
+
+  // Stored top-down: the question first, the gap last. Teaching runs the other
+  // way, and the gap itself is already named above as where to start.
+  const upwards = gap.chain.slice().reverse().slice(1);
+  if (!upwards.length) return '';
+
+  const steps = upwards.map((skill, i) => {
+    const last = i === upwards.length - 1;
+    return `<li>${escape(skill)}${last
+      ? ' <span class="note">&mdash; the question they came with</span>' : ''}</li>`;
+  }).join('');
+
+  return `<div class="card">
+    <p class="label">Then work back up</p>
+    <p>Once <strong>${escape(gap.skill)}</strong> holds, this is the order the
+    rest of it unlocks in:</p>
+    <ol class="upwards">${steps}</ol>
+  </div>`;
+}
+
 function report() {
   const r = state.report;
   const gap = r.gaps[0];
@@ -753,6 +815,8 @@ function report() {
       <p class="label">Why that one</p>
       ${why}
     </div>` : ''}
+
+    ${wayBack(gap, r.stuck_on)}
 
     ${unchecked(r)}
 
