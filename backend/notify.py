@@ -118,6 +118,59 @@ def tell(subject: str, body: str) -> None:
     threading.Thread(target=_send, args=(subject, body), daemon=True).start()
 
 
+def check() -> dict:
+    """Try to send one email now, and say exactly what happened.
+
+    Everything else about sending is deliberately quiet and out of the way: it
+    runs on another thread, it swallows its own failures, and it must never
+    hold up a signup. All of which makes it impossible to answer "did that
+    work?" without reading logs and guessing.
+
+    This does the opposite. It sends on this thread, waits, and reports. The
+    password is never in what comes back.
+    """
+    settings = _settings()
+    if settings is None:
+        return {
+            "configured": False,
+            "sent": False,
+            "why": ("No usable mail settings. OWNIT_SMTP_HOST, OWNIT_SMTP_USER "
+                    "and OWNIT_SMTP_PASSWORD must all be set, and the sender "
+                    "must be an address - set OWNIT_SMTP_FROM when the username "
+                    "is not one, as with Resend."),
+        }
+
+    where = {
+        "host": settings["host"],
+        "port": settings["port"],
+        "username": settings["user"],
+        "from": settings["from"],
+        "to": settings["to"],
+    }
+
+    message = EmailMessage()
+    message["Subject"] = "ownIT: test"
+    message["From"] = settings["from"]
+    message["To"] = settings["to"]
+    message.set_content(
+        "This is the test from /admin/email.\n\n"
+        "If it arrived, waitlist signups will too.\n"
+    )
+
+    try:
+        with smtplib.SMTP(settings["host"], settings["port"],
+                          timeout=TIMEOUT_SECONDS) as server:
+            server.starttls()
+            server.login(settings["user"], settings["password"])
+            server.send_message(message)
+    except Exception as error:  # noqa: BLE001 - the reason is the whole point
+        log.warning("test email failed: %s", error)
+        return {"configured": True, "sent": False, "why": f"{type(error).__name__}: {error}", **where}
+
+    log.info("test email sent to %s", settings["to"])
+    return {"configured": True, "sent": True, "why": None, **where}
+
+
 def someone_joined(email: str, studying: str | None, total: int) -> None:
     """A new name on the waitlist."""
     teaches = (studying or "").strip() or "(they did not say)"

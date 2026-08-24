@@ -1104,6 +1104,63 @@ def _page(path: Path, request: Request):
     return FileResponse(path, headers={**FRESH, "ETag": etag})
 
 
+@app.get("/admin/email", response_class=HTMLResponse)
+def admin_email(request: Request) -> str:
+    """Send one email now and say what happened.
+
+    Because "did it arrive?" was taking a log, a guess and a reload. Sending
+    is deliberately quiet everywhere else - another thread, failures swallowed,
+    never in the way of a signup - and that is exactly what makes it
+    undiagnosable.
+    """
+    _admin_ok(request)
+    result = notify.check()
+
+    def row(label, value):
+        return f'<tr><td>{escape(label)}</td><td>{escape(str(value))}</td></tr>'
+
+    if not result["configured"]:
+        detail = f'<p class="bad">Not switched on.</p><p>{escape(result["why"])}</p>'
+    elif result["sent"]:
+        detail = (
+            f'<p class="good">Sent.</p>'
+            f'<p>If it does not arrive, it left here and something after that '
+            f'stopped it - a spam folder, or the sender not being allowed to '
+            f'write to that address.</p>'
+            f'<table>{row("host", result["host"])}{row("port", result["port"])}'
+            f'{row("logs in as", result["username"])}{row("from", result["from"])}'
+            f'{row("to", result["to"])}</table>'
+        )
+    else:
+        detail = (
+            f'<p class="bad">Not sent.</p><p>{escape(result["why"])}</p>'
+            f'<table>{row("host", result["host"])}{row("port", result["port"])}'
+            f'{row("logs in as", result["username"])}{row("from", result["from"])}'
+            f'{row("to", result["to"])}</table>'
+        )
+
+    return f"""<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Email</title>
+<style>
+  body {{ font: 15px/1.6 ui-monospace, Consolas, monospace; max-width: 40rem;
+         margin: 2rem auto; padding: 0 1rem; background: #fff; color: #111; }}
+  h1 {{ font-size: 1.1rem; }}
+  table {{ border-collapse: collapse; margin-top: 1rem; }}
+  td {{ padding: 0.3rem 0.9rem 0.3rem 0; border-bottom: 1px solid #eee; }}
+  td:first-child {{ color: #777; }}
+  .good {{ color: #2F6B4F; font-weight: 700; }}
+  .bad {{ color: #8C3B2E; font-weight: 700; }}
+  a {{ color: #2C4A7C; }}
+</style>
+<h1>Email</h1>
+{detail}
+<p><a href="/admin/email">Try again</a> &middot; <a href="/admin/numbers">Numbers</a></p>
+"""
+
+
 @app.get("/admin/numbers", response_class=HTMLResponse)
 def admin_numbers(request: Request) -> str:
     """How it is going, in counts rather than rates.

@@ -1473,3 +1473,85 @@ def test_a_broken_mail_server_does_not_cost_you_the_signup(client, monkeypatch):
         assert store.waitlist_size(connection) == 1
     finally:
         connection.close()
+
+
+# ---- Being able to ask whether email works ---------------------------------
+
+
+def _mail_settings(monkeypatch, **extra):
+    monkeypatch.setenv("OWNIT_SMTP_HOST", "smtp.resend.com")
+    monkeypatch.setenv("OWNIT_SMTP_USER", "resend")
+    monkeypatch.setenv("OWNIT_SMTP_PASSWORD", "re_a_secret_key")
+    monkeypatch.setenv("OWNIT_SMTP_FROM", "onboarding@resend.dev")
+    monkeypatch.setenv("OWNIT_NOTIFY_TO", "me@gmail.com")
+    for name, value in extra.items():
+        monkeypatch.setenv(name, value)
+
+
+def test_the_email_page_needs_the_password(client, monkeypatch):
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    assert client.get("/admin/email").status_code == 401
+
+
+def test_it_says_when_email_is_not_switched_on(client, monkeypatch):
+    for name in ("OWNIT_SMTP_HOST", "OWNIT_SMTP_USER", "OWNIT_SMTP_PASSWORD",
+                 "OWNIT_SMTP_FROM", "OWNIT_NOTIFY_TO"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+
+    page = client.get("/admin/email", auth=("me", "letmein")).text
+
+    assert "Not switched on" in page
+    assert "OWNIT_SMTP_FROM" in page
+
+
+def test_a_send_that_works_says_so_and_shows_the_addresses(client, monkeypatch):
+    _mail_settings(monkeypatch)
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+
+    class Fine:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def starttls(self): pass
+        def login(self, *a): pass
+        def send_message(self, *a): pass
+
+    monkeypatch.setattr(api.notify.smtplib, "SMTP", lambda *a, **k: Fine())
+
+    page = client.get("/admin/email", auth=("me", "letmein")).text
+
+    assert "Sent." in page
+    assert "onboarding@resend.dev" in page
+    assert "me@gmail.com" in page
+
+
+def test_a_send_that_fails_gives_the_reason(client, monkeypatch):
+    """The reason is the whole point of the page. Everywhere else it is
+    swallowed, which is what made this impossible to diagnose."""
+    _mail_settings(monkeypatch)
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+
+    def refuse(*a, **k):
+        raise OSError("Bad sender address syntax")
+
+    monkeypatch.setattr(api.notify.smtplib, "SMTP", refuse)
+
+    page = client.get("/admin/email", auth=("me", "letmein")).text
+
+    assert "Not sent." in page
+    assert "Bad sender address syntax" in page
+
+
+def test_the_password_is_never_on_the_page(client, monkeypatch):
+    """It is an API key, and this page shows every other setting beside it."""
+    _mail_settings(monkeypatch)
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+
+    def refuse(*a, **k):
+        raise OSError("nope")
+
+    monkeypatch.setattr(api.notify.smtplib, "SMTP", refuse)
+
+    page = client.get("/admin/email", auth=("me", "letmein")).text
+
+    assert "re_a_secret_key" not in page
