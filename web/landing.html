@@ -151,9 +151,21 @@
     font-size: clamp(1.15rem, 3.2vw, 1.4rem);
     line-height: 1.5;
     font-weight: 400;
+    color: var(--ink);
+    margin: 0 0 1rem;
+    max-width: 34ch;
+    text-wrap: pretty;
+  }
+
+  /* The second beat. Quieter than the line above it, so the hero reads as one
+     statement, one answer to it, and then the detail - rather than three
+     sentences competing at the same weight. */
+  .under {
+    font-size: 1.0625rem;
+    line-height: 1.6;
     color: var(--muted);
     margin: 0;
-    max-width: 32ch;
+    max-width: 40ch;
     text-wrap: pretty;
   }
 
@@ -453,9 +465,11 @@
 
 <header>
   <p class="wordmark">ownIT</p>
-  <h1>Your student isn't bad at maths. They just haven't met the tutor who found out why.</h1>
-  <p class="lead">They're missing something underneath the question &mdash; and
-  nobody has ever gone looking for it.</p>
+  <h1>Your student isn't bad at maths.</h1>
+  <p class="lead">Most tutors already know this. They just don't have a system
+  that finds it fast.</p>
+  <p class="under">They're missing something underneath the question &mdash; and
+  nobody's been able to find it this fast, this easy, before.</p>
 </header>
 
 <section>
