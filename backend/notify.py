@@ -20,11 +20,14 @@ Three rules, all of them about not making things worse:
 
 Configure with, in the Render dashboard:
 
-    OWNIT_SMTP_HOST      smtp.gmail.com
+    OWNIT_SMTP_HOST      smtp.gmail.com, or smtp.resend.com
     OWNIT_SMTP_PORT      587
-    OWNIT_SMTP_USER      the address it sends from
-    OWNIT_SMTP_PASSWORD  an app password, not the account password
-    OWNIT_NOTIFY_TO      where to send it (defaults to the user above)
+    OWNIT_SMTP_USER      what the server wants as a username. With Gmail that
+                         is your address; with Resend it is the word "resend"
+    OWNIT_SMTP_PASSWORD  an app password, or an API key
+    OWNIT_SMTP_FROM      the address it is sent from. Only needed when that is
+                         not the username - onboarding@resend.dev, say
+    OWNIT_NOTIFY_TO      where to send it (defaults to the from address)
 """
 
 from __future__ import annotations
@@ -48,12 +51,24 @@ def _settings() -> dict | None:
     if not (host and user and password):
         return None
 
+    # Who it is from is not always who is logging in. With Gmail the username
+    # is the address, so defaulting to it works; with Resend the username is
+    # the literal word "resend" and the API key is the password, so sending
+    # from it produced "Bad sender address syntax" and nothing arrived.
+    sender = os.environ.get("OWNIT_SMTP_FROM", "").strip()
+    if "@" not in sender:
+        sender = user if "@" in user else ""
+
+    if not sender:
+        return None
+
     return {
         "host": host,
         "port": int(os.environ.get("OWNIT_SMTP_PORT", "587")),
         "user": user,
         "password": password,
-        "to": os.environ.get("OWNIT_NOTIFY_TO", "").strip() or user,
+        "from": sender,
+        "to": os.environ.get("OWNIT_NOTIFY_TO", "").strip() or sender,
     }
 
 
@@ -64,7 +79,9 @@ def sending_to() -> str | None:
     evidence that nothing was ever going to be sent.
     """
     settings = _settings()
-    return settings["to"] if settings else None
+    if not settings:
+        return None
+    return f"{settings['to']} (from {settings['from']})"
 
 
 def _send(subject: str, body: str) -> None:
@@ -75,7 +92,7 @@ def _send(subject: str, body: str) -> None:
 
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = settings["user"]
+    message["From"] = settings["from"]
     message["To"] = settings["to"]
     message.set_content(body)
 

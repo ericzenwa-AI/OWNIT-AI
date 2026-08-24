@@ -68,5 +68,10 @@ services:
         sync: false
       - key: OWNIT_SMTP_PASSWORD
         sync: false
+      # Only needed when the username is not an address. Resend wants the word
+      # "resend" as a username, so without this it tries to send from "resend"
+      # and the server rejects it as a bad sender address.
+      - key: OWNIT_SMTP_FROM
+        sync: false
       - key: OWNIT_NOTIFY_TO
         sync: false

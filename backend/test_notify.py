@@ -17,7 +17,7 @@ import notify
 def no_real_mail_settings(monkeypatch):
     """Start every test from an unconfigured machine."""
     for name in ("OWNIT_SMTP_HOST", "OWNIT_SMTP_PORT", "OWNIT_SMTP_USER",
-                 "OWNIT_SMTP_PASSWORD", "OWNIT_NOTIFY_TO"):
+                 "OWNIT_SMTP_PASSWORD", "OWNIT_SMTP_FROM", "OWNIT_NOTIFY_TO"):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -143,7 +143,66 @@ def test_it_says_where_it_would_send(monkeypatch):
     whether it was ever switched on."""
     configured(monkeypatch, OWNIT_NOTIFY_TO="tutor@example.com")
 
-    assert notify.sending_to() == "tutor@example.com"
+    assert "tutor@example.com" in notify.sending_to()
+
+
+# ---- Logging in is not the same as being the sender ------------------------
+
+
+def test_the_sender_can_differ_from_the_username(monkeypatch):
+    """Resend wants the literal word "resend" as a username and the API key as
+    the password. Sending from the username produced "Bad sender address
+    syntax" and nothing arrived."""
+    monkeypatch.setenv("OWNIT_SMTP_HOST", "smtp.resend.com")
+    monkeypatch.setenv("OWNIT_SMTP_USER", "resend")
+    monkeypatch.setenv("OWNIT_SMTP_PASSWORD", "re_an_api_key")
+    monkeypatch.setenv("OWNIT_SMTP_FROM", "onboarding@resend.dev")
+    monkeypatch.setenv("OWNIT_NOTIFY_TO", "me@gmail.com")
+
+    settings = notify._settings()
+
+    assert settings["user"] == "resend"
+    assert settings["from"] == "onboarding@resend.dev"
+    assert settings["to"] == "me@gmail.com"
+
+
+def test_a_username_that_is_an_address_is_still_the_sender(monkeypatch):
+    """Gmail, where the two are the same thing and nobody should have to say
+    so twice."""
+    configured(monkeypatch)
+
+    assert notify._settings()["from"] == "me@example.com"
+
+
+def test_a_username_that_is_not_an_address_and_no_sender_is_not_set_up(monkeypatch):
+    """Better to say it is off than to send from something that will bounce."""
+    monkeypatch.setenv("OWNIT_SMTP_HOST", "smtp.resend.com")
+    monkeypatch.setenv("OWNIT_SMTP_USER", "resend")
+    monkeypatch.setenv("OWNIT_SMTP_PASSWORD", "re_an_api_key")
+
+    assert notify._settings() is None
+
+
+def test_the_from_header_is_the_sender_not_the_username(monkeypatch):
+    """The header itself, since that is what the server rejected."""
+    monkeypatch.setenv("OWNIT_SMTP_HOST", "smtp.resend.com")
+    monkeypatch.setenv("OWNIT_SMTP_USER", "resend")
+    monkeypatch.setenv("OWNIT_SMTP_PASSWORD", "re_key")
+    monkeypatch.setenv("OWNIT_SMTP_FROM", "onboarding@resend.dev")
+
+    seen = {}
+
+    class Capture:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def starttls(self): pass
+        def login(self, *a): pass
+        def send_message(self, message): seen["from"] = message["From"]
+
+    monkeypatch.setattr(notify.smtplib, "SMTP", lambda *a, **k: Capture())
+    notify._send("subject", "body")
+
+    assert seen["from"] == "onboarding@resend.dev"
 
 
 def test_it_says_nothing_when_it_is_not_switched_on(monkeypatch):

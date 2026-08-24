@@ -181,7 +181,7 @@ not be placed. The bank would survive, being committed here; nothing else would.
 | `OWNIT_DB` | put it on the disk: `/var/data/ownit.db` |
 | `OWNIT_ADMIN_PASSWORD` | opens the admin pages; with none set they refuse to open at all |
 | `OWNIT_DAILY_STARTS` | how many questions may be read in a day. 30 by default |
-| `OWNIT_SMTP_*` | emails you when somebody joins the waitlist. Unset means nothing is sent |
+| `OWNIT_SMTP_*` | emails you when somebody joins the waitlist. Unset means nothing is sent. `OWNIT_SMTP_FROM` is only needed when the username is not an address, as with Resend |
 
 `/api/health` answers two questions from outside, which matters because a disk
 that failed to mount looks exactly like a working app until somebody notices
