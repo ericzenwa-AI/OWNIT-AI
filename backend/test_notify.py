@@ -133,3 +133,54 @@ def test_no_thread_is_started_when_there_is_nowhere_to_send(monkeypatch):
     notify.tell("subject", "body")
 
     assert started == []
+
+
+# ---- Being able to tell what happened --------------------------------------
+
+
+def test_it_says_where_it_would_send(monkeypatch):
+    """Startup announces this, so an empty inbox is never a guess about
+    whether it was ever switched on."""
+    configured(monkeypatch, OWNIT_NOTIFY_TO="tutor@example.com")
+
+    assert notify.sending_to() == "tutor@example.com"
+
+
+def test_it_says_nothing_when_it_is_not_switched_on(monkeypatch):
+    assert notify.sending_to() is None
+
+
+def test_a_send_that_works_leaves_a_line_in_the_log(monkeypatch, caplog):
+    """This was silent. An empty log then meant one of three completely
+    different things and there was no way to tell which."""
+    import logging
+    configured(monkeypatch)
+
+    class Fine:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def starttls(self): pass
+        def login(self, *a): pass
+        def send_message(self, *a): pass
+
+    monkeypatch.setattr(notify.smtplib, "SMTP", lambda *a, **k: Fine())
+
+    with caplog.at_level(logging.INFO, logger="ownit.notify"):
+        notify._send("ownIT: ada@example.com joined the waitlist", "body")
+
+    assert any("sent a notification" in r.message for r in caplog.records)
+
+
+def test_a_send_that_fails_says_why(monkeypatch, caplog):
+    import logging
+    configured(monkeypatch)
+
+    def refuse(*a, **k):
+        raise OSError("authentication failed")
+
+    monkeypatch.setattr(notify.smtplib, "SMTP", refuse)
+
+    with caplog.at_level(logging.WARNING, logger="ownit.notify"):
+        notify._send("subject", "body")
+
+    assert any("authentication failed" in r.message for r in caplog.records)

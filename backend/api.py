@@ -22,6 +22,7 @@ import os
 import re
 import json
 import secrets
+import sys
 from contextlib import asynccontextmanager
 from html import escape
 from pathlib import Path
@@ -49,6 +50,31 @@ from questions import DONT_KNOW_LABEL, DONT_KNOW_OPTION, shuffled_options
 log = logging.getLogger("ownit.api")
 
 
+def _set_up_logging() -> None:
+    """Make sure our own messages actually reach the host's log.
+
+    Without this the default level is WARNING, so everything that went right
+    was silent and only failures showed - which makes an empty log ambiguous
+    between "it worked", "it is not switched on" and "it never ran". That is
+    exactly the wrong thing to be unsure about when checking whether a signup
+    reached you.
+
+    Its own handler on stdout rather than basicConfig, because uvicorn
+    configures logging too and whoever runs second wins.
+    """
+    ours = logging.getLogger("ownit")
+    if ours.handlers:
+        return
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+    ours.addHandler(handler)
+    ours.setLevel(logging.INFO)
+    ours.propagate = False
+
+
+_set_up_logging()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Fill the shelf before the first student rather than during them.
@@ -65,6 +91,16 @@ async def lifespan(app: FastAPI):
             log.info("shelf restocked: %s questions", added)
     except Exception as error:  # noqa: BLE001 - never keep the app from starting
         log.warning("could not restock the shelf at startup: %s", error)
+
+    # Said once, at startup, so "no email arrived" is never a guess about
+    # whether it was ever switched on.
+    where = notify.sending_to()
+    if where:
+        log.info("waitlist signups will be emailed to %s", where)
+    else:
+        log.warning(
+            "waitlist signups will NOT be emailed - no OWNIT_SMTP_* settings"
+        )
     yield
 
 

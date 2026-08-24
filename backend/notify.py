@@ -57,6 +57,16 @@ def _settings() -> dict | None:
     }
 
 
+def sending_to() -> str | None:
+    """Where notifications go, or None if this is not switched on.
+
+    Exists so startup can say which it is. An empty log should not be the only
+    evidence that nothing was ever going to be sent.
+    """
+    settings = _settings()
+    return settings["to"] if settings else None
+
+
 def _send(subject: str, body: str) -> None:
     """Actually send it. Runs on its own thread; failures are logged only."""
     settings = _settings()
