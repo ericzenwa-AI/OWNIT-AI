@@ -57,3 +57,16 @@ services:
       # on the internet.
       - key: OWNIT_ADMIN_PASSWORD
         sync: false
+
+      # Emails you when somebody joins the waitlist, so nobody has to remember
+      # to check a page. Leave them unset and nothing is sent - the app does not
+      # mind, and a signup is never lost because a mail server was not there.
+      # For Gmail the password is an app password, not the account password.
+      - key: OWNIT_SMTP_HOST
+        sync: false
+      - key: OWNIT_SMTP_USER
+        sync: false
+      - key: OWNIT_SMTP_PASSWORD
+        sync: false
+      - key: OWNIT_NOTIFY_TO
+        sync: false

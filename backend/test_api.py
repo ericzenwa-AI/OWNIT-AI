@@ -1427,3 +1427,49 @@ def test_the_numbers_page_is_fine_with_nothing_to_show(client, monkeypatch):
 
     assert page.status_code == 200
     assert "Nobody has answered anything yet" in page.text
+
+
+# ---- Being told about a signup ---------------------------------------------
+
+
+def test_a_signup_tells_you_about_itself(client, monkeypatch):
+    told = []
+    monkeypatch.setattr(api.notify, "someone_joined",
+                        lambda email, studying, total: told.append((email, studying, total)))
+
+    client.post("/api/waitlist",
+                json={"email": "ada@example.com", "studying": "Edexcel A-level"})
+
+    assert told == [("ada@example.com", "Edexcel A-level", 1)]
+
+
+def test_signing_up_twice_does_not_tell_you_twice(client, monkeypatch):
+    """People forget they signed up. You should not be told they arrived
+    again, because they did not."""
+    told = []
+    monkeypatch.setattr(api.notify, "someone_joined",
+                        lambda *a: told.append(a))
+
+    client.post("/api/waitlist", json={"email": "ada@example.com"})
+    client.post("/api/waitlist", json={"email": "ada@example.com"})
+
+    assert len(told) == 1
+
+
+def test_a_broken_mail_server_does_not_cost_you_the_signup(client, monkeypatch):
+    """The row is saved before anything is sent. Losing a tutor who asked to
+    hear from you, because a mail server was down, is far the worse failure."""
+    def explode(*args, **kwargs):
+        raise RuntimeError("smtp is on fire")
+
+    monkeypatch.setattr(api.notify, "someone_joined", explode)
+
+    response = client.post("/api/waitlist", json={"email": "ada@example.com"})
+
+    assert response.status_code == 200
+
+    connection = store.connect()
+    try:
+        assert store.waitlist_size(connection) == 1
+    finally:
+        connection.close()

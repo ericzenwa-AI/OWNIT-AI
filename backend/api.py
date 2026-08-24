@@ -39,6 +39,7 @@ from fastapi.responses import (
 from pydantic import BaseModel, Field
 
 import bank
+import notify
 import store
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
@@ -763,8 +764,24 @@ def waitlist(request: WaitlistRequest) -> dict:
     connection = store.connect()
     try:
         new = store.join_waitlist(connection, email, request.studying)
+        waiting = store.waitlist_size(connection)
     finally:
         connection.close()
+
+    # After the row is safely saved, and only for people who were not already
+    # on the list.
+    #
+    # Wrapped here rather than trusting notify to behave. Sending already runs
+    # on its own thread and swallows its own failures, but reading the settings
+    # happens on this one - a mistyped port in the dashboard is a ValueError
+    # that would turn every signup into a 500 and tell a tutor who had just
+    # joined that it had not worked. Whoever signs up is on the list whether
+    # this goes or not, and losing the signup is far the worse of the two.
+    if new:
+        try:
+            notify.someone_joined(email, request.studying, waiting)
+        except Exception as error:  # noqa: BLE001 - never fail a signup over this
+            log.warning("could not send the signup notification: %s", error)
 
     return {
         "joined": True,
