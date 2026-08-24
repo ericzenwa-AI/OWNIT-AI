@@ -255,6 +255,42 @@
     margin: -0.75rem 0 0;
   }
 
+  /* Three columns rather than a table, so it stacks readably on a phone
+     instead of scrolling sideways. */
+  .compare {
+    margin: 2rem 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .compare .row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 0.5rem 1rem;
+    padding: 0.85rem 1.2rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.92rem;
+    align-items: baseline;
+  }
+  .compare .row:first-child { border-top: none; }
+  .compare .head {
+    background: var(--sunk);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .compare .no { color: var(--broke); }
+  .compare .yes { color: var(--held); }
+  @media (max-width: 32rem) {
+    .compare .row { grid-template-columns: 1fr; gap: 0.15rem; }
+    .compare .row span:first-child { font-weight: 600; }
+    .compare .head { display: none; }
+    .compare .no::before { content: "prompting: "; color: var(--faint); }
+    .compare .yes::before { content: "ownIT: "; color: var(--faint); }
+  }
+
   blockquote {
     margin: 2rem 0;
     padding: 1.5rem 1.6rem;
@@ -505,6 +541,53 @@
 </section>
 
 <section>
+  <p class="eyebrow">The obvious question</p>
+  <h2>Couldn't you just ask a chatbot?</h2>
+  <p>You can, and if you are good at prompting you will get something that
+  looks a lot like this. Plenty of tutors already do. The difference is not the
+  questions it asks &mdash; it is what happens to the answers.</p>
+
+  <p>When a model writes a diagnostic question, it also decides which option is
+  correct. Nothing checks it. We measured that on this project: of the first 531
+  questions written, <strong>55 had the wrong answer marked correct</strong>.
+  Four in ten of the integration ones. Not one of them looked wrong.</p>
+
+  <div class="descent">
+    <div class="step"><span class="name">Area between y = &radic;x and y = x/2</span><span class="mark bad">SAID 8/3</span></div>
+    <div class="step d1"><span class="name">actually</span><span class="mark ok">4/3</span></div>
+    <div class="step"><span class="name">Sum of the first 8 terms</span><span class="mark bad">SAID 172</span></div>
+    <div class="step d1"><span class="name">actually</span><span class="mark ok">164</span></div>
+    <div class="rule">Three of these were being handed to students as correct
+    until a second model was asked to work them out from scratch.</div>
+  </div>
+
+  <p>That is the worst thing a diagnostic can get wrong, because it is invisible.
+  A student answers <em>correctly</em>, is recorded as having a gap, and you
+  spend a session teaching something they already knew. The report looks
+  completely normal.</p>
+
+  <p>Every question here has been solved blind by a second model that was never
+  shown the stored answer. Where the two disagreed, a third decided.
+  <strong>77 were retired.</strong></p>
+
+  <p>The rest of the difference is the map. What differentiation rests on is
+  written down, not improvised fresh each time, so the same student gets the same
+  answer on Tuesday as on Friday &mdash; and when it gets something wrong, you
+  say so once and it stays corrected.</p>
+
+  <div class="compare">
+    <div class="row head"><span>&nbsp;</span><span>Prompting</span><span>ownIT</span></div>
+    <div class="row"><span>Who checks the answer key</span><span class="no">nobody</span><span class="yes">a different model</span></div>
+    <div class="row"><span>Same answer twice</span><span class="no">not reliably</span><span class="yes">fixed map</span></div>
+    <div class="row"><span>When it is out of its depth</span><span class="no">answers anyway</span><span class="yes">says so</span></div>
+    <div class="row"><span>Being wrong, corrected</span><span class="no">next prompt</span><span class="yes">stays fixed</span></div>
+  </div>
+
+  <p class="caption">Worth testing yourself: ask a chatbot for ten A-level
+  integration questions with answers, and mark them.</p>
+</section>
+
+<section>
   <h2>It won't do their homework</h2>
   <p>It never gives the student the answer to the question they sent. That's
   deliberate, and it's the whole point &mdash; an answer gets them through
@@ -548,9 +631,9 @@
   <p>Built by a tutor, in the open.</p>
 
   <details id="thoughts">
-    <summary>Tried it and have thoughts? Tell me.</summary>
+    <summary>Any thoughts on this? Tell me.</summary>
     <form id="comment-form">
-      <label for="comment">What's missing, or what feels off?</label>
+      <label for="comment">What would make this worth using, or what puts you off?</label>
       <textarea id="comment" rows="4"
                 placeholder="No trigonometry, which is half of what I teach."></textarea>
 
