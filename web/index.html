@@ -347,17 +347,23 @@
     list-style: none;
     counter-reset: step;
   }
+  /* The number is taken out of the flow rather than given a grid column.
+     As a grid, the skill name and the note after it were two separate items,
+     so the note wrapped onto the next row - into the column sized for a
+     number - and came out one word per line down the side of the card. Any
+     second element inside the item would have done the same. */
   ol.upwards li {
     counter-increment: step;
-    display: grid;
-    grid-template-columns: 1.9rem 1fr;
-    gap: 0 0.9rem;
-    align-items: baseline;
-    padding: 0.55rem 0;
+    position: relative;
+    padding: 0.7rem 0 0.7rem 2.8rem;
     border-top: 1px solid var(--line);
+    line-height: 1.55;
   }
   ol.upwards li::before {
     content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.75rem;
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--on-accent);
@@ -366,6 +372,8 @@
     width: 1.9rem; height: 1.9rem;
     display: grid; place-items: center;
   }
+  /* Sits with the line it belongs to, not under it. */
+  ol.upwards .note { white-space: normal; }
 
   .card.descent {
     padding: 1.25rem 1.5rem;
