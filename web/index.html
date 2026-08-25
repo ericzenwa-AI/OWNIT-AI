@@ -1102,13 +1102,26 @@ function toLatex(run) {
   // firing inside a longer word.
   out = out.replace(/\b(sin|cos|tan|ln|log)(?![a-z])/g, '\\$1 ');
   out = out.replace(/\bpi\b/g, '\\pi ');
+  // Fractions first, and the order is the bug this had.
+  //
+  // An operand may contain braces, because a fraction can sit over something
+  // already converted. So if exponents run first, x^(1/2) has become x^{1/2}
+  // by the time fractions sees it - and then the numerator matches x^{1 and
+  // the denominator matches 2}, giving rac{x^{1}{2}}. KaTeX prints that in
+  // red and swallows whatever follows into the denominator, which is how an
+  // equals sign ended up underneath a fraction on a student's screen.
+  //
+  // Run first, the division inside the brackets is turned into rac{1}{2}
+  // while the brackets are still brackets, and the exponent rule wraps the
+  // finished thing.
+  out = fractions(out);
+
   // Exponents and subscripts, bracketed or bare. Bare has to be braced too, or
   // x^12 typesets as x^1 followed by a 2.
   out = out.replace(/\^\s*\(([^()]*)\)/g, '^{$1}');
   out = out.replace(/\^\s*(-?[A-Za-z0-9]+)/g, '^{$1}');
   out = out.replace(/_\s*\(([^()]*)\)/g, '_{$1}');
   out = out.replace(/_\s*(-?[A-Za-z0-9]+)/g, '_{$1}');
-  out = fractions(out);
   out = out.replace(/\*/g, ' \\cdot ');
   out = out.replace(/<=/g, ' \\le ').replace(/>=/g, ' \\ge ');
   out = out.replace(/!=/g, ' \\ne ');

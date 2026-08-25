@@ -221,3 +221,45 @@ def test_a_tag_is_escaped_when_it_is_plainly_prose(js):
 
 def test_a_plain_number_option_survives(js):
     assert "64" in render(js, "64")
+
+
+# ---- The one that reached a student ----------------------------------------
+
+
+def test_a_fraction_inside_an_exponent(js):
+    """Seen on a student's screen: x^(1/2) came out as \frac{x^{1}{2}}, which
+    KaTeX prints in red, and the equals sign after it was swallowed into the
+    denominator.
+
+    An operand may contain braces, because a fraction can sit over something
+    already converted. So once the exponent rule had turned this into x^{1/2},
+    the fraction rule matched x^{1 over 2}. Fractions run first now, while the
+    brackets are still brackets.
+    """
+    assert r"x^{\frac{1}{2}}" in latex_in(render(js, "what x^(1/2) means"))[0]
+
+
+def test_the_whole_option_as_it_was_stored(js):
+    """The text in the bank, start to finish, with nothing left over."""
+    written = latex_in(render(js, "x^(1/2) = sqrt(x)"))[0]
+
+    assert r"x^{\frac{1}{2}}" in written
+    assert r"\sqrt{x}" in written
+    # The equals stayed where it was rather than becoming a denominator.
+    assert "=" in written.split(r"\sqrt")[0]
+
+
+def test_a_negative_fractional_power(js):
+    """The sign comes out in front of the fraction rather than inside it, which
+    is how it is written on paper."""
+    assert r"x^{-\frac{1}{2}}" in latex_in(render(js, "x^(-1/2)"))[0]
+
+
+def test_a_fraction_over_a_power_still_works(js):
+    """The order changed, so what was already right has to stay right. Here the
+    division is outside the exponent rather than inside it."""
+    assert r"\frac{3}{x^{2}}" in latex_in(render(js, "3/x^2"))[0]
+
+
+def test_a_power_over_a_number_still_works(js):
+    assert r"\frac{x^{2}}{3}" in latex_in(render(js, "x^2/3"))[0]
