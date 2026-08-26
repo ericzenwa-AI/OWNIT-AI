@@ -288,7 +288,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.save:
         count = save()
-        print(f"Wrote {count} questions to {SHELF_FILE.relative_to(Path.cwd())}")
+        # Shown relative to where you are standing when that says anything, and
+        # in full when it does not. Run from backend/ this used to raise, after
+        # the file had already been written - a traceback that looked like the
+        # save had failed when it had in fact just succeeded.
+        try:
+            where = SHELF_FILE.relative_to(Path.cwd())
+        except ValueError:
+            where = SHELF_FILE
+        print(f"Wrote {count} questions to {where}")
         print("Commit it - that is what stops this costing money twice.")
         return 0
 
