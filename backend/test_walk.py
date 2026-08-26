@@ -147,14 +147,23 @@ def test_the_depth_limit_stops_the_descent():
     assert diagnosis.deepest_failure == "index_laws"
 
 
-def test_the_default_depth_reaches_the_floor():
-    """Five levels is what finds a broken foundation, which is the case this
-    exists for - a student whose real gap is years below the question."""
+def test_the_default_depth_reaches_a_confirmed_gap():
+    """The case this exists for - a student whose real gap is years below the
+    question - and the walk must get far enough down to confirm one.
+
+    Confirmed means every prerequisite was asked and held. It used to be
+    checked as "the gap has nothing beneath it", which was the same thing while
+    these skills were the floor of the graph; GCSE put three levels under them
+    and it stopped being the same thing.
+    """
     everything = {"surds", "index_laws", "index_notation", "fractions_arith", "negatives"}
     diagnosis = diagnose(ENTRY, check=student(fails=everything))
 
     gap = diagnosis.root_gaps[0]
-    assert SKILLS[gap].needs == ()
+    for need in SKILLS[gap].needs:
+        result = diagnosis.result_for(need)
+        assert result is not None, f"{need} was never asked"
+        assert result.held, f"{need} failed, so {gap} is not the deepest"
 
 
 def test_going_deeper_is_allowed_when_asked_for():
@@ -414,19 +423,36 @@ def test_at_the_default_depth_the_dont_know_rule_does_fire():
 
 def test_reaching_the_floor_confirms_the_gap():
     """A floor skill has nothing beneath it, so the walk is genuinely finished
-    rather than cut off, however far down it got."""
+    rather than cut off, however far down it got.
+
+    Started from a skill whose branch is short enough to reach the floor before
+    three "I don't know"s stop it. From further up, the run of them stops the
+    walk first and nothing is confirmed - which is the next test, and is the
+    correct behaviour rather than a failure.
+    """
 
     def check(skill):
         return SkillResult(skill.id, held=False, dont_know=True)
 
-    diagnosis = diagnose(ENTRY, check=check, max_depth=5)
+    diagnosis = diagnose("multiply_terms", check=check)
 
     gap = diagnosis.root_gaps[0]
     assert SKILLS[gap].needs == ()
-    # The run of "I don't know"s stopped this walk, but stopping cost nothing:
-    # there was nothing beneath the gap left to check.
+
+
+def test_a_run_of_dont_knows_confirms_nothing_and_says_so():
+    """Three in a row means they are far below this question. Stopping there
+    leaves nothing confirmed, and claiming otherwise would be inventing a
+    diagnosis out of a student who told us they were lost."""
+
+    def check(skill):
+        return SkillResult(skill.id, held=False, dont_know=True)
+
+    diagnosis = diagnose(ENTRY, check=check)
+
+    assert diagnosis.root_gaps == []
     assert diagnosis.stopped_early is not None
-    assert diagnosis.root_gaps == [gap]
+    assert diagnosis.deepest_failure is not None
 
 
 def test_the_dont_know_run_has_to_be_consecutive():

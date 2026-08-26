@@ -17,6 +17,11 @@ DEFAULT_PATH = Path(__file__).resolve().parent.parent / "data" / "skills.yaml"
 REQUIRED_FIELDS = ("id", "name", "level", "kind", "probe", "needs")
 
 
+GCSE = "gcse"
+A_LEVEL = "a-level"
+STAGES = (GCSE, A_LEVEL)
+
+
 class SkillGraphError(Exception):
     """Raised when the skill graph file is malformed."""
 
@@ -34,6 +39,14 @@ class Skill:
     # Shared skills like index laws sit underneath several topics and belong to
     # none of them, so they carry no topic at all.
     topic: str | None = None
+    # Which qualification asks it. On doorways only, and for the same reason as
+    # topic: expanding brackets is asked outright at GCSE and is a prerequisite
+    # at A-level, so the question is not what a skill belongs to but what kind
+    # of question is allowed to start there.
+    #
+    # It is also what lets GCSE be watched separately while it is unproven -
+    # a session's stage is the stage of the doorway it entered by.
+    stage: str = A_LEVEL
 
 
 def _parse_nodes(raw_nodes: list) -> dict[str, Skill]:
@@ -43,6 +56,13 @@ def _parse_nodes(raw_nodes: list) -> dict[str, Skill]:
     for position, raw in enumerate(raw_nodes, start=1):
         if not isinstance(raw, dict):
             raise SkillGraphError(f"Node {position} is not a mapping: {raw!r}")
+
+        stage = raw.get("stage", A_LEVEL)
+        if stage not in STAGES:
+            raise SkillGraphError(
+                f"{raw.get('id', f'node {position}')} has stage {stage!r}; "
+                f"expected one of {', '.join(STAGES)}"
+            )
 
         missing = [field for field in REQUIRED_FIELDS if field not in raw]
         if missing:
@@ -66,6 +86,7 @@ def _parse_nodes(raw_nodes: list) -> dict[str, Skill]:
             needs=tuple(needs),
             note=raw.get("note"),
             topic=raw.get("topic"),
+            stage=stage,
         )
 
     return skills

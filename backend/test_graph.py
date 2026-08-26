@@ -71,9 +71,29 @@ def test_topic_marks_what_a_paper_can_ask_for():
 
 
 def test_shared_skills_belong_to_no_topic():
-    """The whole point: these sit underneath several topics, not inside one."""
-    for shared in ("index_laws", "fractions_arith", "negatives", "factorise_common"):
+    """The whole point: these sit underneath several topics, not inside one.
+
+    Shorter than it was. Fraction arithmetic and factorising a common factor
+    used to be here and are now GCSE doorways - not because the rule changed
+    but because they are asked outright at GCSE while still being underneath
+    half of A-level. Which qualification may start there is what `stage`
+    settles; these four are asked by neither.
+    """
+    for shared in ("index_laws", "negatives", "substitute_expr", "bidmas"):
         assert SKILLS[shared].topic is None, shared
+
+
+def test_a_skill_can_be_a_doorway_at_one_stage_and_a_step_at_another():
+    """Expanding brackets is a GCSE question and an A-level prerequisite. If
+    that were not allowed the same skill would have to exist twice, and a
+    student's answer to one copy would say nothing about the other."""
+    brackets = SKILLS["expand_brackets"]
+
+    assert brackets.topic == "expanding and factorising"
+    assert brackets.stage == "gcse"
+    # And it is still what several A-level skills rest on.
+    rests_on_it = [s.id for s in SKILLS.values() if "expand_brackets" in s.needs]
+    assert "first_principles" in rests_on_it
 
 
 def test_topics_lists_what_we_can_start_from():

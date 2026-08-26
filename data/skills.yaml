@@ -382,9 +382,11 @@ nodes:
   - id: fractions_arith
     name: Fraction arithmetic
     level: 4
+    topic: fractions, decimals and percentages
+    stage: gcse
     kind: procedure
     probe: Add, multiply and divide fractions.
-    needs: []
+    needs: [common_denominator, reciprocal, fraction_meaning]
 
   - id: bidmas
     name: Order of operations
@@ -424,30 +426,38 @@ nodes:
   - id: expand_brackets
     name: Expanding brackets
     level: 4
+    topic: expanding and factorising
+    stage: gcse
     kind: procedure
-    probe: Expand a product of two brackets.
-    needs: [negatives]
+    probe: Expand a product of two brackets and collect the result.
+    needs: [expand_single_bracket, collect_like_terms]
 
   - id: solve_linear
     name: Solving linear equations
     level: 4
+    topic: linear equations
+    stage: gcse
     kind: procedure
-    probe: Rearrange and solve for x.
-    needs: [negatives]
+    probe: Solve a one or two step equation such as 3x + 7 = 22.
+    needs: [inverse_operations, equation_meaning, negatives]
 
   - id: factorise_common
     name: Factorising a common factor
     level: 4
+    topic: expanding and factorising
+    stage: gcse
     kind: procedure
     probe: Take the highest common factor out of an expression, including one with powers.
-    needs: [index_notation, expand_brackets]
+    needs: [highest_common_factor, expand_single_bracket, index_notation]
 
   - id: factorise_quadratic
     name: Factorising a quadratic
     level: 4
+    topic: expanding and factorising
+    stage: gcse
     kind: procedure
     probe: Factorise a quadratic into two brackets.
-    needs: [expand_brackets]
+    needs: [expand_brackets, factor_pairs]
 
   - id: null_factor
     name: Product equals zero
@@ -890,3 +900,323 @@ nodes:
     kind: procedure
     probe: Find the sum to infinity, and say when one exists.
     needs: [geometric_sequence, fractions_arith]
+
+  # ---- GCSE Foundation ------------------------------------------------------
+  #
+  # Added after the A-level graph was working, and it needed less than expected:
+  # solving equations, expanding, factorising and fraction arithmetic were all
+  # already here as the floor of an A-level walk. What they lacked was anything
+  # underneath them, because at A-level they are where looking stops and at GCSE
+  # they are the question being asked.
+  #
+  # The concepts here are not padding. Every one of them is a misconception an
+  # examiner report names year after year: that the equals sign announces an
+  # answer, that 3x + 2y makes 5xy, that a 20% rise is undone by a 20% fall.
+
+  # ---- Linear equations -----------------------------------------------------
+
+  - id: solve_both_sides
+    name: Equations with the unknown on both sides
+    level: 4
+    topic: linear equations
+    stage: gcse
+    kind: procedure
+    probe: Solve an equation with terms in x on both sides, such as 5x - 3 = 2x + 9.
+    needs: [solve_linear, collect_like_terms]
+
+  - id: solve_with_brackets
+    name: Equations containing brackets
+    level: 4
+    topic: linear equations
+    stage: gcse
+    kind: procedure
+    probe: Solve an equation where a bracket has to be expanded first.
+    needs: [solve_linear, expand_single_bracket]
+
+  - id: form_and_solve
+    name: Forming an equation from a situation
+    level: 4
+    topic: linear equations
+    stage: gcse
+    kind: procedure
+    probe: Turn a worded or geometric setup into an equation, then solve it.
+    needs: [form_expression_words, solve_linear]
+
+  - id: rearrange_formula
+    name: Changing the subject of a formula
+    level: 4
+    topic: linear equations
+    stage: gcse
+    kind: procedure
+    probe: Make a named letter the subject, such as r in C = 2 pi r.
+    needs: [inverse_operations, solve_linear]
+
+  - id: inverse_operations
+    name: Doing the same to both sides
+    level: 5
+    kind: concept
+    probe: Say which operation undoes another, and why it must be done to both sides.
+    needs: [negatives]
+    note: >
+      Separated from solving deliberately. A student can follow the steps of one
+      worked example and still not know why they are allowed, and those two look
+      identical until the equation changes shape.
+
+  - id: equation_meaning
+    name: What the equals sign says
+    level: 5
+    kind: concept
+    probe: Say what an equation asserts about its two sides, and what that rules out.
+    needs: []
+    note: >
+      The one that survives all the way to A-level. Read as "here comes the
+      answer" rather than "these two are the same", every rearrangement is a
+      rule to remember instead of a thing that follows.
+
+  - id: collect_like_terms
+    name: Collecting like terms
+    level: 5
+    kind: procedure
+    probe: Simplify an expression such as 3x + 5 + 2x - 1, including negatives.
+    needs: [like_terms_meaning, negatives]
+
+  - id: like_terms_meaning
+    name: Which terms are alike
+    level: 6
+    kind: concept
+    probe: Say which terms in an expression can be combined, and which cannot.
+    needs: []
+    note: >
+      3x + 2y as 5xy. It is not a slip in arithmetic - it is not knowing what a
+      term is - so more practice at collecting will not touch it.
+
+  - id: form_expression_words
+    name: Writing an expression from words
+    level: 5
+    kind: procedure
+    probe: Turn a sentence such as "five more than twice a number" into algebra.
+    needs: [substitute_expr]
+
+  # ---- Expanding and factorising --------------------------------------------
+
+  - id: expand_single_bracket
+    name: Expanding a single bracket
+    level: 4
+    topic: expanding and factorising
+    stage: gcse
+    kind: procedure
+    probe: Expand an expression such as 3(2x - 5), including a negative outside.
+    needs: [multiply_terms, negatives]
+
+  - id: multiply_terms
+    name: Multiplying algebraic terms
+    level: 5
+    kind: procedure
+    probe: Work out products such as 3 times 2x, or x times x.
+    needs: [index_notation, negatives]
+
+  - id: highest_common_factor
+    name: Highest common factor
+    level: 5
+    kind: procedure
+    probe: Find the highest factor shared by two numbers or two terms.
+    needs: [factor_pairs]
+
+  - id: factor_pairs
+    name: Factors of a number
+    level: 6
+    kind: fact
+    probe: List the pairs of whole numbers that multiply to give a given number.
+    needs: []
+
+  # ---- Ratio and proportion -------------------------------------------------
+
+  - id: simplify_ratio
+    name: Simplifying a ratio
+    level: 4
+    topic: ratio and proportion
+    stage: gcse
+    kind: procedure
+    probe: Write a ratio in its simplest whole-number form.
+    needs: [highest_common_factor, ratio_meaning]
+
+  - id: share_in_ratio
+    name: Sharing in a given ratio
+    level: 4
+    topic: ratio and proportion
+    stage: gcse
+    kind: procedure
+    probe: Divide an amount in a ratio such as 2:3, and find one share.
+    needs: [ratio_meaning, fraction_of_amount]
+
+  - id: direct_proportion
+    name: Direct proportion
+    level: 4
+    topic: ratio and proportion
+    stage: gcse
+    kind: procedure
+    probe: Scale a quantity up or down, such as the cost of 8 items given the cost of 5.
+    needs: [unit_value]
+
+  - id: best_value
+    name: Best value for money
+    level: 4
+    topic: ratio and proportion
+    stage: gcse
+    kind: procedure
+    probe: Compare two sizes of the same product and say which is better value.
+    needs: [unit_value]
+
+  - id: percentage_change
+    name: Percentage increase and decrease
+    level: 4
+    topic: ratio and proportion
+    stage: gcse
+    kind: procedure
+    probe: Increase or decrease an amount by a percentage, or find the percentage change.
+    needs: [multiplier_method, percentage_of_amount]
+
+  - id: reverse_percentage
+    name: Reverse percentages
+    level: 4
+    topic: ratio and proportion
+    stage: gcse
+    kind: procedure
+    probe: Find the original amount, given the amount after a percentage change.
+    needs: [multiplier_method, inverse_operations]
+    note: >
+      Named in examiner reports every year. The usual answer takes 20% off the
+      new price, which is not the old price - and the student who does that can
+      often do every other percentage question on the paper.
+
+  - id: multiplier_method
+    name: Percentages as multipliers
+    level: 5
+    kind: concept
+    probe: Say what single number an amount is multiplied by for a given percentage change, and what undoes it.
+    needs: [percentage_as_decimal]
+    note: >
+      The idea the whole topic rests on. Without it, increase, decrease, reverse
+      and repeated change are four unrelated procedures to remember; with it,
+      they are one thing.
+
+  - id: ratio_meaning
+    name: What a ratio says
+    level: 5
+    kind: concept
+    probe: Say what 2:3 tells you about two quantities, and how many parts there are in total.
+    needs: [fraction_meaning]
+
+  - id: unit_value
+    name: Finding the value of one
+    level: 5
+    kind: procedure
+    probe: Work out the cost or size of a single item from the cost of several.
+    needs: []
+
+  - id: percentage_of_amount
+    name: Percentage of an amount
+    level: 5
+    kind: procedure
+    probe: Find a percentage of a quantity, with or without a calculator.
+    needs: [percentage_as_decimal]
+
+  - id: percentage_as_decimal
+    name: Percentages as decimals
+    level: 5
+    kind: procedure
+    probe: Write a percentage as a decimal and back again.
+    needs: [place_value]
+
+  # ---- Fractions, decimals and percentages ----------------------------------
+
+  - id: fraction_of_amount
+    name: Fraction of an amount
+    level: 4
+    topic: fractions, decimals and percentages
+    stage: gcse
+    kind: procedure
+    probe: Find a fraction of a quantity, such as three fifths of 45.
+    needs: [fraction_meaning]
+
+  - id: add_subtract_fractions
+    name: Adding and subtracting fractions
+    level: 4
+    topic: fractions, decimals and percentages
+    stage: gcse
+    kind: procedure
+    probe: Add or subtract two fractions with different denominators.
+    needs: [common_denominator, equivalent_fractions]
+
+  - id: multiply_divide_fractions
+    name: Multiplying and dividing fractions
+    level: 4
+    topic: fractions, decimals and percentages
+    stage: gcse
+    kind: procedure
+    probe: Multiply or divide two fractions and simplify the result.
+    needs: [reciprocal, fraction_meaning]
+
+  - id: convert_fdp
+    name: Converting between fractions, decimals and percentages
+    level: 4
+    topic: fractions, decimals and percentages
+    stage: gcse
+    kind: procedure
+    probe: Write the same quantity as a fraction, a decimal and a percentage.
+    needs: [fraction_to_decimal, percentage_as_decimal]
+
+  - id: order_fdp
+    name: Ordering fractions, decimals and percentages
+    level: 4
+    topic: fractions, decimals and percentages
+    stage: gcse
+    kind: procedure
+    probe: Put a mixed list of fractions, decimals and percentages in order of size.
+    needs: [convert_fdp, place_value]
+
+  - id: common_denominator
+    name: Finding a common denominator
+    level: 5
+    kind: procedure
+    probe: Rewrite two fractions so they share a denominator.
+    needs: [equivalent_fractions]
+
+  - id: equivalent_fractions
+    name: Equivalent fractions
+    level: 5
+    kind: procedure
+    probe: Write a fraction in an equivalent form, or in its simplest form.
+    needs: [factor_pairs, fraction_meaning]
+
+  - id: reciprocal
+    name: What dividing by a fraction does
+    level: 5
+    kind: concept
+    probe: Say why dividing by a fraction is the same as multiplying by its reciprocal.
+    needs: [fraction_meaning]
+
+  - id: fraction_to_decimal
+    name: Fractions as decimals
+    level: 5
+    kind: procedure
+    probe: Write a fraction as a decimal, including one that does not terminate.
+    needs: [place_value]
+
+  - id: fraction_meaning
+    name: What a fraction is
+    level: 6
+    kind: concept
+    probe: Say what the top and bottom of a fraction each tell you.
+    needs: []
+    note: >
+      The floor of this whole topic. A student who reads three fifths as "three
+      and five" rather than "three of five parts" can still get simple questions
+      right by pattern, and nothing above it will hold.
+
+  - id: place_value
+    name: Place value
+    level: 6
+    kind: concept
+    probe: Say what each digit in a decimal is worth.
+    needs: []

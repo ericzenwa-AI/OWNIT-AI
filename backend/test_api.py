@@ -1555,3 +1555,79 @@ def test_the_password_is_never_on_the_page(client, monkeypatch):
     page = client.get("/admin/email", auth=("me", "letmein")).text
 
     assert "re_a_secret_key" not in page
+
+
+# ---- Watching GCSE apart from A-level --------------------------------------
+
+
+def _walk_at(entry, finished=True):
+    """A session that started at a given doorway."""
+    import walk as walk_module
+    connection = store.connect()
+    try:
+        session_id = store.open_walk(
+            connection, entry_skill_id=entry, reading=walk_module.Reading()
+        )
+        connection.execute(
+            "UPDATE sessions SET finished = ? WHERE id = ?",
+            (1 if finished else 0, session_id),
+        )
+        connection.commit()
+        return session_id
+    finally:
+        connection.close()
+
+
+def test_the_numbers_can_be_narrowed_to_one_qualification(client, monkeypatch):
+    """GCSE is new and unproven, so it has to be watchable without A-level
+    sessions averaging away whatever it is doing."""
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    _walk_at("solve_linear")
+    _walk_at("reverse_percentage", finished=False)
+    _walk_at("differentiate_function")
+
+    def started(query=""):
+        page = client.get(f"/admin/numbers{query}", auth=("me", "letmein")).text
+        import re
+        return int(re.search(r'<div class="big">(\d+)</div><div class="k">walks started', page).group(1))
+
+    assert started() == 3
+    assert started("?stage=gcse") == 2
+    assert started("?stage=a-level") == 1
+
+
+def test_which_qualification_is_decided_by_where_the_walk_started(client, monkeypatch):
+    """Not stored on the session. Read off the graph, so it stays right if a
+    doorway ever changes stage."""
+    _walk_at("share_in_ratio")
+
+    connection = store.connect()
+    try:
+        gcse = {s.id for s in api.entry_points() if s.stage == api.GCSE}
+        assert store.how_it_is_going(connection, entry_skills=gcse)["started"] == 1
+
+        a_level = {s.id for s in api.entry_points() if s.stage == api.A_LEVEL}
+        assert store.how_it_is_going(connection, entry_skills=a_level)["started"] == 0
+    finally:
+        connection.close()
+
+
+def test_a_stage_nobody_asked_for_shows_everything(client, monkeypatch):
+    """A typed URL should not silently show zero and look like nothing has
+    happened."""
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    _walk_at("solve_linear")
+
+    page = client.get("/admin/numbers?stage=nonsense", auth=("me", "letmein")).text
+
+    assert "cannot be split by stage" not in page
+
+
+def test_the_top_of_the_funnel_says_it_is_everyone(client, monkeypatch):
+    """A page view happens before there is a session to belong to, so it cannot
+    be attributed to a qualification. Better said than implied."""
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+
+    page = client.get("/admin/numbers?stage=gcse", auth=("me", "letmein")).text
+
+    assert "cannot be split by stage" in page

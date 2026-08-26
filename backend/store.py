@@ -749,14 +749,45 @@ def record_rating(connection: sqlite3.Connection, session_id: int, useful: bool)
     connection.commit()
 
 
-def how_it_is_going(connection: sqlite3.Connection, since: str | None = None) -> dict:
+def how_it_is_going(
+    connection: sqlite3.Connection,
+    since: str | None = None,
+    entry_skills: set[str] | None = None,
+) -> dict:
     """The funnel, the drop-off, and what people said.
 
     Deliberately counts rather than rates. At twenty users a percentage is a
     way of not saying "two people", and two people is the useful fact.
+
+    `entry_skills` narrows everything belonging to a session - walks started
+    and finished, drop-off, ratings, verdicts - to walks that began at one of
+    those doorways. That is how GCSE gets watched apart from A-level while it
+    is new. Which qualification a session belongs to is decided by where it
+    started and read off the graph rather than stored, so it stays right if a
+    doorway ever changes stage.
+
+    The top of the funnel cannot be narrowed. A page view and a question being
+    read both happen before there is a session to belong to, so those numbers
+    are for everybody whichever stage is asked for, and the caller is told so
+    rather than left to imply a split that does not exist.
     """
     where = " WHERE created_at >= ?" if since else ""
     args = (since,) if since else ()
+    base = where or " WHERE 1=1"
+
+    if entry_skills is None:
+        session_and, session_args = "", ()
+    elif not entry_skills:
+        # A stage with no doorways at all. Nothing can have started there.
+        session_and, session_args = " AND 0", ()
+    else:
+        holes = ", ".join("?" for _ in entry_skills)
+        session_and = f" AND entry_skill_id IN ({holes})"
+        session_args = tuple(sorted(entry_skills))
+
+    # Every session-level number hangs off this one set.
+    mine = f"SELECT id FROM sessions{base}{session_and}"
+    mine_args = args + session_args
 
     def one(sql: str, extra: tuple = ()) -> int:
         return connection.execute(sql, args + extra).fetchone()["n"]
@@ -765,36 +796,39 @@ def how_it_is_going(connection: sqlite3.Connection, since: str | None = None) ->
     opened = one(f"SELECT COUNT(*) n FROM page_view{where or ' WHERE 1=1'} AND page = ?", ("/start",))
     read = one(f"SELECT COUNT(*) n FROM question_read{where}")
     placed = one(f"SELECT COUNT(*) n FROM question_read{where or ' WHERE 1=1'} AND placed = 1")
-    started = one(f"SELECT COUNT(*) n FROM sessions{where}")
-    finished = one(f"SELECT COUNT(*) n FROM sessions{where or ' WHERE 1=1'} AND finished = 1")
+    started = connection.execute(
+        f"SELECT COUNT(*) n FROM sessions{base}{session_and}", mine_args
+    ).fetchone()["n"]
+    finished = connection.execute(
+        f"SELECT COUNT(*) n FROM sessions{base} AND finished = 1{session_and}", mine_args
+    ).fetchone()["n"]
 
     # Where people stop: how many walks got at least this far. Position already
     # counts from one, so it is the question number as a person would say it.
     reached = connection.execute(
         f"""SELECT position AS q, COUNT(DISTINCT session_id) AS n
               FROM answers
-             WHERE session_id IN (SELECT id FROM sessions{where})
+             WHERE session_id IN ({mine})
              GROUP BY position ORDER BY position""",
-        args,
+        mine_args,
     ).fetchall()
 
     ratings = connection.execute(
         f"""SELECT SUM(useful) AS yes, COUNT(*) - SUM(useful) AS no
-              FROM rating{where}""",
-        args,
+              FROM rating{base} AND session_id IN ({mine})""",
+        args + mine_args,
     ).fetchone()
 
     verdicts = connection.execute(
         f"""SELECT SUM(verdict = 'right') AS right_, SUM(verdict = 'wrong') AS wrong_
-              FROM feedback{where}""",
-        args,
+              FROM feedback{base} AND session_id IN ({mine})""",
+        args + mine_args,
     ).fetchone()
 
     seconds = connection.execute(
         f"""SELECT AVG(seconds) AS s FROM answers
-             WHERE seconds IS NOT NULL
-               AND session_id IN (SELECT id FROM sessions{where})""",
-        args,
+             WHERE seconds IS NOT NULL AND session_id IN ({mine})""",
+        mine_args,
     ).fetchone()["s"]
 
     return {
@@ -812,6 +846,9 @@ def how_it_is_going(connection: sqlite3.Connection, since: str | None = None) ->
         "wrong": verdicts["wrong_"] or 0,
         "seconds_per_answer": round(seconds, 1) if seconds else None,
         "waiting": waitlist_size(connection),
+        # True when the top of the funnel is for everybody rather than for the
+        # stage that was asked for.
+        "funnel_is_everyone": entry_skills is not None,
     }
 
 

@@ -236,7 +236,8 @@ def identify_entry(
 
     response = client.messages.parse(
         system=(
-            "You identify which A-level maths skill a question is testing. You "
+            "You identify which GCSE or A-level maths skill a question is testing. "
+            "You "
             "are matching against a fixed list and saying plainly when nothing "
             "on it fits."
         ),

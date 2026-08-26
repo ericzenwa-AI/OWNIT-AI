@@ -167,7 +167,7 @@ def narrow_to_branch(
     response = client.messages.parse(
         **llm.NARROW.kwargs(),
         system=(
-            "You read a student's partial working on an A-level maths question "
+            "You read a student's partial working on a maths question "
             "and say which prerequisite skill their working actually broke in."
         ),
         messages=[
@@ -363,7 +363,20 @@ DONT_KNOW_RUN = 3
 # The old worry was that a deep answer is not the one to act on. That is about
 # what a tutor teaches, not about what we should look for. The report gives the
 # whole chain, so they can start where they judge best - but only if we looked.
-MAX_DEPTH = 5
+MAX_DEPTH = 8
+#
+# Five, then eight, both times because it was measured rather than argued.
+#
+# Adding GCSE put three new levels under skills that used to be the floor -
+# expanding brackets now rests on multiplying terms, which rests on index
+# notation - so an A-level gap that used to sit four levels down can now sit
+# seven, and at five levels accuracy fell from 87% to 77% without anything
+# being wrong. Eight puts it at 98%, and GCSE is at 100% either way because its
+# doorways start much closer to the floor.
+#
+# It costs almost nothing: 5.8 questions on average became 6.5. A walk only
+# gets longer when it keeps finding things broken, so the students who pay for
+# the extra depth are exactly the ones it exists for.
 
 
 def _closest_first(skill_ids) -> list[str]:

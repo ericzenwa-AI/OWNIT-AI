@@ -44,7 +44,7 @@ import notify
 import store
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
-from graph import SKILLS
+from graph import A_LEVEL, GCSE, SKILLS, STAGES, entry_points
 from questions import DONT_KNOW_LABEL, DONT_KNOW_OPTION, shuffled_options
 
 log = logging.getLogger("ownit.api")
@@ -1162,7 +1162,7 @@ def admin_email(request: Request) -> str:
 
 
 @app.get("/admin/numbers", response_class=HTMLResponse)
-def admin_numbers(request: Request) -> str:
+def admin_numbers(request: Request, stage: str | None = None) -> str:
     """How it is going, in counts rather than rates.
 
     At twenty users a percentage is a way of not saying "two people", and two
@@ -1172,10 +1172,16 @@ def admin_numbers(request: Request) -> str:
     """
     _admin_ok(request)
 
+    # Which qualification a session belongs to is decided by where it started,
+    # so the filter is a set of doorways read off the graph rather than anything
+    # stored - it stays right if a doorway ever changes stage.
+    stage = stage if stage in STAGES else None
+    doors = {s.id for s in entry_points() if s.stage == stage} if stage else None
+
     connection = store.connect()
     try:
-        now = store.how_it_is_going(connection)
-        week = store.how_it_is_going(connection, since=_days_ago(7))
+        now = store.how_it_is_going(connection, entry_skills=doors)
+        week = store.how_it_is_going(connection, since=_days_ago(7), entry_skills=doors)
         gaps = store.gaps_by_topic(connection)
         dry = store.ran_dry(connection)
     finally:
@@ -1239,7 +1245,14 @@ def admin_numbers(request: Request) -> str:
   .small {{ color: #777; font-size: 0.85rem; }}
 </style>
 <h1>Numbers</h1>
-<p class="small">All time. <a href="/admin/feedback">What people said &rarr;</a></p>
+<p class="small">
+  {'<b>Everything</b>' if not stage else '<a href="/admin/numbers">Everything</a>'}
+  &middot;
+  {'<b>GCSE</b>' if stage == GCSE else '<a href="/admin/numbers?stage=gcse">GCSE</a>'}
+  &middot;
+  {'<b>A-level</b>' if stage == A_LEVEL else '<a href="/admin/numbers?stage=a-level">A-level</a>'}
+  &middot; <a href="/admin/feedback">What people said &rarr;</a>
+</p>
 
 <div class="side">
   <div><div class="big">{now['started']}</div><div class="k">walks started</div></div>
@@ -1252,6 +1265,9 @@ def admin_numbers(request: Request) -> str:
 
 <h2>The funnel</h2>
 {funnel(now)}
+{'<p class="small warn">The first three are everyone. A page view and a question'
+ ' being read both happen before there is a session to belong to, so they cannot'
+ ' be split by stage.</p>' if now["funnel_is_everyone"] else ''}
 <p class="small">Last 7 days: {week['opened']} opened, {week['started']} started,
 {week['finished']} finished.</p>
 

@@ -100,7 +100,12 @@ QUESTION_SHAPES = {
 
 
 SYSTEM_PROMPT = (
-    "You write diagnostic multiple-choice questions for A-level maths. Each "
+    "You write diagnostic multiple-choice questions for GCSE and A-level "
+    "maths. Pitch each one at the skill you are given rather than at a "
+    "qualification: the same graph holds \"say what the top and bottom of a "
+    "fraction each tell you\" and \"differentiate from first principles\", and "
+    "a question about the first written for an A-level audience tests nothing. "
+    "Each "
     "question tests exactly one skill, and every wrong option corresponds to "
     "one specific mistake a real student makes, so that the option a student "
     "picks tells you what they are missing."
