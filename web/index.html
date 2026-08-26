@@ -256,6 +256,17 @@
     text-wrap: balance;
   }
 
+  /* The one instruction on the page. Sits directly under the gap it is
+     about, and is the thing a student is meant to leave with, so it gets
+     body size rather than the quieter note size used for asides. */
+  .practice {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    margin: 0 0 1.1rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--held);
+  }
+
   .chain { color: var(--muted); font-size: 0.95rem; margin-top: 0.4rem; }
   .note { color: var(--muted); font-size: 0.95rem; }
   p { margin: 0 0 1rem; }
@@ -822,6 +833,8 @@ function report() {
       <p class="note">You came in stuck on ${escape(r.stuck_on)}</p>
       <p class="label">What&rsquo;s getting in the way</p>
       <p class="gap">${gap ? escape(gap.skill) : 'We couldn&rsquo;t pin this one down'}</p>
+      ${gap && gap.practice
+        ? `<p class="practice">${mathHtml(gap.practice)}</p>` : ''}
       ${how}
     </div>
 

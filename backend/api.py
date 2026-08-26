@@ -41,6 +41,7 @@ from pydantic import BaseModel, Field
 
 import bank
 import notify
+import practice
 import store
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
@@ -751,6 +752,10 @@ def _report(diagnosis) -> dict:
         gaps.append(
             {
                 "skill": SKILLS[gap].name,
+                # What to actually go and do about it. Naming the skill is
+                # the diagnosis; this is the only line on the page a student
+                # can act on tonight without asking anyone.
+                "practice": practice.line_for(gap),
                 "chain": [SKILLS[step].name for step in chain],
                 "nothing_there": bool(result and result.dont_know),
                 "mistake": result.mistake if result else None,
