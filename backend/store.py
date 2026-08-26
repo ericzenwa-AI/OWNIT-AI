@@ -732,6 +732,21 @@ def waitlist_size(connection: sqlite3.Connection) -> int:
     return connection.execute("SELECT COUNT(*) AS n FROM waitlist").fetchone()["n"]
 
 
+def waitlist(connection: sqlite3.Connection) -> list:
+    """Who is on it, newest first.
+
+    There was only ever a count, which meant the addresses went in and nothing
+    could read them back out. A waitlist nobody can contact is not a waitlist -
+    it is three people who think they signed up for something.
+
+    `studying` is the free-text field from the form, and is usually the most
+    useful thing here: which board, which year, what they are stuck on.
+    """
+    return connection.execute(
+        "SELECT email, studying, created_at FROM waitlist ORDER BY id DESC"
+    ).fetchall()
+
+
 def record_page_view(connection: sqlite3.Connection, page: str) -> None:
     """Note that a page was opened. Nothing about who opened it."""
     connection.execute(

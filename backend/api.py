@@ -1006,6 +1006,7 @@ def admin_feedback(request: Request) -> str:
     try:
         rows = store.everything_said(connection)
         waiting = store.waitlist_size(connection)
+        joined = store.waitlist(connection)
     finally:
         connection.close()
 
@@ -1050,6 +1051,16 @@ def admin_feedback(request: Request) -> str:
 
     listing = "".join(items) or "<li><em>Nothing yet.</em></li>"
 
+    # The addresses, not just how many there are. This page is behind the admin
+    # password and is the only place they can be read - the count said three
+    # people had signed up and gave no way to reach any of them.
+    signups = "".join(
+        f'<li><div class="email">{out(row["email"])}</div>'
+        f'<div class="about">{out(row["studying"]) or "&mdash;"}</div>'
+        f'<div class="when">{out(row["created_at"])[:16]}</div></li>'
+        for row in joined
+    ) or '<li class="none">Nobody has signed up yet.</li>'
+
     return f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1069,10 +1080,15 @@ def admin_feedback(request: Request) -> str:
   .about {{ color: #555; font-size: 0.9rem; }}
   .body {{ white-space: pre-wrap; margin-top: 0.4rem; }}
   .count {{ color: #777; font-size: 0.85rem; }}
+  .email {{ font-weight: 700; }}
+  .none {{ color: #777; }}
 </style>
 <h1>Feedback</h1>
-<p class="count">{len(rows)} shown &middot; {waiting} on the waitlist</p>
+<p class="count">{len(rows)} shown</p>
 <ul>{listing}</ul>
+<h1>Waitlist</h1>
+<p class="count">{waiting} signed up</p>
+<ul>{signups}</ul>
 """
 
 

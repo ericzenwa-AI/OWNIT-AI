@@ -1704,3 +1704,39 @@ def test_every_doorway_ends_with_something_to_do():
             bare.append(door.id)
 
     assert not bare, f"nothing to act on after: {sorted(set(bare))}"
+
+
+# ---- Reaching the people who signed up -------------------------------------
+
+
+def test_the_admin_page_shows_who_joined_the_waitlist(client, monkeypatch):
+    """There was only ever a count. Three people had signed up and there was no
+    way to read a single address without opening the database by hand."""
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    client.post("/api/waitlist", json={"email": "ada@example.com",
+                                       "studying": "AQA Higher, stuck on surds"})
+
+    page = client.get("/admin/feedback", auth=("", "letmein")).text
+
+    assert "ada@example.com" in page
+    assert "AQA Higher, stuck on surds" in page
+
+
+def test_an_address_is_escaped_like_anything_else_typed_in(client, monkeypatch):
+    """The signup form is open to anyone on the internet."""
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    connection = store.connect()
+    store.join_waitlist(connection, "x@example.com", "<script>alert(1)</script>")
+    connection.commit()
+    connection.close()
+
+    page = client.get("/admin/feedback", auth=("", "letmein")).text
+
+    assert "<script>alert(1)</script>" not in page
+    assert "&lt;script&gt;" in page
+
+
+def test_an_empty_waitlist_says_so(client, monkeypatch):
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    page = client.get("/admin/feedback", auth=("", "letmein")).text
+    assert "Nobody has signed up yet." in page
