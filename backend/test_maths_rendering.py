@@ -263,3 +263,41 @@ def test_a_fraction_over_a_power_still_works(js):
 
 def test_a_power_over_a_number_still_works(js):
     assert r"\frac{x^{2}}{3}" in latex_in(render(js, "x^2/3"))[0]
+
+
+# ---- The second one that reached a student ---------------------------------
+
+
+def test_two_powers_side_by_side(js):
+    """Seen on a student's screen: "the coefficient of x^2y^3" arrived as red
+    source instead of maths.
+
+    A bare exponent was matched as [A-Za-z0-9]+, which is greedy across letters
+    and digits, so the exponent of x was read as 2y. What was left, x^{2y}^{3},
+    is a double superscript - KaTeX refuses it, and with throwOnError off it
+    prints the raw string in red.
+    """
+    assert "x^{2}y^{3}" in latex_in(render(js, "the coefficient of x^2y^3"))[0]
+
+
+def test_a_whole_binomial_term(js):
+    """Three powers in a row, which is how a binomial expansion is written."""
+    assert "x^{2}y^{3}z^{4}" in latex_in(render(js, "x^2y^3z^4"))[0]
+
+
+def test_two_subscripts_side_by_side(js):
+    """The same greed, on the subscript rule. a_{1b}_{2} is a double subscript
+    and fails the same way - not yet seen on a screen only because nothing in
+    the bank writes two subscripts together yet."""
+    assert "a_{1}b_{2}" in latex_in(render(js, "a_1b_2"))[0]
+
+
+def test_a_multi_character_exponent_still_needs_brackets(js):
+    """The other half of the rule: anything longer than a digit run or a single
+    letter goes in brackets, and still comes out whole."""
+    assert "x^{2n}" in latex_in(render(js, "x^(2n)"))[0]
+
+
+def test_a_multi_digit_power_survives_the_narrower_rule(js):
+    """The original reason bare exponents are braced at all."""
+    assert "x^{12}" in latex_in(render(js, "Evaluate x^12"))[0]

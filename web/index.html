@@ -1126,10 +1126,17 @@ function toLatex(run) {
 
   // Exponents and subscripts, bracketed or bare. Bare has to be braced too, or
   // x^12 typesets as x^1 followed by a 2.
+  //
+  // A bare one is a run of digits or a single letter, and never a mixture.
+  // [A-Za-z0-9]+ was greedy across both, so x^2y^3 - which is how the bank
+  // writes a binomial term - had its exponent read as 2y, leaving x^{2y}^{3}.
+  // That is a double superscript, which KaTeX refuses and prints in red, so
+  // the coefficient a student was being asked about arrived as raw source.
+  // Anything genuinely multi-character goes in brackets: x^(2n), not x^2n.
   out = out.replace(/\^\s*\(([^()]*)\)/g, '^{$1}');
-  out = out.replace(/\^\s*(-?[A-Za-z0-9]+)/g, '^{$1}');
+  out = out.replace(/\^\s*(-?\d+|-?[A-Za-z])/g, '^{$1}');
   out = out.replace(/_\s*\(([^()]*)\)/g, '_{$1}');
-  out = out.replace(/_\s*(-?[A-Za-z0-9]+)/g, '_{$1}');
+  out = out.replace(/_\s*(-?\d+|-?[A-Za-z])/g, '_{$1}');
   out = out.replace(/\*/g, ' \\cdot ');
   out = out.replace(/<=/g, ' \\le ').replace(/>=/g, ' \\ge ');
   out = out.replace(/!=/g, ' \\ne ');
