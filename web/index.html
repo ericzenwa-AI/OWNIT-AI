@@ -1086,7 +1086,13 @@ function worthIt(run) {
 
 // a/b -> \frac{a}{b}, innermost first, brackets respected.
 function fractions(text) {
-  var operand = '(\\([^()]*(?:\\([^()]*\\)[^()]*)*\\)|[A-Za-z0-9{}^_\\\\]+)';
+// An operand may also drag a bracketed group behind it, which is what a
+// negative or compound exponent looks like before the exponent rule has run:
+// x^(-n), x^(2n), f(x). Without the optional group the alternation matched
+// only the bare part, so 1 / x^(-n) came out as \frac{1}{x^}(-n) - an empty
+// superscript, which KaTeX refuses, and the (-n) left stranded outside the
+// fraction. A student was shown that as red source on an index-laws question.
+  var operand = '(\\([^()]*(?:\\([^()]*\\)[^()]*)*\\)|[A-Za-z0-9{}^_\\\\]+(?:\\([^()]*\\))?)';
   var pattern = new RegExp(operand + '\\s*\\/\\s*' + operand);
   function bare(x) { return /^\(.*\)$/.test(x) ? x.slice(1, -1) : x; }
   var before;
@@ -1105,7 +1111,14 @@ function toLatex(run) {
   // Not \b at the end: log_3 and sin^2 are both common, and a word boundary
   // fails on both because _ and ^ are not letters. The lookahead keeps it from
   // firing inside a longer word.
-  out = out.replace(/\b(sin|cos|tan|ln|log)(?![a-z])/g, '\\$1 ');
+  out = out.replace(/\b(sin|cos|tan|ln|log)(?![a-z])(\s*\()?/g, function (whole, fn, opened) {
+    return '\\' + fn + (opened ? '(' : ' ');
+  });
+  // The trailing space is what separates a command from a bare argument:
+  // \sin x, never \sinx. A bracket separates it just as well, and keeping
+  // the two together is what lets the fraction rule treat sin(x) as one
+  // operand - without it, sin(x) / cos(x) came out as \sin \frac{x}{\cos} (x),
+  // which KaTeX prints in red.
   out = out.replace(/\bpi\b/g, '\\pi ');
   // Fractions first, and the order is the bug this had.
   //
@@ -1153,6 +1166,11 @@ function toLatex(run) {
 }
 
 function typeset(run) {
+  // Whatever survived normalise() is a symbol nobody anticipated, and KaTeX
+  // will not know it either. With throwOnError off it fails silently and red,
+  // so it is shown as plain text instead - unstyled, but readable and never
+  // the wrong colour.
+  if (/[^\x00-\x7F]/.test(run)) return escape(run);
   try {
     return katex.renderToString(toLatex(run), {
       throwOnError: false,
@@ -1180,11 +1198,36 @@ function pieces(text) {
   return out;
 }
 
+// The bank is meant to hold plain ASCII and mostly does. What slips through
+// is always the same handful of symbols, and KaTeX knows none of them: it
+// prints the character itself, in red, in the middle of the question. Mapping
+// them back to the notation the converter already understands is the
+// difference between pi typesetting and a student seeing red source.
+//
+// Prose punctuation is deliberately absent. An em dash is not maths, a pound
+// sign is not maths, and rewriting either would damage a sentence to fix a
+// problem they do not have.
+var SYMBOLS = [
+  [/\u03c0/g, ' pi '],    [/\u222b/g, ' integral '],
+  [/\u00b2/g, '^2'],      [/\u00b3/g, '^3'],
+  [/\u00b1/g, ' +/- '],   [/\u2260/g, ' != '],
+  [/\u00d7/g, ' * '],     [/\u00f7/g, ' / '],
+  [/\u2212/g, '-'],       [/\u2248/g, ' approx ']
+];
+
+function normalise(text) {
+  var out = String(text);
+  for (var i = 0; i < SYMBOLS.length; i++) {
+    out = out.replace(SYMBOLS[i][0], SYMBOLS[i][1]);
+  }
+  return out.replace(/[ \t]{2,}/g, ' ');
+}
+
 function mathHtml(text) {
   if (text === null || text === undefined) return '';
   if (!window.katex) return escape(text);
 
-  var parts = pieces(text);
+  var parts = pieces(normalise(text));
   var html = '', run = [], gap = '';
 
   function flush() {

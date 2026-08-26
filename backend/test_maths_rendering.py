@@ -301,3 +301,62 @@ def test_a_multi_character_exponent_still_needs_brackets(js):
 def test_a_multi_digit_power_survives_the_narrower_rule(js):
     """The original reason bare exponents are braced at all."""
     assert "x^{12}" in latex_in(render(js, "Evaluate x^12"))[0]
+
+
+# ---- The third one that reached a student ----------------------------------
+
+
+def test_a_negative_exponent_in_a_denominator(js):
+    """Seen on a student's screen, on an index-laws question: the option
+    "x^(-n) = 1 / x^(-n)" arrived as red source.
+
+    The fraction rule's operand matched a bare token or a bracketed group, but
+    not a token dragging a group behind it - which is what x^(-n) is before the
+    exponent rule has run. So the denominator matched only "x^", leaving an
+    empty superscript, which KaTeX refuses, with the (-n) stranded outside.
+    """
+    assert r"\frac{1}{x^{-n}}" in latex_in(render(js, "x^(-n) = 1 / x^(-n)"))[0]
+
+
+def test_a_compound_exponent_in_a_denominator(js):
+    assert r"\frac{1}{x^{2n}}" in latex_in(render(js, "1/x^(2n)"))[0]
+
+
+def test_a_function_call_in_a_denominator(js):
+    assert r"\frac{3}{f(x)}" in latex_in(render(js, "3/f(x)"))[0]
+
+
+def test_a_quotient_of_two_functions(js):
+    """The same family, found while fixing the one above. Turning sin into the
+    command put a space between the name and its bracket, so the operand could
+    not take both and the fraction formed around the wrong thing."""
+    assert r"\frac{\sin(x)}{\cos(x)}" in latex_in(render(js, "sin(x) / cos(x)"))[0]
+
+
+def test_a_bare_function_argument_keeps_its_space(js):
+    """A command needs the space before a bare argument. Only a bracket may
+    close the gap, because a bracket ends the command name by itself."""
+    assert r"\sin ^{2} x" in latex_in(render(js, "sin^2 x + 1/2"))[0]
+
+
+# ---- Symbols the bank is not supposed to contain, and sometimes does -------
+
+
+def test_pi_as_a_symbol_becomes_the_command(js):
+    """Written as the character it is not ASCII, and KaTeX prints it in red."""
+    assert r"\pi" in latex_in(render(js, "S = 2\u03c0r^2 + 1000/r"))[0]
+
+
+def test_a_squared_sign_becomes_an_exponent(js):
+    assert r"\frac{d^{2}h}{dt^{2}}" in latex_in(render(js, "d\u00b2h/dt\u00b2"))[0]
+
+
+def test_nothing_outside_ascii_ever_reaches_katex(js):
+    """The backstop. Whatever the symbol is, plain text beats red text."""
+    for latex in latex_in(render(js, "a \u2295 b / c")):
+        assert all(ord(c) < 128 for c in latex)
+
+
+def test_a_pound_sign_is_left_alone(js):
+    """Money is not maths. Sixty-eight questions carry one and none typeset."""
+    assert "\u00a31.90" in render(js, "A box of 40 tea bags costs \u00a31.90")
