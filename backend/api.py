@@ -587,7 +587,7 @@ def _advance(session_id: int) -> StateOut:
             return StateOut(
                 session_id=session_id,
                 finished=True,
-                report=_report(current.diagnosis),
+                report=_report(current.diagnosis, question=walk_row["question"]),
                 asked_so_far=len(answers),
                 so_far=_descent(answers),
             )
@@ -733,7 +733,7 @@ def feedback(request: FeedbackRequest) -> dict:
     }
 
 
-def _report(diagnosis) -> dict:
+def _report(diagnosis, question: str | None = None) -> dict:
     """The diagnosis, in the words a person reads rather than skill ids."""
     gaps = []
     for gap, chain in zip(diagnosis.root_gaps, diagnosis.chains):
@@ -786,6 +786,13 @@ def _report(diagnosis) -> dict:
 
     return {
         "stuck_on": SKILLS[diagnosis.entry_skill_id].name,
+        # What it takes to run this same question again from the top. The
+        # doorway rather than the question text, because the question has not
+        # changed and having a model read it a second time buys nothing.
+        "entry_skill_id": diagnosis.entry_skill_id,
+        # Only what was typed. A photo is never stored, so a retake of one
+        # depends on the page still holding it - see retake() on the page.
+        "question": question,
         "unconfirmed": unconfirmed,
         "gaps": gaps,
         "unchecked": [SKILLS[s].name for s in diagnosis.unchecked],

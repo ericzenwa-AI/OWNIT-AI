@@ -663,6 +663,58 @@ async function resume(id) {
   }
 }
 
+// Running the same question again, after working on what was in the way.
+//
+// Not a memory of what was found last time: a new session, walked from the top.
+// That is the only way to find out whether the thing that gave way still does,
+// and it is what makes the answer meaningful - if the gap holds now, the walk
+// carries straight past it and names whatever is behind it instead.
+//
+// The doorway is reused rather than re-read. Same question, same place to start,
+// and nothing is paid to work that out twice.
+//
+// The old attempt is deliberately dropped. It was the working from before they
+// practised, and feeding it back in would narrow the new walk with stale
+// evidence about a student who has since changed.
+async function retake() {
+  const r = state.report || {};
+  const body = asked ? Object.assign({}, asked)
+             : (r.question ? {question: r.question} : null);
+  if (!body || !r.entry_skill_id) return;
+
+  body.start_at = r.entry_skill_id;
+  body.start_summary = r.presentation_note || '';
+  delete body.attempt;
+  delete body.attempt_attachment;
+  delete body.attempt_attachment_type;
+
+  screen.innerHTML = `<div class="card"><p class="note">Starting this question
+    again, from the top&hellip;</p></div>`;
+
+  // Starting at a known skill skips the read, and the read is what returns the
+  // lettered parts. Without keeping them, retaking part (b) would silently lose
+  // the way back to (a) and (c).
+  const hadParts = parts;
+
+  try {
+    state = await post('/api/start', body);
+    parts = state.parts || hadParts;
+    if (state.session_id) rememberSession(state.session_id);
+    draw();
+  } catch (error) {
+    screen.innerHTML = `<div class="card"><p class="error">${escape(error.message)}</p></div>
+      <p><button onclick="newQuestion()">Start again</button></p>`;
+  }
+}
+
+// Whether there is enough left to run the question again. A photo is never
+// stored server-side, so a page that has been reloaded onto a finished report
+// has the text only - and for a photo question that is nothing.
+function canRetake() {
+  const r = state.report || {};
+  return Boolean(r.entry_skill_id && (asked || (r.question || '').trim()));
+}
+
 function newQuestion() {
   forgetSession();
   state = {};
@@ -787,9 +839,9 @@ function wayBack(gap, stuckOn) {
   // really does follow one trail rather than everything, and a single named
   // skill otherwise reads as the whole story.
   return `<div class="card">
-    <p class="label">Where this takes you</p>
-    <p>Once <strong>${escape(gap.skill)}</strong> clicks, here&rsquo;s what it
-    opens up, in order:</p>
+    <p class="label">Where this sits</p>
+    <p><strong>${escape(gap.skill)}</strong> sits underneath the question you
+    came in with. This is the route back up to it:</p>
     <ol class="upwards">${steps}</ol>
     <p class="note">This is the first thing in the way &mdash; there may be more
     once it clears.</p>
@@ -814,9 +866,9 @@ function report() {
   // lower down.
   const why = gap
     ? (gap.held_beneath.length
-        ? `<p>Everything underneath it held up &mdash;
-           ${listOf(gap.held_beneath.map(escape))} &mdash; so nothing further
-           down is the problem. This is the right place to put your time.</p>`
+        ? `<p>What we checked underneath it held up &mdash;
+           ${listOf(gap.held_beneath.map(escape))} &mdash; so this is the right
+           place to start, rather than something lower down.</p>`
         : gap.is_bedrock
           ? `<p>There&rsquo;s nothing underneath this one, so this is as far
              back as it goes.</p>`
@@ -857,6 +909,14 @@ function report() {
 
     ${wayBack(gap, r.stuck_on)}
 
+    ${canRetake() ? `<div class="card">
+      <p class="label">When you&rsquo;ve worked on it</p>
+      <p>Come back and run this same question again. It starts from scratch and
+      asks fresh questions, so if ${named ? escape(named.skill) : 'this'} holds
+      by then, it carries on past it and looks for whatever is behind it.</p>
+      <p><button onclick="retake()">Try this question again</button></p>
+    </div>` : ''}
+
     <details class="card">
       <summary>Every question you answered</summary>
       <ul>${r.asked.map(a =>
@@ -870,7 +930,7 @@ function report() {
     ${usefulCard()}
     ${verdictCard()}
 
-    <p><button onclick="newQuestion()">Try another question</button></p>`;
+    <p><button class="plain" onclick="newQuestion()">A different question</button></p>`;
 
   wireParts();
   wireUseful();

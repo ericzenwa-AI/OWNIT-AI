@@ -1740,3 +1740,61 @@ def test_an_empty_waitlist_says_so(client, monkeypatch):
     monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
     page = client.get("/admin/feedback", auth=("", "letmein")).text
     assert "Nobody has signed up yet." in page
+
+
+# ---- Running the same question again ---------------------------------------
+
+
+def test_the_report_carries_what_a_retake_needs(client):
+    """The doorway and the question text. Without the doorway a retake would
+    pay a model to read the same question a second time."""
+    started = client.post("/api/start", json={"question": "leave it exact"}).json()
+    session_id = started["session_id"]
+
+    state = started
+    guard = 0
+    while not state["finished"]:
+        guard += 1
+        assert guard < 30
+        state = client.post("/api/answer", json={
+            "session_id": session_id, "label": "E", "answered_before": guard - 1,
+        }).json()
+
+    report = state["report"]
+    assert report["entry_skill_id"] == "simplify_index_expression"
+    assert report["question"] == "leave it exact"
+
+
+def test_a_retake_is_a_new_session_on_the_same_question(client):
+    """Not a replay. A fresh session id, and none of the previous answers."""
+    first = client.post("/api/start", json={"question": "leave it exact"}).json()
+    client.post("/api/answer", json={
+        "session_id": first["session_id"], "label": "E", "answered_before": 0})
+
+    again = client.post("/api/start", json={
+        "question": "leave it exact", "start_at": "simplify_index_expression"}).json()
+
+    assert again["session_id"] != first["session_id"]
+    assert again["asked_so_far"] == 0
+    assert again["finished"] is False
+
+
+def test_starting_at_a_known_skill_does_not_read_the_question(client, monkeypatch):
+    """The whole reason a retake is free. If this ever calls the matcher again,
+    every retake costs a question read."""
+    def refuse(*args, **kwargs):
+        raise AssertionError("the question was read again on a retake")
+
+    monkeypatch.setattr(api, "identify_entry", refuse)
+
+    state = client.post("/api/start", json={
+        "question": "leave it exact", "start_at": "simplify_index_expression"}).json()
+
+    assert state["session_id"] is not None
+
+
+def test_a_retake_cannot_start_somewhere_a_question_cannot(client):
+    """start_at comes off a page, so it is not trusted."""
+    response = client.post("/api/start", json={
+        "question": "q", "start_at": "index_laws"})
+    assert response.status_code == 400
