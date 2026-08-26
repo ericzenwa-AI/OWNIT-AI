@@ -1631,3 +1631,76 @@ def test_the_top_of_the_funnel_says_it_is_everyone(client, monkeypatch):
     page = client.get("/admin/numbers?stage=gcse", auth=("me", "letmein")).text
 
     assert "cannot be split by stage" in page
+
+
+# ---- When the walk will not name a gap -------------------------------------
+
+
+def _report_for(check, entry="area_between_curves"):
+    from walk import diagnose
+
+    return api._report(diagnose(entry, check=check, max_depth=8))
+
+
+def test_a_confirmed_gap_carries_its_practice_line():
+    from walk import SkillResult
+
+    broken = {"highest_common_factor", "factorise_common", "algebraic_fractions",
+              "rewrite_index_form", "integrate_powers", "definite_integral"}
+    report = _report_for(
+        lambda skill: SkillResult(skill.id, held=skill.id not in broken, mistake="x")
+    )
+
+    assert report["gaps"], "expected a confirmed gap"
+    assert report["gaps"][0]["practice"], "a named gap must say what to practise"
+    # Nothing provisional is offered alongside a real answer.
+    assert report["unconfirmed"] is None
+
+
+def test_stopping_early_still_offers_somewhere_to_start():
+    """Three "I don't know"s stop the walk without confirming anything. That
+    refusal is what keeps a skill the student can do off the page - but it used
+    to leave them with a screen naming nothing at all."""
+    from walk import SkillResult
+
+    report = _report_for(lambda skill: SkillResult(skill.id, held=False, dont_know=True))
+
+    assert report["gaps"] == [], "a stopped walk must not claim a gap"
+    assert report["unconfirmed"], "but it should still offer a starting point"
+    assert report["unconfirmed"]["practice"], "and say what to practise"
+    assert report["unconfirmed"]["nothing_there"] is True
+
+
+def test_the_starting_point_is_something_they_actually_got_wrong():
+    """It is offered as evidence, so it has to be evidence: the deepest skill
+    that gave way, never one they answered correctly."""
+    from walk import SkillResult
+
+    report = _report_for(lambda skill: SkillResult(skill.id, held=False, dont_know=True))
+    named = report["unconfirmed"]["skill"]
+
+    held = {a["skill"] for a in report["asked"] if a["held"]}
+    assert named not in held
+
+
+def test_every_doorway_ends_with_something_to_do():
+    """Whatever a student answers, the report either names a gap or offers a
+    starting point. A screen with neither is a dead end."""
+    from walk import SkillResult
+    from graph import entry_points
+
+    bare = []
+    for door in entry_points():
+        for answer in (
+            lambda skill: SkillResult(skill.id, held=False, dont_know=True),
+            lambda skill: SkillResult(skill.id, held=False, mistake="x"),
+            lambda skill: SkillResult(skill.id, held=True),
+        ):
+            report = _report_for(answer, door.id)
+            if report["gaps"] and report["gaps"][0]["practice"]:
+                continue
+            if report["unconfirmed"] and report["unconfirmed"]["practice"]:
+                continue
+            bare.append(door.id)
+
+    assert not bare, f"nothing to act on after: {sorted(set(bare))}"

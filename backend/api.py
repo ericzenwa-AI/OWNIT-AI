@@ -766,8 +766,27 @@ def _report(diagnosis) -> dict:
             }
         )
 
+    # Stopping early means we will not name a gap, and that refusal is the only
+    # thing keeping a skill the student can actually do off this page. It should
+    # not also mean handing them nothing: the deepest thing that gave way is
+    # known, it just has not been shown to be the cause. So it goes back as a
+    # starting point rather than a diagnosis, under its own key, and the page
+    # says which of the two it is looking at.
+    unconfirmed = None
+    if not gaps and diagnosis.deepest_failure:
+        deepest = diagnosis.deepest_failure
+        gave_way = diagnosis.result_for(deepest)
+        unconfirmed = {
+            "skill": SKILLS[deepest].name,
+            "practice": practice.line_for(deepest),
+            "nothing_there": bool(gave_way and gave_way.dont_know),
+            "mistake": gave_way.mistake if gave_way else None,
+        }
+
+
     return {
         "stuck_on": SKILLS[diagnosis.entry_skill_id].name,
+        "unconfirmed": unconfirmed,
         "gaps": gaps,
         "unchecked": [SKILLS[s].name for s in diagnosis.unchecked],
         "stopped_early": diagnosis.stopped_early,

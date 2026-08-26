@@ -800,6 +800,15 @@ function report() {
   const r = state.report;
   const gap = r.gaps[0];
 
+  // Two different things can head this page, and the difference matters. A gap
+  // is a skill we tested down to and will stand behind. An unconfirmed one is
+  // the deepest thing that gave way before the walk stopped - real evidence,
+  // not a conclusion. Saying which it is, out loud, is what makes offering the
+  // second one honest; the alternative was a screen that named nothing at all
+  // and left a student with nowhere to go.
+  const guess = !gap && r.unconfirmed ? r.unconfirmed : null;
+  const named = gap || guess;
+
   // The reasoning is the whole point, and it was the thing missing: naming a
   // skill tells you nothing unless you can see why it, and not something
   // lower down.
@@ -814,16 +823,16 @@ function report() {
           : '')
     : '';
 
-  const how = gap
-    ? (gap.nothing_there
+  const how = named
+    ? (named.nothing_there
         ? `<p>You said you didn&rsquo;t know instead of guessing &mdash;
            that&rsquo;s the honest answer, and more use to us than a guess. This
            one is new ground rather than something to unlearn.</p>`
-        : (gap.mistake
+        : (named.mistake
             ? `<p>You&rsquo;ve got a method for this one &mdash; it&rsquo;s just
                not quite the right one. That&rsquo;s usually quicker to sort out
                than starting from scratch. Here&rsquo;s what happened:</p>
-               <p class="note">${escape(gap.mistake)}</p>`
+               <p class="note">${escape(named.mistake)}</p>`
             : ''))
     : '';
 
@@ -831,10 +840,13 @@ function report() {
     ${partsBar()}
     <div class="card">
       <p class="note">You came in stuck on ${escape(r.stuck_on)}</p>
-      <p class="label">What&rsquo;s getting in the way</p>
-      <p class="gap">${gap ? escape(gap.skill) : 'We couldn&rsquo;t pin this one down'}</p>
-      ${gap && gap.practice
-        ? `<p class="practice">${mathHtml(gap.practice)}</p>` : ''}
+      <p class="label">${gap ? 'What&rsquo;s getting in the way' : 'Where to start'}</p>
+      ${guess ? `<p>We didn&rsquo;t get far enough to be sure what sits under
+        this one. Of what you did answer, though, this is the first thing that
+        gave way &mdash; so it is the place to start:</p>` : ''}
+      <p class="gap">${named ? escape(named.skill) : 'We couldn&rsquo;t pin this one down'}</p>
+      ${named && named.practice
+        ? `<p class="practice">${mathHtml(named.practice)}</p>` : ''}
       ${how}
     </div>
 
