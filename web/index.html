@@ -745,37 +745,43 @@ function question() {
   wireParts();
 }
 
-// Where to go after the gap is fixed.
+// Where this goes once the gap is cleared.
 //
-// The report said where to start and stopped there, which leaves a tutor with
-// one lesson and no plan. The chain has been computed and sent to this page
-// the whole time - it is the route the walk took to get down there - and
-// reversed it is the order to teach in, ending at the question the student
-// actually came with.
+// The report named the gap and stopped there, which leaves a student with one
+// thing to fix and no sense of what fixing it buys them. The chain has been
+// computed and sent to this page the whole time - it is the route the walk took
+// down - and reversed it is the order things open back up in, ending at the
+// question they actually came with.
 //
-// This is for the tutor. It is the same trail we deliberately keep off the
-// student's screen, where "your A-level question failed at fraction
-// arithmetic" is demoralising and not actionable. For the person teaching it
-// is the plan.
+// This used to be kept off the student's screen, on the reasoning that "your
+// A-level question failed at fraction arithmetic" is demoralising. Read
+// downward it is. Read upward, which is how it is set out here, it is the way
+// back to their own question - so it stays, and the wording carries it.
 function wayBack(gap, stuckOn) {
   if (!gap || !gap.chain || gap.chain.length < 2) return '';
 
-  // Stored top-down: the question first, the gap last. Teaching runs the other
-  // way, and the gap itself is already named above as where to start.
+  // Stored top-down: the question first, the gap last. It opens up the other
+  // way, and the gap itself is already named above.
   const upwards = gap.chain.slice().reverse().slice(1);
   if (!upwards.length) return '';
 
   const steps = upwards.map((skill, i) => {
     const last = i === upwards.length - 1;
     return `<li>${escape(skill)}${last
-      ? ' <span class="note">&mdash; the question they came with</span>' : ''}</li>`;
+      ? ' <span class="note">&mdash; where you started</span>' : ''}</li>`;
   }).join('');
 
+  // The one caveat left on this screen. The card listing what we did not check
+  // was tutor information and read to a student as a disclaimer, but the walk
+  // really does follow one trail rather than everything, and a single named
+  // skill otherwise reads as the whole story.
   return `<div class="card">
-    <p class="label">Then work back up</p>
-    <p>Once <strong>${escape(gap.skill)}</strong> holds, this is the order the
-    rest of it unlocks in:</p>
+    <p class="label">Where this takes you</p>
+    <p>Once <strong>${escape(gap.skill)}</strong> clicks, here&rsquo;s what it
+    opens up, in order:</p>
     <ol class="upwards">${steps}</ol>
+    <p class="note">This is the first thing in the way &mdash; there may be more
+    once it clears.</p>
   </div>`;
 }
 
@@ -787,25 +793,25 @@ function report() {
   // skill tells you nothing unless you can see why it, and not something
   // lower down.
   const why = gap
-    ? `<p>They could not do <strong>${escape(gap.skill)}</strong>.</p>` +
-      (gap.held_beneath.length
-        ? `<p>What it rests on was fine &mdash;
-           ${listOf(gap.held_beneath.map(escape))} &mdash; so this is the right
-           level to start at, not lower down.</p>`
+    ? (gap.held_beneath.length
+        ? `<p>Everything underneath it held up &mdash;
+           ${listOf(gap.held_beneath.map(escape))} &mdash; so nothing further
+           down is the problem. This is the right place to put your time.</p>`
         : gap.is_bedrock
-          ? `<p>Nothing sits underneath it, so there is nowhere further to look.
-             This is where it has to start.</p>`
+          ? `<p>There&rsquo;s nothing underneath this one, so this is as far
+             back as it goes.</p>`
           : '')
     : '';
 
   const how = gap
     ? (gap.nothing_there
-        ? `<p>They picked <em>&ldquo;I don&rsquo;t know&rdquo;</em> rather than
-           guessing, so there is nothing to correct here &mdash; it needs
-           teaching from the start.</p>`
+        ? `<p>You said you didn&rsquo;t know instead of guessing &mdash;
+           that&rsquo;s the honest answer, and more use to us than a guess. This
+           one is new ground rather than something to unlearn.</p>`
         : (gap.mistake
-            ? `<p>They do have a rule for it, and it is the wrong one, so this
-               is correcting a belief rather than filling a blank:</p>
+            ? `<p>You&rsquo;ve got a method for this one &mdash; it&rsquo;s just
+               not quite the right one. That&rsquo;s usually quicker to sort out
+               than starting from scratch. Here&rsquo;s what happened:</p>
                <p class="note">${escape(gap.mistake)}</p>`
             : ''))
     : '';
@@ -813,27 +819,25 @@ function report() {
   screen.innerHTML = `
     ${partsBar()}
     <div class="card">
-      <p class="note">Stuck on ${escape(r.stuck_on)}</p>
-      <p class="label">Teach this first</p>
-      <p class="gap">${gap ? escape(gap.skill) : 'Nothing below this question'}</p>
+      <p class="note">You came in stuck on ${escape(r.stuck_on)}</p>
+      <p class="label">What&rsquo;s getting in the way</p>
+      <p class="gap">${gap ? escape(gap.skill) : 'We couldn&rsquo;t pin this one down'}</p>
       ${how}
     </div>
 
     ${why ? `<div class="card">
-      <p class="label">Why that one</p>
+      <p class="label">Why we stopped here</p>
       ${why}
     </div>` : ''}
 
     ${wayBack(gap, r.stuck_on)}
 
-    ${unchecked(r)}
-
     <details class="card">
-      <summary>Every question, in order</summary>
+      <summary>Every question you answered</summary>
       <ul>${r.asked.map(a =>
         `<li class="${a.held ? 'held' : 'missed'}">${escape(a.skill)}
-          &mdash; ${a.held ? 'got it right'
-                   : (a.dont_know ? 'said they did not know' : 'got it wrong')}
+          &mdash; ${a.held ? 'you got this'
+                   : (a.dont_know ? 'you weren&rsquo;t sure' : 'not quite')}
          ${a.mistake ? `<br><span class="note">${escape(a.mistake)}</span>` : ''}</li>`
       ).join('')}</ul>
     </details>
@@ -841,7 +845,7 @@ function report() {
     ${usefulCard()}
     ${verdictCard()}
 
-    <p><button onclick="newQuestion()">Another question</button></p>`;
+    <p><button onclick="newQuestion()">Try another question</button></p>`;
 
   wireParts();
   wireUseful();
@@ -854,7 +858,7 @@ function report() {
 // without thinking about it.
 function usefulCard() {
   return `<div class="card useful" id="useful">
-    <p class="note">Was this any use?</p>
+    <p class="note">Did this help?</p>
     <p>
       <button class="plain" data-useful="yes">Yes</button>
       <button class="plain" data-useful="no">Not really</button>
@@ -937,26 +941,6 @@ function wireVerdict() {
       msg.textContent = error.message;
     }
   }
-}
-
-// One card, not two. How far down we went and which branches we stepped past
-// are the same admission - we checked one trail, not everything - and splitting
-// them read as two separate caveats.
-function unchecked(r) {
-  const skipped = r.unchecked.length
-    ? `${listOf(r.unchecked.map(escape))}
-       ${r.unchecked.length === 1 ? 'was' : 'were'} not asked about.`
-    : '';
-  const deeper = /levels/.test(r.stopped_early || '')
-    ? 'We did not look below it either.'
-    : (r.stopped_early ? escape(r.stopped_early) + '.' : '');
-
-  if (!skipped && !deeper) return '';
-
-  return `<div class="card">
-    <p class="label">What we did not check</p>
-    <p>${skipped} ${deeper} So there may be more than one thing missing.</p>
-  </div>`;
 }
 
 function listOf(items) {
