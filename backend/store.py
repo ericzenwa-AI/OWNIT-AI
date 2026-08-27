@@ -689,6 +689,98 @@ def leave_comment(
     return cursor.lastrowid
 
 
+def corrections(connection: sqlite3.Connection) -> dict:
+    """What tutors have said about diagnoses, gathered into evidence.
+
+    Every `needs` link in the graph is a guess. A wrong one does not announce
+    itself: the walk descends through it, finds something genuinely weak on the
+    other side, and names it with the same confidence it would have had if the
+    link were real. Nothing in the test suite catches that, and eval.py cannot -
+    it builds its simulated student by walking the same links, so a wrong link
+    makes eval wrong in the same direction and it still reports a high score.
+
+    The one thing that can catch it is a person who teaches the subject saying
+    "no, it was this instead". That has been collected since the verdict form
+    shipped and never read. This reads it.
+
+    Three views, cheapest evidence first:
+
+      named    which skills we name, and how often a tutor disagrees. A skill
+               we keep naming wrongly is either the wrong node or is being
+               reached through a wrong link.
+      pairs    what we said, against what it actually was. The most direct
+               statement of a bad link there is: if we keep saying X when a
+               tutor says Y, and Y is not under X, something in between is
+               wrong.
+      edges    every link the walk descended through on a judged diagnosis,
+               with how many of those were later called wrong. The denominator
+               is what makes it useful - a link on twenty right answers and one
+               wrong is fine; one that has only ever been on wrong answers is
+               the suspect.
+
+    Counts, not rates, and no ranking by significance. At this many verdicts a
+    percentage would be a way of not saying "two tutors".
+    """
+    rows = connection.execute(
+        """SELECT f.verdict, f.actual_gap, s.root_gaps, s.chain, s.entry_skill_id
+             FROM feedback f
+             JOIN sessions s ON s.id = f.session_id
+            ORDER BY f.id"""
+    ).fetchall()
+
+    named: dict[str, dict[str, int]] = {}
+    pairs: dict[tuple[str, str], int] = {}
+    edges: dict[tuple[str, str], dict[str, int]] = {}
+
+    for row in rows:
+        wrong = row["verdict"] == "wrong"
+        gaps = [g for g in (row["root_gaps"] or "").split(",") if g]
+
+        for gap in gaps:
+            tally = named.setdefault(gap, {"right": 0, "wrong": 0})
+            tally["wrong" if wrong else "right"] += 1
+
+        if wrong and row["actual_gap"]:
+            for gap in gaps or ["(nothing named)"]:
+                key = (gap, row["actual_gap"])
+                pairs[key] = pairs.get(key, 0) + 1
+
+        # The chain is stored top-down, entry first and the named gap last, so
+        # consecutive pairs are the links the walk actually went through.
+        steps = [s for s in (row["chain"] or "").split(" -> ") if s]
+        for parent, child in zip(steps, steps[1:]):
+            tally = edges.setdefault((parent, child), {"judged": 0, "wrong": 0})
+            tally["judged"] += 1
+            if wrong:
+                tally["wrong"] += 1
+
+    return {
+        "verdicts": {
+            "right": sum(1 for r in rows if r["verdict"] == "right"),
+            "wrong": sum(1 for r in rows if r["verdict"] == "wrong"),
+        },
+        "named": named,
+        "pairs": pairs,
+        "edges": edges,
+    }
+
+
+def suspect_edges(connection: sqlite3.Connection, at_least: int = 1) -> list[tuple]:
+    """Links the walk went through that have only ever led somewhere wrong.
+
+    Ordered by how much evidence there is against them. `at_least` is the
+    number of wrong diagnoses a link has to have been on before it is worth
+    showing - one is enough to look at, more is enough to act on.
+    """
+    found = corrections(connection)["edges"]
+    suspects = [
+        (parent, child, tally["wrong"], tally["judged"])
+        for (parent, child), tally in found.items()
+        if tally["wrong"] >= at_least and tally["wrong"] == tally["judged"]
+    ]
+    return sorted(suspects, key=lambda row: -row[2])
+
+
 def everything_said(connection: sqlite3.Connection, limit: int = 300) -> list[sqlite3.Row]:
     """Both kinds of feedback in one list, newest first.
 

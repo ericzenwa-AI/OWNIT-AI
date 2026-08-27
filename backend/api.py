@@ -1040,6 +1040,8 @@ def admin_feedback(request: Request) -> str:
         rows = store.everything_said(connection)
         waiting = store.waitlist_size(connection)
         joined = store.waitlist(connection)
+        judged = store.corrections(connection)
+        suspects = store.suspect_edges(connection)
     finally:
         connection.close()
 
@@ -1094,6 +1096,64 @@ def admin_feedback(request: Request) -> str:
         for row in joined
     ) or '<li class="none">Nobody has signed up yet.</li>'
 
+    # The only evidence there is about whether the graph's links are real.
+    # Every one of them is a guess, and eval.py cannot check them because it
+    # builds its simulated student by walking the same links. A tutor saying
+    # "no, it was this instead" is the one signal from outside the guess.
+    def name_of(skill_id):
+        return SKILLS[skill_id].name if skill_id in SKILLS else skill_id
+
+    verdicts = judged["verdicts"]
+    if verdicts["right"] or verdicts["wrong"]:
+        worst = sorted(
+            judged["named"].items(), key=lambda kv: (-kv[1]["wrong"], kv[0])
+        )
+        named_rows = "".join(
+            f'<li><div class="head">{out(name_of(skill))}</div>'
+            f'<div class="about">called wrong {tally["wrong"]}, '
+            f'right {tally["right"]}</div></li>'
+            for skill, tally in worst if tally["wrong"]
+        ) or '<li class="none">Nothing we named has been called wrong.</li>'
+
+        pair_rows = "".join(
+            f'<li><div class="head">{out(name_of(said))} '
+            f'&rarr; {out(name_of(really))}</div>'
+            f'<div class="about">said {count}x</div></li>'
+            for (said, really), count in sorted(
+                judged["pairs"].items(), key=lambda kv: -kv[1])
+        ) or '<li class="none">No tutor has named a different gap yet.</li>'
+
+        edge_rows = "".join(
+            f'<li><div class="head">{out(name_of(parent))} '
+            f'&rarr; {out(name_of(child))}</div>'
+            f'<div class="about">on {wrong} wrong diagnosis'
+            f'{"es" if wrong != 1 else ""}, and nothing else</div></li>'
+            for parent, child, wrong, _ in suspects
+        ) or '<li class="none">No link has only ever led somewhere wrong.</li>'
+
+        corrections_html = f"""
+<h1>What tutors corrected</h1>
+<p class="count">{verdicts["right"]} called right &middot;
+{verdicts["wrong"]} called wrong</p>
+<p class="about">Every link in the graph is a guess, and the test suite cannot
+check one - it only proves the shape is well formed. This is the only evidence
+from outside.</p>
+<h2>Skills we name and get told are wrong</h2>
+<ul>{named_rows}</ul>
+<h2>What we said, against what it was</h2>
+<ul>{pair_rows}</ul>
+<h2>Links that have only ever led somewhere wrong</h2>
+<ul>{edge_rows}</ul>
+"""
+    else:
+        corrections_html = """
+<h1>What tutors corrected</h1>
+<p class="count">Nothing judged yet.</p>
+<p class="about">A tutor opening a diagnosis with ?tutor=1 can say whether it
+was right, and name the real gap if not. Until someone does, the graph's links
+have nothing checking them but the reasoning that built them.</p>
+"""
+
     return f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1102,7 +1162,8 @@ def admin_feedback(request: Request) -> str:
 <style>
   body {{ font: 15px/1.6 ui-monospace, Consolas, monospace; max-width: 44rem;
          margin: 2rem auto; padding: 0 1rem; background: #fff; color: #111; }}
-  h1 {{ font-size: 1.1rem; }}
+  h1 {{ font-size: 1.1rem; margin-top: 2.5rem; }}
+  h2 {{ font-size: 0.95rem; margin: 1.5rem 0 0.3rem; color: #333; }}
   ul {{ list-style: none; padding: 0; }}
   li {{ border-top: 1px solid #ddd; padding: 1rem 0; }}
   .when {{ color: #777; font-size: 0.8rem; }}
@@ -1122,6 +1183,7 @@ def admin_feedback(request: Request) -> str:
 <h1>Waitlist</h1>
 <p class="count">{waiting} signed up</p>
 <ul>{signups}</ul>
+{corrections_html}
 """
 
 
