@@ -59,6 +59,11 @@ CREATE TABLE IF NOT EXISTS sessions (
     -- What reading the attempt established. Decided once, then carried, so a
     -- walk resumed tomorrow narrows the same way it did today.
     reading           TEXT,
+    -- True when this walk started at a skill we already knew, so nothing was
+    -- paid to read the question: a retake of the same question, or a move to
+    -- another part of it. Counted against its own daily ceiling rather than the
+    -- one protecting the expensive path.
+    reused_reading    INTEGER NOT NULL DEFAULT 0,
     finished          INTEGER NOT NULL DEFAULT 0
 );
 
@@ -248,7 +253,34 @@ def connect(path: str | Path | None = None) -> sqlite3.Connection:
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     connection.executescript(SCHEMA)
+    _add_later_columns(connection)
     return connection
+
+
+# Columns added to a table after it first shipped. The schema above runs as
+# CREATE TABLE IF NOT EXISTS, which does nothing at all to a database that
+# already has the table - so a column added there reaches a fresh database and
+# never reaches the deployed one, and the mismatch only shows up as an error on
+# the first query that names it.
+#
+# ALTER TABLE ADD COLUMN is the one migration shape SQLite does cheaply and
+# safely on every open: additive, idempotent, no table rewrite, no lock worth
+# worrying about. Anything that drops or retypes a column is not this, and
+# should not be done here.
+LATER_COLUMNS = {
+    "sessions": (("reused_reading", "INTEGER NOT NULL DEFAULT 0"),),
+}
+
+
+def _add_later_columns(connection: sqlite3.Connection) -> None:
+    for table, columns in LATER_COLUMNS.items():
+        have = {
+            row["name"] for row in connection.execute(f"PRAGMA table_info({table})")
+        }
+        for name, kind in columns:
+            if name not in have:
+                connection.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
+    connection.commit()
 
 
 def _now() -> str:
@@ -603,14 +635,16 @@ def open_walk(
     student_ref: str | None = None,
     role: str | None = None,
     match=None,
+    reused_reading: bool = False,
 ) -> int:
     """Start a walk and return the id everything else refers to."""
     from dataclasses import asdict
 
     cursor = connection.execute(
         """INSERT INTO sessions (created_at, student_ref, role, question, attempt,
-               entry_skill_id, entry_confidence, entry_confirmed, reading)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               entry_skill_id, entry_confidence, entry_confirmed, reading,
+               reused_reading)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             _now(),
             student_ref,
@@ -621,6 +655,7 @@ def open_walk(
             getattr(match, "confidence", None),
             1 if match is not None else None,
             json.dumps(asdict(reading)),
+            1 if reused_reading else 0,
         ),
     )
     connection.commit()
@@ -887,6 +922,23 @@ def starts_today(connection: sqlite3.Connection) -> int:
     since = _now()[:10]
     return connection.execute(
         "SELECT COUNT(*) AS n FROM question_read WHERE created_at >= ?", (since,)
+    ).fetchone()["n"]
+
+
+def reuses_today(connection: sqlite3.Connection) -> int:
+    """How many walks since midnight started from a reading already paid for.
+
+    Counted separately from starts_today because they are a different thing to
+    be afraid of. A reading costs money, so its ceiling is a spending limit set
+    low. A reuse costs nothing - no model is called at all - so its ceiling is
+    only there to stop a loop filling the database, and can be set high enough
+    that no real person meets it.
+    """
+    since = _now()[:10]
+    return connection.execute(
+        "SELECT COUNT(*) AS n FROM sessions WHERE reused_reading = 1 "
+        "AND created_at >= ?",
+        (since,),
     ).fetchone()["n"]
 
 

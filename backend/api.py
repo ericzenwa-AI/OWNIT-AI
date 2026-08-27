@@ -127,12 +127,22 @@ LANDING = WEB / "landing.html"
 #
 # A whole day is refused rather than degraded, because a diagnosis built on a
 # cheaper model would be a worse diagnosis and nobody would be told.
-# 200 was chosen before anyone had looked at what a reading costs. At roughly
-# 2-8p each that is £4-16 in a day, which is more than the whole balance. Thirty
-# is a busy day for a beta with a handful of tutors and caps the damage at about
-# a pound. Raise it in the dashboard the moment it starts turning real people
-# away - it is one environment variable and no deploy.
+# 200 was chosen before anyone had looked at what a reading costs. Measured
+# since, against the real prompts: the entry match is about 2000 input tokens on
+# Opus, so a typed question runs 1.7-4.7p and a photo 1.9-4.9p, depending on how
+# much thinking it does. A question sent with the student's working is dearer -
+# it adds two more Opus calls - and reaches about 12p. Thirty is a busy day for
+# a beta with a handful of tutors and caps the worst case near £3.70. Raise it in
+# the dashboard the moment it starts turning real people away - it is one
+# environment variable and no deploy.
 DAILY_STARTS = int(os.environ.get("OWNIT_DAILY_STARTS", "30"))
+
+# The other ceiling, for walks that start somewhere we already know: a retake of
+# the same question, or a move to another part of it. Neither reads anything, so
+# neither calls a model, so this is not a spending limit - it is a backstop
+# against a loop, and set high enough that a student working through a question
+# properly will never see it.
+DAILY_REUSES = int(os.environ.get("OWNIT_DAILY_RETAKES", "100"))
 
 # Base64 of a photo. A phone picture is comfortably under this; anything much
 # larger is not a question, and it is read into memory before anything checks
@@ -325,6 +335,20 @@ def start(request: StartRequest) -> StateOut:
     if request.start_at:
         if request.start_at not in SKILLS or not SKILLS[request.start_at].topic:
             raise HTTPException(400, "That is not somewhere a question can start.")
+
+        connection = store.connect()
+        try:
+            reused_today = store.reuses_today(connection)
+        finally:
+            connection.close()
+
+        if reused_today >= DAILY_REUSES:
+            raise HTTPException(
+                429,
+                "ownIT has run as many repeat attempts as it can today. Your "
+                "answers are saved, and it will start again tomorrow.",
+            )
+
         match = EntryMatch(
             skill_id=request.start_at,
             confidence="high",
@@ -332,7 +356,7 @@ def start(request: StartRequest) -> StateOut:
             reason="",
             recognised_as=SKILLS[request.start_at].topic or "",
         )
-        return _begin(request, match)
+        return _begin(request, match, reused_reading=True)
 
     if not (request.question or "").strip() and not request.attachment:
         raise HTTPException(400, "Send the question, or a photo of it.")
@@ -475,7 +499,8 @@ def _read_attempt(request: StartRequest, entry) -> walk.Reading:
             photo.unlink(missing_ok=True)
 
 
-def _begin(request: StartRequest, match: EntryMatch) -> StateOut:
+def _begin(request: StartRequest, match: EntryMatch, *,
+           reused_reading: bool = False) -> StateOut:
     """Open a walk on a matched question and ask the first thing."""
     connection = store.connect()
     try:
@@ -504,6 +529,7 @@ def _begin(request: StartRequest, match: EntryMatch) -> StateOut:
             student_ref=request.student_ref,
             role=request.role,
             match=match,
+            reused_reading=reused_reading,
         )
     finally:
         connection.close()

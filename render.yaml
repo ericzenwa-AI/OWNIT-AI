@@ -46,6 +46,13 @@ services:
       - key: OWNIT_DAILY_STARTS
         value: 30
 
+      # The ceiling for repeat attempts at a question already read - a retake,
+      # or moving to another part of it. Nothing is sent to a model on that
+      # path, so this is not about money: it is a backstop against a loop, set
+      # high enough that nobody working properly will meet it.
+      - key: OWNIT_DAILY_RETAKES
+        value: 100
+
       # Both set by hand in the dashboard. sync: false stops Render asking for
       # them again on every deploy, and keeps them out of this file.
       - key: ANTHROPIC_API_KEY
