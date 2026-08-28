@@ -1819,3 +1819,43 @@ def test_a_start_with_neither_question_nor_doorway_is_still_refused(client):
     """The emptiness check has to keep working for a genuinely new session."""
     response = client.post("/api/start", json={})
     assert response.status_code == 400
+
+
+# ---- Getting everything right ----------------------------------------------
+
+
+def test_everything_holding_names_the_question_itself(client):
+    """Reported by a student who answered every question correctly and was told
+    the thing in the way was the question they came in with.
+
+    The diagnosis is right - if everything underneath holds, the method itself
+    is what to work on - so this is about the report saying which of the two
+    outcomes it is, not about changing the walk."""
+    from walk import SkillResult, diagnose
+
+    diagnosis = diagnose(
+        "solve_index_equation",
+        check=lambda skill: SkillResult(skill.id, held=True),
+        max_depth=8)
+    report = api._report(diagnosis, question="3^x = 81")
+
+    assert report["gaps"], "a walk that finishes must name something"
+    # The gap IS the doorway, and every answer held. That pair is what the page
+    # keys its wording off.
+    assert report["gaps"][0]["skill"] == report["stuck_on"]
+    assert all(answer["held"] for answer in report["asked"])
+    assert report["asked"], "it has to have asked something"
+
+
+def test_the_walk_never_asks_about_the_skill_they_came_in_stuck_on(client):
+    """Being stuck on it is the premise, so it is never tested. Which is why a
+    retake cannot ever clear it, and why the retake card must not say it might."""
+    from walk import SkillResult, diagnose
+
+    diagnosis = diagnose(
+        "solve_index_equation",
+        check=lambda skill: SkillResult(skill.id, held=True),
+        max_depth=8)
+
+    asked = {result.skill_id for result in diagnosis.results if result.asked}
+    assert "solve_index_equation" not in asked

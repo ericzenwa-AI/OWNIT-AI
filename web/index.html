@@ -868,6 +868,15 @@ function report() {
   const guess = !gap && r.unconfirmed ? r.unconfirmed : null;
   const named = gap || guess;
 
+  // Everything underneath held, so the walk came back up and named the very
+  // skill they arrived stuck on. That is the right answer and it reads as an
+  // absurd one: "you came in stuck on X" followed by "what's getting in the way
+  // is X", after three answers all marked correct. It is also the one outcome
+  // that is good news, and saying so is most of the fix.
+  const nothingBelow = Boolean(
+    gap && gap.skill === r.stuck_on && (r.asked || []).length &&
+    (r.asked || []).every(a => a.held));
+
   // The reasoning is the whole point, and it was the thing missing: naming a
   // skill tells you nothing unless you can see why it, and not something
   // lower down.
@@ -898,8 +907,13 @@ function report() {
   screen.innerHTML = `
     ${partsBar()}
     <div class="card">
-      <p class="note">You came in stuck on ${escape(r.stuck_on)}</p>
-      <p class="label">${gap ? 'What&rsquo;s getting in the way' : 'Where to start'}</p>
+      ${nothingBelow ? '' :
+        `<p class="note">You came in stuck on ${escape(r.stuck_on)}</p>`}
+      <p class="label">${nothingBelow ? 'Nothing underneath was missing'
+        : gap ? 'What&rsquo;s getting in the way' : 'Where to start'}</p>
+      ${nothingBelow ? `<p>You got every question we asked. Everything this
+        rests on held up, so there is no gap lower down to go back for &mdash;
+        the method itself is the thing to work on:</p>` : ''}
       ${guess ? `<p>We didn&rsquo;t get far enough to be sure what sits under
         this one. Of what you did answer, though, this is the first thing that
         gave way &mdash; so it is the place to start:</p>` : ''}
@@ -909,7 +923,7 @@ function report() {
       ${how}
     </div>
 
-    ${why ? `<div class="card">
+    ${why && !nothingBelow ? `<div class="card">
       <p class="label">Why we stopped here</p>
       ${why}
     </div>` : ''}
@@ -918,9 +932,14 @@ function report() {
 
     ${canRetake() ? `<div class="card">
       <p class="label">When you&rsquo;ve worked on it</p>
-      <p>Come back and run this same question again. It starts from scratch and
-      asks fresh questions, so if ${named ? escape(named.skill) : 'this'} holds
-      by then, it carries on past it and looks for whatever is behind it.</p>
+      <p>${nothingBelow
+        ? `Come back and run this again once you have worked on the method. The
+           questions underneath are drawn fresh each time, so it is a real
+           re-check rather than the same three.`
+        : `Come back and run this same question again. It starts from scratch and
+           asks fresh questions, so if ${named ? escape(named.skill) : 'this'}
+           holds by then, it carries on past it and looks for whatever is behind
+           it.`}</p>
       <p><button onclick="retake()">Try this question again</button></p>
     </div>` : ''}
 
