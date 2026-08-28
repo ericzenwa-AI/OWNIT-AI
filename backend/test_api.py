@@ -1798,3 +1798,24 @@ def test_a_retake_cannot_start_somewhere_a_question_cannot(client):
     response = client.post("/api/start", json={
         "question": "q", "start_at": "index_laws"})
     assert response.status_code == 400
+
+
+def test_a_retake_needs_only_the_doorway(client):
+    """Most students photograph the question, and a photo is never stored. If a
+    retake needed the original text, every photo question reloaded from a link
+    would be a dead end - which is what the page used to do to itself.
+
+    Starting at a known skill returns before /api/start looks for a question,
+    and the walk asks banked questions about skills rather than about the
+    original, so there is nothing that needs resubmitting."""
+    state = client.post("/api/start", json={"start_at": "simplify_index_expression"}).json()
+
+    assert state["session_id"] is not None
+    assert state["finished"] is False
+    assert state["asking"] is not None
+
+
+def test_a_start_with_neither_question_nor_doorway_is_still_refused(client):
+    """The emptiness check has to keep working for a genuinely new session."""
+    response = client.post("/api/start", json={})
+    assert response.status_code == 400

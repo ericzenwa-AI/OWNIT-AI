@@ -678,9 +678,17 @@ async function resume(id) {
 // evidence about a student who has since changed.
 async function retake() {
   const r = state.report || {};
+  if (!r.entry_skill_id) return;
+
+  // The original question is sent when the page still has it, and simply left
+  // out when it does not. Starting at a known skill returns before /api/start
+  // checks for a question at all, and the walk asks banked questions about
+  // skills rather than anything about the original - so there is nothing to
+  // resubmit. This used to refuse without it, which turned a photo question
+  // reloaded from a link into a dead end, and photographing the question is
+  // what most students actually do.
   const body = asked ? Object.assign({}, asked)
-             : (r.question ? {question: r.question} : null);
-  if (!body || !r.entry_skill_id) return;
+             : (r.question ? {question: r.question} : {});
 
   body.start_at = r.entry_skill_id;
   body.start_summary = r.presentation_note || '';
@@ -707,12 +715,11 @@ async function retake() {
   }
 }
 
-// Whether there is enough left to run the question again. A photo is never
-// stored server-side, so a page that has been reloaded onto a finished report
-// has the text only - and for a photo question that is nothing.
+// Whether the question can be run again. Only the doorway is needed: the walk
+// asks about skills, not about the question, so a photo that was never stored
+// and a page that has been reloaded both retake perfectly well.
 function canRetake() {
-  const r = state.report || {};
-  return Boolean(r.entry_skill_id && (asked || (r.question || '').trim()));
+  return Boolean((state.report || {}).entry_skill_id);
 }
 
 function newQuestion() {
