@@ -51,6 +51,11 @@ CREATE TABLE IF NOT EXISTS sessions (
     attempt           TEXT,
     entry_skill_id    TEXT    NOT NULL,
     entry_confidence  TEXT,
+    -- What the model read the question as, in a line a student would recognise.
+    -- The only record of the question when it arrived as a photo: the image is
+    -- read once and deleted, and `question` above is empty in that case. Costs
+    -- nothing to keep - it is computed for the screen either way.
+    plain_summary     TEXT,
     entry_confirmed   INTEGER,
     root_gaps         TEXT,
     chain             TEXT,
@@ -268,7 +273,10 @@ def connect(path: str | Path | None = None) -> sqlite3.Connection:
 # worrying about. Anything that drops or retypes a column is not this, and
 # should not be done here.
 LATER_COLUMNS = {
-    "sessions": (("reused_reading", "INTEGER NOT NULL DEFAULT 0"),),
+    "sessions": (
+        ("reused_reading", "INTEGER NOT NULL DEFAULT 0"),
+        ("plain_summary", "TEXT"),
+    ),
 }
 
 
@@ -642,9 +650,9 @@ def open_walk(
 
     cursor = connection.execute(
         """INSERT INTO sessions (created_at, student_ref, role, question, attempt,
-               entry_skill_id, entry_confidence, entry_confirmed, reading,
-               reused_reading)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               entry_skill_id, entry_confidence, entry_confirmed, plain_summary,
+               reading, reused_reading)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             _now(),
             student_ref,
@@ -654,6 +662,10 @@ def open_walk(
             entry_skill_id,
             getattr(match, "confidence", None),
             1 if match is not None else None,
+            # The only record of the question when it came as a photo: the
+            # image is read once and deleted, and `question` is empty. Already
+            # computed for the screen, so keeping it costs nothing.
+            (getattr(match, "plain_summary", "") or "").strip() or None,
             json.dumps(asdict(reading)),
             1 if reused_reading else 0,
         ),
@@ -788,16 +800,23 @@ def everything_said(connection: sqlite3.Connection, limit: int = 300) -> list[sq
     but there is no reason to read them apart - what matters is what people
     said, in the order they said it.
     """
+    # `asked` is what the question was, and it has to fall back: a student who
+    # sent a photo leaves `question` empty, because the image is read once and
+    # deleted. plain_summary is the model's reading of it, and for those
+    # sessions it is the only record there is - which is most of them, since
+    # photographing the question is what students actually do.
     return connection.execute(
-        """SELECT created_at, 'verdict' AS kind, session_id,
-                  verdict AS headline, actual_gap AS about, note AS body,
-                  NULL AS contact, NULL AS matched
-             FROM feedback
+        """SELECT f.created_at AS created_at, 'verdict' AS kind, f.session_id,
+                  f.verdict AS headline, f.actual_gap AS about, f.note AS body,
+                  NULL AS contact, NULL AS matched,
+                  COALESCE(NULLIF(s.question, ''), s.plain_summary) AS asked
+             FROM feedback f LEFT JOIN sessions s ON s.id = f.session_id
            UNION ALL
-           SELECT created_at, 'comment' AS kind, session_id,
-                  NULL AS headline, about_skill AS about, comment AS body,
-                  contact, matched
-             FROM comments
+           SELECT c.created_at AS created_at, 'comment' AS kind, c.session_id,
+                  NULL AS headline, c.about_skill AS about, c.comment AS body,
+                  c.contact, c.matched,
+                  COALESCE(NULLIF(s.question, ''), s.plain_summary) AS asked
+             FROM comments c LEFT JOIN sessions s ON s.id = c.session_id
            ORDER BY created_at DESC, kind
            LIMIT ?""",
         (limit,),

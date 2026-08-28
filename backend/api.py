@@ -1055,6 +1055,13 @@ def admin_feedback(request: Request) -> str:
         when = out(row["created_at"][:16].replace("T", " "))
         bits = [f'<div class="when">{when}</div>']
 
+        # What they were actually stuck on. Without it a verdict reads "session
+        # 42 was wrong" and there is no way to judge whether it should have
+        # been. For a photo this is the model's reading rather than their own
+        # words, so it is labelled as such rather than quoted back as theirs.
+        if row["asked"]:
+            bits.append(f'<div class="asked">Question: {out(row["asked"])}</div>')
+
         if row["kind"] == "verdict":
             right = row["headline"] == "right"
             bits.append(
@@ -1172,6 +1179,8 @@ have nothing checking them but the reasoning that built them.</p>
   .wrong {{ color: #8C3B2E; }}
   .comment {{ color: #333; }}
   .about {{ color: #555; font-size: 0.9rem; }}
+  .asked {{ color: #333; font-size: 0.9rem; font-style: italic;
+            margin: 0.2rem 0; }}
   .body {{ white-space: pre-wrap; margin-top: 0.4rem; }}
   .count {{ color: #777; font-size: 0.85rem; }}
   .email {{ font-weight: 700; }}

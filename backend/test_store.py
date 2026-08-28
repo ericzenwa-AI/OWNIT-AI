@@ -447,3 +447,80 @@ def test_an_empty_week_reads_back_as_zeroes(db):
     assert figures["started"] == 0
     assert figures["reached"] == []
     assert figures["seconds_per_answer"] is None
+
+
+# ---- Knowing what a photo student actually asked ---------------------------
+
+
+class _PhotoMatch:
+    confidence = "high"
+    plain_summary = "Expand (2 - 3x)^4 in ascending powers"
+
+
+def test_a_photo_question_keeps_the_models_reading_of_it(db):
+    """The image is read once and deleted, and `question` is empty for a photo.
+    Without this there is no record at all of what was asked - for the students
+    most likely to use the thing, since photographing it is what they do."""
+    from walk import Reading
+
+    session_id = store.open_walk(
+        db, entry_skill_id="expand_binomial", reading=Reading(),
+        question="", match=_PhotoMatch())
+
+    row = store.walk_state(db, session_id)
+    assert row["question"] == ""
+    assert row["plain_summary"] == "Expand (2 - 3x)^4 in ascending powers"
+
+
+def test_a_session_with_no_match_has_no_summary(db):
+    from walk import Reading
+
+    session_id = store.open_walk(
+        db, entry_skill_id="expand_binomial", reading=Reading(), question="typed")
+
+    assert store.walk_state(db, session_id)["plain_summary"] is None
+
+
+def test_feedback_carries_what_was_asked(db):
+    """A verdict that says "session 42 was wrong" cannot be judged."""
+    from walk import Reading
+
+    typed = store.open_walk(
+        db, entry_skill_id="expand_binomial", reading=Reading(),
+        question="Expand (1+2x)^5", match=_PhotoMatch())
+    store.record_feedback(db, typed, "right")
+
+    photo = store.open_walk(
+        db, entry_skill_id="expand_binomial", reading=Reading(),
+        question="", match=_PhotoMatch())
+    store.record_feedback(db, photo, "wrong", actual_gap="surds")
+
+    said = {row["session_id"]: row["asked"] for row in store.everything_said(db)}
+
+    # Their own words when there are some, the model's reading when there are not.
+    assert said[typed] == "Expand (1+2x)^5"
+    assert said[photo] == "Expand (2 - 3x)^4 in ascending powers"
+
+
+def test_the_column_is_added_to_a_database_that_predates_it(tmp_path, monkeypatch):
+    """The deployed database already exists, and CREATE TABLE IF NOT EXISTS does
+    nothing to it. Without the migration the first query naming the column is an
+    error in production and nowhere else."""
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    raw = sqlite3.connect(path)
+    raw.executescript(
+        "CREATE TABLE sessions (id INTEGER PRIMARY KEY, created_at TEXT NOT NULL,"
+        " student_ref TEXT, role TEXT, question TEXT, attempt TEXT,"
+        " entry_skill_id TEXT NOT NULL, entry_confidence TEXT, entry_confirmed INTEGER,"
+        " root_gaps TEXT, chain TEXT, unchecked TEXT, stopped_early TEXT,"
+        " reading TEXT, finished INTEGER NOT NULL DEFAULT 0);")
+    raw.commit()
+    raw.close()
+
+    connection = store.connect(path)
+    columns = {row["name"] for row in connection.execute("PRAGMA table_info(sessions)")}
+    connection.close()
+
+    assert "plain_summary" in columns
