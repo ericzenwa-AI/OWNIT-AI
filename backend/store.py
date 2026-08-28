@@ -220,6 +220,33 @@ CREATE TABLE IF NOT EXISTS question_bank (
 -- goes to GitHub, they are never handed to anyone else, and the only thing
 -- they are for is one message saying it is ready. UNIQUE on email so someone
 -- signing up twice is one person, not two.
+-- The closing ladder: four questions climbing from the gap the walk found up
+-- to the student's own question, written live for that question and never
+-- cached. One row per rung.
+--
+-- The last rung is their own question, and getting THAT wrong after clearing
+-- everything below it is a different signal from anything the walk records:
+-- the pieces were there and putting them together was not. So `chosen` is kept
+-- on every rung, and the mistake behind it with it.
+CREATE TABLE IF NOT EXISTS ladder (
+    id          INTEGER PRIMARY KEY,
+    session_id  INTEGER NOT NULL REFERENCES sessions(id),
+    created_at  TEXT    NOT NULL,
+    position    INTEGER NOT NULL,
+    is_final    INTEGER NOT NULL DEFAULT 0,
+    -- True when the last rung is the student's own words. False when it is the
+    -- model's reading of a photo, which the page has to say out loud.
+    verbatim    INTEGER NOT NULL DEFAULT 1,
+    question    TEXT    NOT NULL,
+    -- The four options in the order they are shown, each with the mistake it
+    -- represents. The correct one carries null, which is what scores it.
+    options     TEXT    NOT NULL,
+    correct     TEXT    NOT NULL,
+    chosen      TEXT,
+    mistake     TEXT,
+    answered_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS waitlist (
     id         INTEGER PRIMARY KEY,
     created_at TEXT NOT NULL,
@@ -819,6 +846,96 @@ def everything_said(connection: sqlite3.Connection, limit: int = 300) -> list[sq
              FROM comments c LEFT JOIN sessions s ON s.id = c.session_id
            ORDER BY created_at DESC, kind
            LIMIT ?""",
+        (limit,),
+    ).fetchall()
+
+
+# ---- The closing ladder -----------------------------------------------------
+
+
+def save_ladder(connection, session_id: int, rungs: list, *, verbatim: bool) -> None:
+    """Store the rungs, shuffled once, in the order they will be shown."""
+    from questions import shuffled_options
+
+    connection.execute("DELETE FROM ladder WHERE session_id = ?", (session_id,))
+    last = len(rungs)
+    for position, question in enumerate(rungs, start=1):
+        options = shuffled_options(question)
+        connection.execute(
+            """INSERT INTO ladder (session_id, created_at, position, is_final,
+                   verbatim, question, options, correct)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                session_id,
+                _now(),
+                position,
+                1 if position == last else 0,
+                1 if verbatim else 0,
+                question.question,
+                json.dumps([{"text": text, "mistake": mistake}
+                            for text, mistake in options]),
+                question.correct_option,
+            ),
+        )
+    connection.commit()
+
+
+def ladder_rung(connection, session_id: int, position: int):
+    return connection.execute(
+        "SELECT * FROM ladder WHERE session_id = ? AND position = ?",
+        (session_id, position),
+    ).fetchone()
+
+
+def ladder_rungs(connection, session_id: int) -> list:
+    return connection.execute(
+        "SELECT * FROM ladder WHERE session_id = ? ORDER BY position",
+        (session_id,),
+    ).fetchall()
+
+
+def answer_rung(connection, session_id: int, position: int, chosen: str,
+                mistake: str | None) -> None:
+    """What they picked on one rung, and the slip behind it."""
+    connection.execute(
+        """UPDATE ladder SET chosen = ?, mistake = ?, answered_at = ?
+            WHERE session_id = ? AND position = ?""",
+        (chosen, mistake, _now(), session_id, position),
+    )
+    connection.commit()
+
+
+def ladders_today(connection) -> int:
+    """How many ladders have been written since midnight.
+
+    Its own number, apart from starts. A ladder is a different cost and a
+    different risk: it is one live generation, chosen by a student who has
+    already finished a walk, rather than the front door standing open.
+    """
+    return connection.execute(
+        "SELECT COUNT(DISTINCT session_id) AS n FROM ladder WHERE created_at >= ?",
+        (_now()[:10],),
+    ).fetchone()["n"]
+
+
+def missed_the_top(connection, limit: int = 100) -> list:
+    """Students who cleared every rung and then missed their own question.
+
+    The signal this table exists for. It is not a gap - the walk already found
+    and cleared that - it is the pieces being there and the assembly not. There
+    is nowhere else in the system that distinguishes those two.
+    """
+    return connection.execute(
+        """SELECT l.session_id, l.question, l.chosen, l.mistake, l.created_at,
+                  s.entry_skill_id, s.root_gaps
+             FROM ladder l JOIN sessions s ON s.id = l.session_id
+            WHERE l.is_final = 1 AND l.chosen IS NOT NULL AND l.chosen != l.correct
+              AND NOT EXISTS (
+                  SELECT 1 FROM ladder e
+                   WHERE e.session_id = l.session_id AND e.is_final = 0
+                     AND (e.chosen IS NULL OR e.chosen != e.correct))
+            ORDER BY l.created_at DESC
+            LIMIT ?""",
         (limit,),
     ).fetchall()
 

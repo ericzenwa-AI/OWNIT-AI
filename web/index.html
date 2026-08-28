@@ -722,6 +722,99 @@ function canRetake() {
   return Boolean((state.report || {}).entry_skill_id);
 }
 
+// The closing ladder: four questions from the gap up to their own problem.
+//
+// Offered rather than run automatically, because it is the only thing on this
+// page that spends money at a student's choosing. Which also makes the click
+// worth counting - how many people, having been told what is in the way, want
+// walking back up to their own question.
+let climb = null;
+
+async function startClimb() {
+  const said = document.getElementById('climb-said');
+  const button = document.querySelector('#climb button');
+  if (button) button.disabled = true;
+  if (said) said.textContent = 'Writing four questions for yours...';
+
+  try {
+    const got = await post('/api/ladder', {session_id: state.session_id});
+    climb = {rung: got.rung, missed: []};
+    drawRung();
+  } catch (error) {
+    if (button) button.disabled = false;
+    if (said) { said.className = 'error'; said.textContent = error.message; }
+  }
+}
+
+function drawRung() {
+  const rung = climb.rung;
+  const options = rung.options.map(o =>
+    `<li><button class="option" onclick="answerRung('${escape(o.label)}')">
+       ${mathHtml(o.text)}</button></li>`).join('');
+
+  // The last rung is their own question. When it came from a photo it is the
+  // reading of it rather than their words, and saying so is the difference
+  // between a paraphrase and a misquote.
+  const heading = rung.is_final
+    ? `<p class="label">Your question${rung.verbatim ? '' : ', as we read it'}</p>`
+    : `<p class="label">Step ${rung.position} of ${rung.of}</p>`;
+
+  screen.innerHTML = `
+    <div class="card">
+      ${heading}
+      <p class="question">${mathHtml(rung.question)}</p>
+      <ul class="options">${options}</ul>
+    </div>`;
+}
+
+async function answerRung(label) {
+  const at = climb.rung.position;
+  document.querySelectorAll('.option').forEach(b => b.disabled = true);
+
+  try {
+    const got = await post('/api/ladder/answer', {
+      session_id: state.session_id, position: at, label: label});
+
+    if (!got.right) climb.missed.push({at: at, mistake: got.mistake});
+
+    if (got.rung) {
+      climb.rung = got.rung;
+      drawRung();
+      return;
+    }
+    climbDone(got);
+  } catch (error) {
+    screen.innerHTML = `<div class="card"><p class="error">${escape(error.message)}</p></div>
+      <p><button onclick="report()">Back to the report</button></p>`;
+  }
+}
+
+function climbDone(got) {
+  // Three endings, and the middle one is the one that had to be got right: they
+  // cleared every step and then the whole thing did not come out. That is not a
+  // gap - the walk already found and cleared that - it is the pieces being there
+  // and the assembly not, and telling them they still have a gap would
+  // contradict the evidence they have just produced.
+  const card = got.right
+    ? `<p class="label">That&rsquo;s the one</p>
+       <p>You built it up a step at a time and got your own question out at the
+       end. That is the thing that was in the way, cleared.</p>`
+    : got.climbed
+      ? `<p class="label">Not yet &mdash; and that&rsquo;s worth knowing</p>
+         <p>You got the steps and then the whole thing together didn&rsquo;t come
+         out. That usually means the pieces are there and putting them together
+         is the part to practise, not any one of them.</p>
+         ${got.mistake ? `<p class="note">${escape(got.mistake)}</p>` : ''}`
+      : `<p class="label">Worth another look</p>
+         <p>A couple of the steps didn&rsquo;t come out either, so it is worth
+         going back to the practice above before trying the whole thing again.</p>
+         ${got.mistake ? `<p class="note">${escape(got.mistake)}</p>` : ''}`;
+
+  screen.innerHTML = `
+    <div class="card">${card}</div>
+    <p><button onclick="report()">Back to the report</button></p>`;
+}
+
 function newQuestion() {
   forgetSession();
   state = {};
@@ -929,6 +1022,14 @@ function report() {
     </div>` : ''}
 
     ${wayBack(gap, r.stuck_on)}
+
+    ${gap ? `<div class="card" id="climb">
+      <p class="label">Work up to your question</p>
+      <p>Four questions that start where the gap is and build, one step at a
+      time, up to the question you came in with.</p>
+      <p><button onclick="startClimb()">Show me</button></p>
+      <p class="note" id="climb-said" role="status" aria-live="polite"></p>
+    </div>` : ''}
 
     ${canRetake() ? `<div class="card">
       <p class="label">When you&rsquo;ve worked on it</p>

@@ -41,12 +41,13 @@ from pydantic import BaseModel, Field
 
 import bank
 import notify
+import ladder
 import practice
 import store
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
 from graph import A_LEVEL, GCSE, SKILLS, STAGES, entry_points
-from questions import DONT_KNOW_LABEL, DONT_KNOW_OPTION, shuffled_options
+from questions import DONT_KNOW_LABEL, DONT_KNOW_OPTION, LABELS, shuffled_options
 
 log = logging.getLogger("ownit.api")
 
@@ -136,6 +137,17 @@ LANDING = WEB / "landing.html"
 # the dashboard the moment it starts turning real people away - it is one
 # environment variable and no deploy.
 DAILY_STARTS = int(os.environ.get("OWNIT_DAILY_STARTS", "30"))
+
+# The closing ladder is one live generation, so it is the only thing on the page
+# a student can spend money on by choosing to. Its own number rather than a
+# share of the starts: a ladder is chosen by someone who has already finished a
+# walk, which is a different risk from the front door standing open, and mixing
+# them would mean a busy afternoon of ladders closing the door on new students.
+# Measured at roughly 2-3p each on Sonnet.
+DAILY_LADDERS = int(os.environ.get("OWNIT_DAILY_LADDERS", "60"))
+
+# How many steps a ladder has. Read off the writer so the two cannot drift.
+RUNGS_PER_LADDER = ladder.RUNGS
 
 # The other ceiling, for walks that start somewhere we already know: a retake of
 # the same question, or a move to another part of it. Neither reads anything, so
@@ -713,6 +725,118 @@ def _as_known_skill(text: str) -> str | None:
         if wanted in (skill.id.casefold(), skill.name.casefold()):
             return skill.id
     return None
+
+
+class LadderStart(BaseModel):
+    session_id: int
+
+
+class LadderAnswer(BaseModel):
+    session_id: int
+    position: int
+    label: str = Field("", max_length=4)
+
+
+def _rung_out(row) -> dict:
+    """One rung, without giving away which option is right."""
+    options = json.loads(row["options"])
+    return {
+        "position": row["position"],
+        "of": RUNGS_PER_LADDER,
+        "is_final": bool(row["is_final"]),
+        "verbatim": bool(row["verbatim"]),
+        "question": row["question"],
+        "options": [
+            {"label": LABELS[i], "text": option["text"]}
+            for i, option in enumerate(options)
+        ],
+    }
+
+
+@app.post("/api/ladder")
+def start_ladder(request: LadderStart) -> dict:
+    """Write the climb from the gap up to the question they came in with.
+
+    Offered rather than automatic, because it is the one thing here that costs
+    money at a student's choosing. Which also makes the click a number worth
+    having: how many people, having been told what is in the way, want to be
+    walked back up to their own question.
+    """
+    connection = store.connect()
+    try:
+        if store.ladders_today(connection) >= DAILY_LADDERS:
+            raise HTTPException(
+                429,
+                "ownIT has built as many of these as it can today. The diagnosis "
+                "above still stands, and it will start again tomorrow.",
+            )
+        existing = store.ladder_rungs(connection, request.session_id)
+        if existing:
+            return {"rung": _rung_out(existing[0])}
+    finally:
+        connection.close()
+
+    try:
+        ladder.for_session(request.session_id)
+    except ladder.LadderError as error:
+        raise HTTPException(400, str(error))
+
+    connection = store.connect()
+    try:
+        rungs = store.ladder_rungs(connection, request.session_id)
+        if not rungs:
+            raise HTTPException(400, "That climb could not be written.")
+        return {"rung": _rung_out(rungs[0])}
+    finally:
+        connection.close()
+
+
+@app.post("/api/ladder/answer")
+def answer_ladder(request: LadderAnswer) -> dict:
+    """Score one rung and hand back the next, or how it ended."""
+    connection = store.connect()
+    try:
+        row = store.ladder_rung(connection, request.session_id, request.position)
+        if row is None:
+            raise HTTPException(404, "No such step.")
+
+        options = json.loads(row["options"])
+        index = LABELS.index(request.label) if request.label in LABELS else -1
+        if not 0 <= index < len(options):
+            raise HTTPException(400, "That is not one of the options.")
+
+        picked = options[index]
+        store.answer_rung(
+            connection, request.session_id, request.position,
+            picked["text"], picked["mistake"])
+
+        right = picked["mistake"] is None
+        nxt = store.ladder_rung(connection, request.session_id, request.position + 1)
+
+        # Every rung but the last just moves on, right or wrong - this is a
+        # climb, not a second diagnosis, and stopping to mark it would make it
+        # one.
+        if nxt is not None:
+            return {
+                "right": right,
+                "mistake": picked["mistake"],
+                "rung": _rung_out(nxt),
+            }
+
+        cleared = [
+            r for r in store.ladder_rungs(connection, request.session_id)
+            if not r["is_final"]
+        ]
+        climbed = all(r["chosen"] == r["correct"] for r in cleared)
+        return {
+            "right": right,
+            "mistake": picked["mistake"],
+            "rung": None,
+            "finished": True,
+            "climbed": climbed,
+        }
+    finally:
+        connection.close()
 
 
 @app.post("/api/feedback")
