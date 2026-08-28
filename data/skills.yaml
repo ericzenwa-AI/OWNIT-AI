@@ -793,13 +793,31 @@ nodes:
     probe: Say for which values of x an expansion with a negative or fractional index is valid, and why.
     needs: [modulus_meaning, index_laws]
 
+  - id: power_of_a_negative_term
+    name: Raising a term to a power, sign and all
+    level: 2
+    kind: procedure
+    probe: >-
+      Work out a whole term raised to a power, such as (-2x)^3 and (-2x)^4 -
+      the coefficient raised too, and the sign following the parity of the
+      power. Not the same as arithmetic with negatives in a sum or a product.
+    needs: [negatives, index_laws]
+    note: >-
+      Cambridge 9709 March 2025 examiner report, P1 Q3(a): the power was not applied to the first and last terms, and
+      "not dealing with the minus sign correctly or ignoring it completely was
+      a common error". Both are here rather than in index_laws, which is about
+      negative and fractional exponents, not negative bases. Added because
+      without it every failure on that question lands on index_laws, and a
+      student can be reliable at -(x-3)(x+2) and still write +b^3 for the r=3
+      term.
+
   - id: expand_binomial
     name: Expand a bracket to a positive whole power
     level: 0
     topic: binomial expansion
     kind: procedure
     probe: Expand a bracket raised to a positive whole number power, in ascending powers.
-    needs: [binomial_coefficients, index_laws, expand_brackets]
+    needs: [binomial_coefficients, index_laws, expand_brackets, power_of_a_negative_term]
 
   - id: expand_binomial_fractional
     name: Expand with a negative or fractional power
@@ -807,7 +825,7 @@ nodes:
     topic: binomial expansion
     kind: procedure
     probe: Find the first few terms of an expansion where the index is negative or fractional.
-    needs: [binomial_coefficients, index_laws, rewrite_index_form, fractions_arith]
+    needs: [binomial_coefficients, index_laws, rewrite_index_form, fractions_arith, power_of_a_negative_term]
 
   - id: binomial_approximation
     name: Use an expansion to approximate a value
@@ -893,13 +911,29 @@ nodes:
     probe: Find the sum of the first n terms of a sequence with a common ratio.
     needs: [geometric_sequence, index_laws, solve_linear]
 
+  - id: convergence_condition
+    name: When a geometric series has a sum to infinity
+    level: 2
+    kind: concept
+    probe: >-
+      Say which values of the common ratio give a sum to infinity, and why a
+      negative ratio can be perfectly valid. Must not be answerable by
+      computing a sum.
+    needs: [modulus_meaning, negatives]
+    note: >-
+      Cambridge 9709 March 2025 examiner report, P1 Q8(a): given two conditions on a geometric progression, a
+      significant majority rejected r = -1/2 - the valid ratio - apparently
+      for being negative, and kept r = 3/2, which does not converge. The most
+      cited error on the question, and the graph joined geometric_sequence
+      straight to sum_to_infinity with nothing in between to name.
+
   - id: sum_to_infinity
     name: Sum a geometric series to infinity
     level: 0
     topic: sequences and series
     kind: procedure
     probe: Find the sum to infinity, and say when one exists.
-    needs: [geometric_sequence, fractions_arith]
+    needs: [geometric_sequence, fractions_arith, convergence_condition]
 
   # ---- GCSE Foundation ------------------------------------------------------
   #

@@ -35,6 +35,10 @@ import llm
 from questions import MAX_TOKENS, MODEL
 
 
+class SchemeTooLongError(RuntimeError):
+    """The mark scheme did not fit in one answer."""
+
+
 class MarkStep(BaseModel):
     """One thing a candidate has to do to earn a mark."""
 
@@ -71,7 +75,10 @@ def read_scheme(
     """Break a mark scheme into the steps that earn marks, per question."""
     client = client or Anthropic()
 
-    response = client.messages.parse(
+    # Streamed rather than a single response: 64000 output tokens is more than
+    # a non-streaming request reliably returns before the HTTP timeout, and a
+    # long mark scheme genuinely needs them.
+    with client.messages.stream(
         **llm.READ_SCHEME.kwargs(),
         system=(
             "You read A-level maths mark schemes and say what a candidate has "
@@ -106,7 +113,25 @@ def read_scheme(
             }
         ],
         output_format=Scheme,
-    )
+    ) as stream:
+        response = stream.get_final_message()
+
+    # The failure this had: the answer was cut off mid-JSON and the only sign
+    # was a pydantic complaint about an unterminated string, forty lines deep,
+    # after the PDF had already been read and paid for. A document too long to
+    # answer in one go is a normal thing to happen and deserves to say so.
+    if response.stop_reason == "max_tokens":
+        raise SchemeTooLongError(
+            f"{pdf.name} needs more than {llm.READ_SCHEME.max_tokens} tokens to "
+            "write out. Nothing was lost from the PDF - the answer was cut off. "
+            "Split the document, or raise max_tokens on READ_SCHEME in llm.py."
+        )
+
+    if response.parsed_output is None:
+        raise SchemeTooLongError(
+            f"No structured answer for {pdf.name} (stop_reason: "
+            f"{response.stop_reason}). Nothing has been changed."
+        )
 
     scheme = response.parsed_output
     return scheme.questions if scheme else []
@@ -171,38 +196,48 @@ def map_hints(
 # ---- Reporting ------------------------------------------------------------
 
 
+# The console this is run from is often cp1252, which cannot print a theta -
+# and a mark scheme is full of them. Dying part way through, after the PDF has
+# already been read and paid for, loses the half that had not printed yet.
+def _say(line: str = '') -> None:
+    try:
+        print(line)
+    except UnicodeEncodeError:
+        print(line.encode('ascii', 'replace').decode('ascii'))
+
+
 def report(questions: list[SchemeQuestion], mapping: dict[str, str | None]) -> None:
     steps = [step for question in questions for step in question.steps]
     covered = [s for s in steps if mapping.get(s.skill_hint)]
     missing = [s for s in steps if not mapping.get(s.skill_hint)]
 
-    print()
-    print("=" * 68)
-    print(f"{len(questions)} questions, {len(steps)} marked steps")
-    print(f"{len(covered)} rest on a skill we have, {len(missing)} do not")
-    print()
+    _say()
+    _say("=" * 68)
+    _say(f"{len(questions)} questions, {len(steps)} marked steps")
+    _say(f"{len(covered)} rest on a skill we have, {len(missing)} do not")
+    _say()
 
     if missing:
-        print("Skills an examiner awards marks for that the graph does not have,")
-        print("commonest first. Each is a candidate node, named by the exam board:")
+        _say("Skills an examiner awards marks for that the graph does not have,")
+        _say("commonest first. Each is a candidate node, named by the exam board:")
         for hint, times in Counter(s.skill_hint for s in missing).most_common():
-            print(f"  {times:>3}x  {hint}")
-        print()
+            _say(f"  {times:>3}x  {hint}")
+        _say()
 
     if covered:
-        print("Skills the graph already has, by how often marks depend on them:")
+        _say("Skills the graph already has, by how often marks depend on them:")
         counted = Counter(mapping[s.skill_hint] for s in covered)
         for skill_id, times in counted.most_common(15):
-            print(f"  {times:>3}x  {SKILLS[skill_id].name}")
-        print()
+            _say(f"  {times:>3}x  {SKILLS[skill_id].name}")
+        _say()
 
-    print("What each question actually needs, in order:")
+    _say("What each question actually needs, in order:")
     for question in questions:
-        print(f"\n  Q{question.number}  ({question.topic})")
+        _say(f"\n  Q{question.number}  ({question.topic})")
         for step in question.steps:
             skill_id = mapping.get(step.skill_hint)
             marker = SKILLS[skill_id].name if skill_id else f"** {step.skill_hint}"
-            print(f"    {step.mark:<5} {marker}")
+            _say(f"    {step.mark:<5} {marker}")
 
 
 # ---- Command line ---------------------------------------------------------
@@ -220,14 +255,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {path} does not exist", file=sys.stderr)
         return 2
 
-    print(f"Reading {path.name}...")
-    questions = read_scheme(path)
+    _say(f"Reading {path.name}...")
+    try:
+        questions = read_scheme(path)
+    except SchemeTooLongError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
     if not questions:
-        print("error: no questions found in that mark scheme", file=sys.stderr)
+        _say("error: no questions found in that mark scheme", file=sys.stderr)
         return 2
 
     hints = sorted({step.skill_hint for q in questions for step in q.steps})
-    print(f"{len(questions)} questions, {len(hints)} distinct skills. Matching...")
+    _say(f"{len(questions)} questions, {len(hints)} distinct skills. Matching...")
     mapping = map_hints(hints)
 
     report(questions, mapping)

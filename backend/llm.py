@@ -73,7 +73,13 @@ QUESTION = Task(SONNET, effort="medium")
 # Transcription and offline analysis. Long PDFs, so the cost is nearly all
 # input, and a cheaper model saves most of it.
 READ_PAPER = Task(SONNET, effort="low")
-READ_SCHEME = Task(SONNET, effort="medium")
+# A mark scheme runs to fifteen questions with a dozen marked steps each, and
+# every step comes back as an object. At 16000 the answer was cut off part way
+# through the JSON, which arrives as a parse failure rather than as anything
+# saying "too long" - see read_scheme, which now checks. Streaming is what makes
+# a ceiling this high safe: without it a long answer hits the HTTP timeout
+# before it finishes.
+READ_SCHEME = Task(SONNET, effort="medium", max_tokens=64000)
 MAP_HINTS = Task(SONNET, effort="medium")
 
 
