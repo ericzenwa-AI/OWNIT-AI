@@ -360,3 +360,53 @@ def test_nothing_outside_ascii_ever_reaches_katex(js):
 def test_a_pound_sign_is_left_alone(js):
     """Money is not maths. Sixty-eight questions carry one and none typeset."""
     assert "\u00a31.90" in render(js, "A box of 40 tea bags costs \u00a31.90")
+
+
+# ---- The fourth one that reached a student ---------------------------------
+
+
+def test_a_quoted_expression_does_not_drag_its_quotes_into_the_maths(js):
+    """Seen on screen. An index-form question quotes a student back:
+
+        They write: 'sqrt(x^6) = sqrt(x) * sqrt(x) = (sqrt(x))^6'
+
+    The quoted string has brackets and carets in it, so it reads as notation and
+    the whole thing joins the maths run - apostrophes included. A leading
+    apostrophe in maths is a prime with nothing to attach to, KaTeX refuses it,
+    and the entire line came back as red source.
+    """
+    stored = ("A student is asked to simplify sqrt(x^6). They write: "
+              "'sqrt(x^6) = sqrt(x) * sqrt(x) = (sqrt(x))^6'. Why is that wrong?")
+
+    for latex in latex_in(render(js, stored)):
+        assert not latex.lstrip().startswith("'"), latex
+        assert "@sqrt".replace("@", chr(92)) in latex or latex
+
+
+def test_the_maths_inside_the_quotes_still_typesets(js):
+    """Peeling the quotes must not cost the expression its typesetting."""
+    written = latex_in(render(js, "They write: 'x^2 + 1'"))
+
+    assert written, "the expression inside the quotes should still be set"
+    assert "x^{2}" in written[0]
+
+
+def test_a_trailing_full_stop_is_not_swept_in(js):
+    written = latex_in(render(js, "He wrote (a+b)^2 = a^2+b^2."))
+
+    assert written
+    assert not written[0].endswith(".")
+
+
+def test_a_run_that_is_only_punctuation_is_left_alone(js):
+    """Peeling must not turn a non-expression into an empty typeset run."""
+    for latex in latex_in(render(js, "She said 'yes'.")):
+        assert latex.strip(), "an empty run reached the renderer"
+
+
+def test_double_quotes_are_peeled_too(js):
+    written = latex_in(render(js, 'The working said "x^2 = 4" throughout.'))
+
+    assert written
+    assert not written[0].startswith('"')
+    assert "x^{2}" in written[0]

@@ -1364,12 +1364,34 @@ function toLatex(run) {
   return out;
 }
 
+// Quotation marks and sentence punctuation clinging to the ends of a run.
+//
+// A question that quotes a student back - They write: 'sqrt(x^6) = ...' -
+// hands the whole quoted string to the maths run, apostrophes and all, because
+// the token has brackets and carets in it and so reads as notation. A leading
+// apostrophe in maths is a prime with nothing to attach to; KaTeX refuses it
+// and prints the entire line as red source. Seen on an index-form question.
+var EDGE_BEFORE = /^['\"\u2018\u201c]+/;
+var EDGE_AFTER = /['\"\u2019\u201d.,;:!?]+$/;
+
 function typeset(run) {
   // Whatever survived normalise() is a symbol nobody anticipated, and KaTeX
   // will not know it either. With throwOnError off it fails silently and red,
   // so it is shown as plain text instead - unstyled, but readable and never
   // the wrong colour.
   if (/[^\x00-\x7F]/.test(run)) return escape(run);
+
+  // Peel the punctuation off both ends and set it as text, so the maths in
+  // the middle still typesets. Only when something is left worth typesetting -
+  // a run that is punctuation around a bare word is not maths at all.
+  var before = (run.match(EDGE_BEFORE) || [''])[0];
+  var after = (run.match(EDGE_AFTER) || [''])[0];
+  if (before || after) {
+    var core = run.slice(before.length, run.length - after.length);
+    if (core && worthIt(core)) {
+      return escape(before) + typeset(core) + escape(after);
+    }
+  }
   try {
     return katex.renderToString(toLatex(run), {
       throwOnError: false,
