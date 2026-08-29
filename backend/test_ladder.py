@@ -252,3 +252,45 @@ def test_a_session_with_neither_words_nor_a_reading_is_refused(client):
 
     assert response.status_code == 400
     assert "no record of the original question" in response.json()["detail"]
+
+
+# ---- the last rung has to be the question, and only the question ----------
+
+
+def test_the_final_rung_is_told_to_give_nothing_away():
+    """The first version of this prompt produced a last rung reading "...so the
+    y-coordinate of P is 9", which hands over the first step of the working.
+
+    That rung is the only moment in the whole product meant to show a student
+    can now do the thing unaided, so one figure handed over is the difference
+    between finding that out and not. The rule cannot be checked by asserting on
+    model output, which varies - so it is checked where it is actually enforced.
+    """
+    prompt = ladder.build_prompt(
+        question="P is the point on y = 3^-x with x-coordinate -2.",
+        verbatim=True, gap_id="index_laws", entry_id="solve_index_equation",
+        chain=["index_laws", "equate_indices"])
+
+    final = prompt.split(f"- Question {ladder.RUNGS} IS their question")[1]
+    final = final.split("- Four options each")[0].lower()
+
+    assert "give away nothing" in final
+    assert "do not compute anything for them" in final
+    assert "do not carry over any value" in final
+    assert "restate only what the original question itself states" in final
+
+
+def test_the_prompt_says_which_question_is_theirs():
+    """A photographed question reaches the writer as the model's reading of it,
+    and the writer has to know that so the last rung is not passed off as their
+    words."""
+    verbatim = ladder.build_prompt(
+        question="Q", verbatim=True, gap_id="index_laws",
+        entry_id="solve_index_equation", chain=[])
+    paraphrased = ladder.build_prompt(
+        question="Q", verbatim=False, gap_id="index_laws",
+        entry_id="solve_index_equation", chain=[])
+
+    assert "THE STUDENT'S OWN QUESTION" in verbatim
+    assert "READ FROM A PHOTO" in paraphrased
+    assert "not their exact wording" in paraphrased
