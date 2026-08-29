@@ -436,15 +436,11 @@
 
   /* Quiet on purpose. Someone who wants to say something will look for it;
      nobody arriving for the first time needs it in the way. */
-  #thoughts { margin-top: 1.5rem; }
-  #thoughts summary {
-    cursor: pointer;
-    color: var(--accent);
-    font-weight: 500;
-    font-size: 0.92rem;
-  }
-  #thoughts form { margin-top: 0.5rem; }
-  #thoughts textarea {
+  /* The feedback form. It used to sit collapsed in the footer behind a summary
+     nobody clicks, which is the wrong place for the one thing that can correct
+     the map. It is a section now, open, and styled like the rest of the page. */
+  #say form { margin-top: 1.5rem; }
+  #say textarea {
     width: 100%;
     padding: 0.9rem 1rem;
     font-family: var(--sans);
@@ -456,8 +452,8 @@
     border-radius: 12px;
     resize: vertical;
   }
-  #thoughts input { background: var(--card); }
-  #thoughts button { margin-top: 1.25rem; }
+  #say input { background: var(--card); }
+  #say button { margin-top: 1.25rem; }
 
   @media (max-width: 34rem) {
     section { padding: 2.25rem 1.5rem; border-radius: 16px; }
@@ -564,11 +560,29 @@
     </li>
     <li>
       <div>
-        <h3>Get the first thing to fix &mdash; and the route back</h3>
+        <h3>Get the first thing to fix &mdash; and what to go and do</h3>
         <p>Not a list of twelve weaknesses. One skill to start on, the reason
-        it's that one and not something lower, and the route back up to the
-        question they were stuck on. The first thing in the way &mdash; and it
-        says so when there may be more behind it.</p>
+        it's that one and not something lower, and a line telling them what to
+        practise &mdash; with an example and something to search. The first
+        thing in the way, and it says so when there may be more behind it.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <h3>Climb back up to their own question</h3>
+        <p>Four questions that start where the gap is and build, one step at a
+        time, until the last one <em>is</em> the question they came in with
+        &mdash; word for word, with nothing of the working given away. It's
+        offered, not forced: they choose whether to take it.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <h3>Come back and run it again</h3>
+        <p>After they've worked on it, the same question can be run from
+        scratch. Nothing is remembered, so if the gap has closed the walk goes
+        straight past it and finds whatever is behind it &mdash; which is the
+        only way to know the work landed.</p>
       </div>
     </li>
   </ol>
@@ -660,67 +674,75 @@
 </section>
 
 <section id="join">
-  <p class="eyebrow">Opening soon</p>
-  <h2>Be told when it's ready</h2>
+  <p class="eyebrow">It's open</p>
+  <h2>Try it on a question now</h2>
   <p class="small">I'm a maths and physics tutor. I built this because I keep
   finding the same thing in lessons &mdash; the question a student is stuck on is
   almost never where the problem is.</p>
 
+  <p>Bring a question one of your students is stuck on. A photo of the page
+  works best. It takes about six questions and costs nothing, and there's
+  nothing to sign up for.</p>
+
   <p><a class="try" href="/start">Try it on a question now</a></p>
-  <p class="small">It's open and free while it's being tested. The waitlist below
-  is for hearing what comes next, not for getting in.</p>
 
-  <form id="form" novalidate>
-    <label for="email">Your email</label>
-    <input type="email" id="email" name="email" autocomplete="email"
-           placeholder="you@example.com" required>
+  <p class="small">If you're a tutor, add <code>?tutor=1</code> to the address
+  and you'll be asked at the end whether the diagnosis was right &mdash; and
+  what the real gap was, if it wasn't. That answer is the only thing that can
+  correct the map underneath this, and it takes one tap.</p>
+</section>
 
-    <label for="studying">What do you teach? (optional)</label>
-    <input type="text" id="studying" name="studying"
-           placeholder="Edexcel A-level &mdash; mostly Year 12 and 13">
+<section id="say">
+  <p class="eyebrow">The part I actually need</p>
+  <h2>Tell me where it's wrong</h2>
+  <p>This is one tutor's theory about how maths failure works, with a tool
+  attached. The theory is written down as a map of what rests on what &mdash;
+  296 links, and until last week not one of them had a reason recorded against
+  it. I can't check that map on my own. A tutor saying "no, it was this
+  instead" is the only evidence from outside my own reasoning.</p>
+  <p>So: if a diagnosis was wrong, if a topic you teach isn't covered, if a
+  question wouldn't place, or if something just reads badly &mdash; that is the
+  most useful thing you can send me. It goes straight to a page I read.</p>
 
-    <button type="submit" id="go">Join the waitlist</button>
-    <p class="said" id="said" role="status" aria-live="polite"></p>
+  <form id="comment-form">
+    <label for="comment">What would make this worth using, or what puts you off?</label>
+    <textarea id="comment" rows="4"
+              placeholder="It said indices, but she'd actually never understood what a fraction is."></textarea>
+
+    <label for="about">A skill or topic in particular? (optional)</label>
+    <input type="text" id="about" placeholder="Trigonometry">
+
+    <label for="contact">Your email, if you want an answer (optional)</label>
+    <input type="email" id="contact" placeholder="you@example.com">
+
+    <button type="submit" id="send">Send</button>
+    <p class="said" id="comment-said" role="status" aria-live="polite"></p>
   </form>
-
-  <p class="small" style="margin-top:1.2rem">One email when there's something
-  worth telling you. Nothing else, and your address doesn't go anywhere else.</p>
 </section>
 
 </main>
 
 <footer>
-  <p>Right now it covers Pure maths &mdash; differentiation, integration, logs,
-  sequences, quadratics, functions, indices, binomial expansion, coordinate
-  geometry and polynomials. Trigonometry, statistics and mechanics aren't in
-  yet. If it can't place a question it says so rather than guessing.</p>
+  <p>A-level Pure &mdash; differentiation, integration, logs, sequences,
+  quadratics, functions, indices and surds, binomial expansion, coordinate
+  geometry and polynomials. GCSE underneath it &mdash; linear equations,
+  expanding and factorising, ratio and proportion, and fractions, decimals and
+  percentages, which is where an A-level question often turns out to fail.
+  Trigonometry, statistics and mechanics aren't in yet. If it can't place a
+  question it says so rather than guessing.</p>
   <p>Built by a tutor, in the open.</p>
-
-  <details id="thoughts">
-    <summary>Any thoughts on this? Tell me.</summary>
-    <form id="comment-form">
-      <label for="comment">What would make this worth using, or what puts you off?</label>
-      <textarea id="comment" rows="4"
-                placeholder="No trigonometry, which is half of what I teach."></textarea>
-
-      <label for="about">A skill or topic in particular? (optional)</label>
-      <input type="text" id="about" placeholder="Trigonometry">
-
-      <label for="contact">Your email, if you want an answer (optional)</label>
-      <input type="email" id="contact" placeholder="you@example.com">
-
-      <button type="submit" id="send">Send</button>
-      <p class="said" id="comment-said" role="status" aria-live="polite"></p>
-    </form>
-  </details>
 </footer>
 
 <script>
+// The waitlist form is gone - the tool is open, so the ask is "use it", not
+// "wait". The handler stays behind a guard rather than being deleted: the
+// endpoint still exists and still has people on it, and this is the only code
+// that knows how to talk to it.
 const form = document.getElementById('form');
 const said = document.getElementById('said');
 const go = document.getElementById('go');
 
-form.addEventListener('submit', async (event) => {
+if (form) form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const email = document.getElementById('email').value.trim();
   const studying = document.getElementById('studying').value.trim();
