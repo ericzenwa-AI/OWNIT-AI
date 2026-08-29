@@ -6,6 +6,8 @@ shelving and the choosing.
 Run from the repo root with:  pytest backend/
 """
 
+import pathlib
+
 import pytest
 
 import bank
@@ -419,3 +421,69 @@ def test_an_unreadable_shelf_file_does_not_stop_a_session(fresh, monkeypatch):
     banked_id, question = bank.question_for("index_laws")
 
     assert question.question == "written"
+
+
+# ---- What ships on the shelf -----------------------------------------------
+#
+# These read data/question_bank.jsonl, which is committed, so they check what a
+# student will actually be served rather than anything generated at run time.
+# No API calls.
+
+
+# The real committed file, not bank.SHELF_FILE - an autouse fixture in this
+# module redirects that to a temporary path for every test, which is right
+# for the tests that write a shelf and wrong for the ones that read the one
+# being shipped.
+COMMITTED_SHELF = (
+    pathlib.Path(__file__).resolve().parent.parent / "data" / "question_bank.jsonl")
+
+
+def _committed_shelf():
+    import json
+
+    counts = {}
+    with COMMITTED_SHELF.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if not row["retired"]:
+                counts[row["skill_id"]] = counts.get(row["skill_id"], 0) + 1
+    return counts
+
+
+def test_every_skill_has_questions_on_the_shelf():
+    """A skill in the graph with nothing banked is the one path that spends
+    money without being asked: the walk reaches it, finds the shelf empty, and
+    pays a model to write five questions while a student waits.
+
+    This is the check that was missing. Two skills added to the graph went
+    unbanked for two days, and nothing failed - the equivalent test for practice
+    lines caught the same omission the moment it happened.
+    """
+    from graph import SKILLS
+
+    shelf = _committed_shelf()
+    missing = sorted(s for s in SKILLS if s not in shelf)
+
+    assert not missing, (
+        "no banked questions for: " + ", ".join(missing)
+        + " - run `python backend/bank.py --fill`, audit them, then --save")
+
+
+def test_the_shelf_holds_no_skill_the_graph_dropped():
+    """A retired skill leaves questions nothing can ever serve."""
+    from graph import SKILLS
+
+    stale = sorted(s for s in _committed_shelf() if s not in SKILLS)
+
+    assert not stale, f"banked questions for skills not in the graph: {stale}"
+
+
+def test_every_skill_has_more_than_one_question():
+    """One question means a student meeting the skill twice sees it twice, and
+    a retake shows them the same thing it just showed them."""
+    shelf = _committed_shelf()
+    thin = sorted(s for s, n in shelf.items() if n < 2)
+
+    assert not thin, f"only one question banked for: {thin}"

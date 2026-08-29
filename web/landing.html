@@ -397,6 +397,27 @@
   button:active:not(:disabled) { transform: translateY(0); }
   button:disabled { opacity: 0.5; cursor: default; }
 
+  /* The way in. Styled as the page's button rather than as a link, because
+     it is the primary action and a link reads as a footnote next to a filled
+     waitlist button. Sized to its text instead of full width so it does not
+     compete with the form lower down. */
+  .try {
+    display: inline-block;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    padding: 0.95rem 1.6rem;
+    margin: 1.75rem 0 0.6rem;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-decoration: none;
+    transition: filter 0.15s ease, transform 0.15s ease;
+  }
+  .try:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .try:active { transform: translateY(0); }
+
   .small { font-size: 0.92rem; color: var(--muted); }
   .said { margin-top: 1rem; font-size: 0.95rem; font-weight: 500; }
   .said.bad { color: var(--broke); }
@@ -461,6 +482,10 @@
   question.</h1>
   <p class="lead">Most tutors already know this. They just don't have a system
   that finds it fast.</p>
+
+  <p><a class="try" href="/start">Try it on a question now</a></p>
+  <p class="small">Free, no sign-up. Paste a question or photograph one, and it
+  works down to what is actually missing.</p>
 </header>
 
 <section>
@@ -639,7 +664,11 @@
   <h2>Be told when it's ready</h2>
   <p class="small">I'm a maths and physics tutor. I built this because I keep
   finding the same thing in lessons &mdash; the question a student is stuck on is
-  almost never where the problem is. It's being tested with students now.</p>
+  almost never where the problem is.</p>
+
+  <p><a class="try" href="/start">Try it on a question now</a></p>
+  <p class="small">It's open and free while it's being tested. The waitlist below
+  is for hearing what comes next, not for getting in.</p>
 
   <form id="form" novalidate>
     <label for="email">Your email</label>
@@ -654,8 +683,8 @@
     <p class="said" id="said" role="status" aria-live="polite"></p>
   </form>
 
-  <p class="small" style="margin-top:1.2rem">One email when it opens. Nothing
-  else, and your address doesn't go anywhere else.</p>
+  <p class="small" style="margin-top:1.2rem">One email when there's something
+  worth telling you. Nothing else, and your address doesn't go anywhere else.</p>
 </section>
 
 </main>
