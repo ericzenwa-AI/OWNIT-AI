@@ -267,6 +267,12 @@
     border-left: 2px solid var(--held);
   }
 
+  /* Context, not the task. Sits above the question box and must not compete
+     with it for attention. */
+  .card.scope { background: var(--sunk); box-shadow: none; padding: 1.4rem 1.5rem; }
+  .card.scope p { font-size: 0.95rem; }
+  .card.scope .note { margin-top: 0.7rem; }
+
   .chain { color: var(--muted); font-size: 0.95rem; margin-top: 0.4rem; }
   .note { color: var(--muted); font-size: 0.95rem; }
   p { margin: 0 0 1rem; }
@@ -502,8 +508,47 @@ function recall(key) {
 
 // A photo keeps the layout that copy-pasting destroys - powers and fractions
 // come out of a PDF as loose numbers - so it is offered first.
+// What is covered, and what is not, before a single keystroke.
+//
+// This page said nothing about scope. A tutor brought a trigonometry question,
+// typed it out or photographed it, waited for it to be read, and only then
+// found out - which is the worst possible moment to learn it and the likeliest
+// reason someone never comes back.
+//
+// The list is read off the graph rather than written here, because a hardcoded
+// one drifts and the failure it drifts into is telling a tutor that a topic is
+// covered when it is not. The hardcoded copy below is the fallback for when
+// that request does not answer; being a little out of date beats being silent.
+const COVERED_FALLBACK =
+  'differentiation, integration, indices and surds, quadratics, sequences ' +
+  'and series, binomial expansion, exponentials and logarithms, functions, ' +
+  'coordinate geometry, polynomials, linear equations, expanding and ' +
+  'factorising, ratio and proportion, and fractions, decimals and percentages';
+
+async function showScope() {
+  const into = document.getElementById('covers');
+  if (!into) return;
+  try {
+    const response = await fetch('/api/health');
+    const health = await response.json();
+    const topics = (health.topics || []).slice().sort();
+    if (topics.length) into.textContent = listOf(topics) + '.';
+  } catch (error) {
+    /* the fallback is already on the page */
+  }
+}
+
 function askScreen() {
   screen.innerHTML = `
+    <div class="card scope">
+      <p class="label">What this covers</p>
+      <p>A-level Pure, and the GCSE underneath it &mdash;
+        <span id="covers">${COVERED_FALLBACK}.</span></p>
+      <p class="note"><strong>Not trigonometry, statistics or mechanics yet.</strong>
+        If it can&rsquo;t place your question it says so rather than guessing,
+        and tells me what it turned away.</p>
+    </div>
+
     <div class="card">
       <label for="photo">A photo of the question (best)</label>
       <input type="file" id="photo" accept="image/*,application/pdf">
@@ -516,6 +561,7 @@ function askScreen() {
       <p id="msg" class="note"></p>
     </div>`;
   document.getElementById('go').onclick = start;
+  showScope();
 }
 
 async function start() {

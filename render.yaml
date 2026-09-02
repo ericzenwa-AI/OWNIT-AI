@@ -43,8 +43,19 @@ services:
 
       # How many questions may be read in a day. Every one is a call to the
       # best model, and the page is public with no sign-in.
+      #
+      # Measured, not guessed: a session is one Opus call to read the
+      # question, plus two more only when working is attached. 1.7-4.7p
+      # for a question on its own, 3.5-12.5p with working. Banked
+      # questions cost nothing, and a retake costs nothing at all.
+      #
+      # Thirty was right for a handful of tutors and is not right for a
+      # post that a few hundred people read: the thirty-first person
+      # sees a refusal instead of the thing you told them about. At 150
+      # a realistic busy day is about 3-8 pounds and the absolute worst
+      # case - every session with working and heavy thinking - is 19.
       - key: OWNIT_DAILY_STARTS
-        value: 30
+        value: 150
 
       # The ceiling for repeat attempts at a question already read - a retake,
       # or moving to another part of it. Nothing is sent to a model on that
