@@ -69,13 +69,30 @@ nodes:
     probe: Find the normal at a point — requires flipping and negating the tangent gradient.
     needs: [tangent_equation, perpendicular_gradients]
 
+  - id: set_derivative_zero
+    name: Setting the derivative to zero
+    level: 1
+    kind: procedure
+    probe: >-
+      Given a derivative that has already been worked out, write the equation
+      that finds the stationary points. Tests choosing the right thing to do to
+      it, not the differentiating and not the solving.
+    needs: [stationary_definition]
+    note: >-
+      Cambridge 9709 March 2025, P1 Q2(b): "some candidates differentiated their
+      expression for dy/dx again instead of setting it to zero, and so scored
+      nothing". They knew what a derivative was and could differentiate; they
+      applied the wrong operation to it. Without this the diagnosis lands on
+      "does not know what stationary means", which is too coarse and untrue of
+      those candidates.
+
   - id: find_stationary_points
     name: Find stationary points
     level: 0
     topic: differentiation
     kind: procedure
     probe: Set the derivative to zero and solve for all x, then find the y-coordinates.
-    needs: [differentiate_function, stationary_definition, solve_quadratic, factorise_common, exp_never_zero]
+    needs: [differentiate_function, stationary_definition, set_derivative_zero, solve_quadratic, factorise_common, exp_never_zero]
 
   - id: classify_stationary
     name: Classify stationary points
@@ -1173,6 +1190,26 @@ nodes:
     probe: Find a fraction of a quantity, such as three fifths of 45.
     needs: [fraction_meaning]
 
+  - id: combine_over_common_denominator
+    name: Combining fractions once the bottoms match
+    level: 5
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Add or subtract two fractions that ALREADY share a denominator, and
+      simplify what comes out. Must not require finding the denominator - the
+      question has to hand that over, so this tests the combining alone.
+    needs: [fraction_meaning, negatives, equivalent_fractions]
+    note: >-
+      Found by a tutor watching a student, 2026-09-02. The walk traced a
+      subtraction question correctly down to what a fraction is and back up
+      through equivalent fractions and finding a common denominator - and the
+      student still could not do the question, because nothing had tested the
+      step where the numerators are combined and the denominator is kept.
+      10/12 - 3/12 = 7/24 is one of the commonest errors in the subject and the
+      graph had nowhere to put it: both children can hold and the question still
+      fails.
+
   - id: add_subtract_fractions
     name: Adding and subtracting fractions
     level: 4
@@ -1180,7 +1217,7 @@ nodes:
     stage: gcse
     kind: procedure
     probe: Add or subtract two fractions with different denominators.
-    needs: [common_denominator, equivalent_fractions]
+    needs: [common_denominator, equivalent_fractions, combine_over_common_denominator]
 
   - id: multiply_divide_fractions
     name: Multiplying and dividing fractions
@@ -1189,7 +1226,7 @@ nodes:
     stage: gcse
     kind: procedure
     probe: Multiply or divide two fractions and simplify the result.
-    needs: [reciprocal, fraction_meaning]
+    needs: [reciprocal, fraction_meaning, equivalent_fractions]
 
   - id: convert_fdp
     name: Converting between fractions, decimals and percentages
