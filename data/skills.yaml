@@ -32,6 +32,19 @@ meta:
     - "kind matters: 'fact' nodes need recall questions, 'concept' nodes need explain-or-choose questions, 'procedure' nodes need do-it questions. Generating the same question shape for all three is the fastest way to make this useless."
     - Nodes with many dependents are load-bearing but usually intact. Use as a tiebreaker, not a starting point.
     - Floor nodes (level 4) recur across every A-level topic. Build them once, reuse across trigonometry, integration, series.
+    - >-
+      THE RULE FOR ADDING A DOORWAY. Before it is finished, ask: if a student
+      passed every one of its `needs`, could they now do the actual question -
+      or is there an act nobody tested? Prerequisites are the ingredients; the
+      act of putting them together is a skill of its own and usually has no
+      node. Nothing else here can catch that: the walk never asks about a
+      doorway, because being stuck on it is the premise; the chain is made of
+      nodes; and the ladder only climbs steps the graph knows about. Found by a
+      tutor on 2026-09-02, when a student cleared every step under a fraction
+      subtraction and still could not do it, because combining the numerators
+      over the shared denominator was in no node. Record the answer in
+      data/assembly_audit.json - test_assembly.py fails on a doorway with no
+      verdict, so this cannot be skipped by forgetting. See backend/assembly.py.
 
 nodes:
 

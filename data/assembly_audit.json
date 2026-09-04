@@ -8,352 +8,436 @@
     "add_subtract_fractions": {
       "act": "Combine numerators over the shared denominator",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": [
+        {
+          "source": "tutor session",
+          "on": "2026-09-02",
+          "detail": "A tutor watched a student climb the whole chain - what a fraction is, equivalent fractions, finding a common denominator - and still fail the subtraction. Nothing tested combining the numerators over the shared denominator. Fixed by combine_over_common_denominator."
+        }
+      ]
     },
     "area_between_curves": {
       "act": "Integrate the difference of the two functions",
       "modelled": false,
-      "missing": "Needs a node for forming the integrand as (upper curve − lower curve) over the intersection limits. A student can find the meeting points (solve_quadratic) and evaluate any integral handed to them (definite_integral) and still integrate each curve separately and subtract answers in the wrong order, or subtract lower−upper and report a negative area."
+      "missing": "Needs a node for forming the integrand as (upper curve − lower curve) over the intersection limits. A student can find the meeting points (solve_quadratic) and evaluate any integral handed to them (definite_integral) and still integrate each curve separately and subtract answers in the wrong order, or subtract lower−upper and report a negative area.",
+      "evidence": []
     },
     "area_under_curve": {
       "act": "Set up and evaluate the integral for the area",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "arithmetic_sequence": {
       "act": "Recover a and d from two given terms",
       "modelled": false,
-      "missing": "Needs a node for turning two given terms into two equations in a and d and eliminating one (simultaneous equations from sequence terms). Knowing what an nth term rule does does not stop a student writing the two terms with the same n, or subtracting to get d and then forgetting to back-substitute for a."
+      "missing": "Needs a node for turning two given terms into two equations in a and d and eliminating one (simultaneous equations from sequence terms). Knowing what an nth term rule does does not stop a student writing the two terms with the same n, or subtracting to get d and then forgetting to back-substitute for a.",
+      "evidence": []
     },
     "arithmetic_series_sum": {
       "act": "Apply the arithmetic sum formula",
       "modelled": false,
-      "missing": "Needs a node for the sum formula itself, Sn = n/2(2a + (n−1)d) (or n/2(a+l)), and choosing it over the nth-term rule. The classic error — computing the nth term and calling it the sum, or using n rather than n/2 — has nowhere to live."
+      "missing": "Needs a node for the sum formula itself, Sn = n/2(2a + (n−1)d) (or n/2(a+l)), and choosing it over the nth-term rule. The classic error — computing the nth term and calling it the sum, or using n rather than n/2 — has nowhere to live.",
+      "evidence": []
     },
     "best_value": {
       "act": "Compare unit rates and conclude",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "binomial_approximation": {
       "act": "Choose the substitution value that produces the target number",
       "modelled": false,
-      "missing": "Needs a node for selecting x so that the expanded expression equals the required root (e.g. solving 1 + 2x = 1.02 to get x = 0.01) before substituting. With only coefficients, validity and substitution as children, a student who picks the wrong x — substituting the target value itself — fails with no node to blame."
+      "missing": "Needs a node for selecting x so that the expanded expression equals the required root (e.g. solving 1 + 2x = 1.02 to get x = 0.01) before substituting. With only coefficients, validity and substitution as children, a student who picks the wrong x — substituting the target value itself — fails with no node to blame.",
+      "evidence": []
     },
     "binomial_validity": {
       "act": "State and justify the range of validity",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "classify_stationary": {
       "act": "Evaluate the second derivative and conclude max or min",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "complete_the_square": {
       "act": "Form (x + b/2)^2 and correct the constant",
       "modelled": false,
-      "missing": "Needs a node for the completing step: halve the x-coefficient, square the bracket, then subtract (b/2)^2 and combine with c. Expanding, factorising and negatives are all ingredients; x^2+6x+1 → (x+3)^2+1 (forgetting to subtract 9) is the standard error and nothing in the children tests it."
+      "missing": "Needs a node for the completing step: halve the x-coefficient, square the bracket, then subtract (b/2)^2 and combine with c. Expanding, factorising and negatives are all ingredients; x^2+6x+1 → (x+3)^2+1 (forgetting to subtract 9) is the standard error and nothing in the children tests it.",
+      "evidence": []
     },
     "connected_rates": {
       "act": "Chain the rates together",
       "modelled": false,
-      "missing": "Needs a node for assembling the chain of rates, dV/dt = dV/dr × dr/dt: identifying which rate is given, which is wanted, and that the shared variable cancels. Chain rule as a differentiation technique does not catch a student who divides the rates or multiplies the wrong pair."
+      "missing": "Needs a node for assembling the chain of rates, dV/dt = dV/dr × dr/dt: identifying which rate is given, which is wanted, and that the shared variable cancels. Chain rule as a differentiation technique does not catch a student who divides the rates or multiplies the wrong pair.",
+      "evidence": []
     },
     "convert_fdp": {
       "act": "Move between all three representations",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "differentiate_function": {
       "act": "Apply the appropriate differentiation rule",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "direct_proportion": {
       "act": "Scale via the value of one",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "evaluate_composite": {
       "act": "Substitute one function into the other in the right order",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "evaluate_definite_integral": {
       "act": "Evaluate between limits in exact form",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "evaluate_index": {
       "act": "Evaluate a number to a negative/fractional/zero power",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "expand_binomial": {
       "act": "Assemble the terms of the expansion",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "expand_binomial_fractional": {
       "act": "Build the first few terms with a negative/fractional index",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "expand_brackets": {
       "act": "Collect the expanded result",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "expand_single_bracket": {
       "act": "Distribute over every term",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "factorise_common": {
       "act": "Take out the HCF and write the correct bracket",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "factorise_cubic": {
       "act": "Find the first factor, divide, factorise the rest",
       "modelled": false,
-      "missing": "Needs a node for locating the first root by testing candidate values (factors of the constant term) with f(a)=0. The factor theorem concept states what f(a)=0 means and division and quadratic factorising handle the rest, but a student who does not know which values to try, or who tests values unrelated to the constant term, has no node covering that search."
+      "missing": "Needs a node for locating the first root by testing candidate values (factors of the constant term) with f(a)=0. The factor theorem concept states what f(a)=0 means and division and quadratic factorising handle the rest, but a student who does not know which values to try, or who tests values unrelated to the constant term, has no node covering that search.",
+      "evidence": []
     },
     "factorise_quadratic": {
       "act": "Choose the factor pair and write the brackets",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "find_inverse": {
       "act": "Invert and state the domain",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "find_stationary_points": {
       "act": "Solve f'(x)=0 and find the y-coordinates",
       "modelled": false,
-      "missing": "Needs a node for back-substituting each root into the ORIGINAL function to get the y-coordinate. Every child stops at the x-values; substituting the root into the derivative (getting y = 0 every time) is a common and currently undiagnosable error."
+      "missing": "Needs a node for back-substituting each root into the ORIGINAL function to get the y-coordinate. Every child stops at the x-values; substituting the root into the derivative (getting y = 0 every time) is a common and currently undiagnosable error.",
+      "evidence": [
+        {
+          "source": "examiner report",
+          "on": "2026-09-02",
+          "detail": "Cambridge 9709 March 2025 P1 Q2(b): candidates differentiated dy/dx again instead of setting it to zero. Half fixed by set_derivative_zero; the other half - substituting the roots back into the ORIGINAL function for the y-coordinates - is still open, which is why this stays on the backlog."
+        }
+      ]
     },
     "first_principles": {
       "act": "Form and simplify the difference quotient, then take the limit",
       "modelled": false,
-      "missing": "Needs a node for setting up [f(x+h) − f(x)]/h from the function. Children give the limit concept, expanding and algebraic fractions, but writing f(x+h) correctly (e.g. expanding (x+h)^2 as x^2+h^2) and cancelling the h before taking the limit is untested."
+      "missing": "Needs a node for setting up [f(x+h) − f(x)]/h from the function. Children give the limit concept, expanding and algebraic fractions, but writing f(x+h) correctly (e.g. expanding (x+h)^2 as x^2+h^2) and cancelling the h before taking the limit is untested.",
+      "evidence": []
     },
     "form_and_solve": {
       "act": "Form an equation and solve it",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "fraction_of_amount": {
       "act": "Compute a fraction of a quantity",
       "modelled": false,
-      "missing": "Needs a procedure node for the operation itself: divide by the denominator and multiply by the numerator. The only child is the concept of what a fraction means; a student who divides 45 by 3 and stops, or divides by the numerator, fails with nothing to point at."
+      "missing": "Needs a procedure node for the operation itself: divide by the denominator and multiply by the numerator. The only child is the concept of what a fraction means; a student who divides 45 by 3 and stops, or divides by the numerator, fails with nothing to point at.",
+      "evidence": []
     },
     "fractions_arith": {
       "act": "Carry out the addition, multiplication or division",
       "modelled": false,
-      "missing": "Needs the executing nodes as children — combining numerators over a common denominator, and multiplying numerators and denominators. As it stands the children are all preparation and concept, so 1/2 + 1/3 = 2/5 or multiplying tops and adding bottoms has no home (combine_over_common_denominator and multiply_divide_fractions exist in the graph but are not attached here)."
+      "missing": "Needs the executing nodes as children — combining numerators over a common denominator, and multiplying numerators and denominators. As it stands the children are all preparation and concept, so 1/2 + 1/3 = 2/5 or multiplying tops and adding bottoms has no home (combine_over_common_denominator and multiply_divide_fractions exist in the graph but are not attached here).",
+      "evidence": []
     },
     "geometric_sequence": {
       "act": "Recover a and r from two given terms",
       "modelled": false,
-      "missing": "Needs a node for dividing one term by the other to eliminate a and find r, then back-substituting for a. Index laws and the nth-term concept do not catch a student who subtracts the terms (treating r like a common difference) or forgets to find a."
+      "missing": "Needs a node for dividing one term by the other to eliminate a and find r, then back-substituting for a. Index laws and the nth-term concept do not catch a student who subtracts the terms (treating r like a common difference) or forgets to find a.",
+      "evidence": []
     },
     "geometric_series_sum": {
       "act": "Apply the geometric sum formula",
       "modelled": false,
-      "missing": "Needs a node for the sum formula a(1−r^n)/(1−r) and its use. Nothing tests writing the formula correctly: using r^n instead of 1−r^n, or dividing by r−1 with the numerator ordered the other way, is a standard error with nowhere to live."
+      "missing": "Needs a node for the sum formula a(1−r^n)/(1−r) and its use. Nothing tests writing the formula correctly: using r^n instead of 1−r^n, or dividing by r−1 with the numerator ordered the other way, is a standard error with nowhere to live.",
+      "evidence": []
     },
     "gradient_at_point": {
       "act": "Differentiate then evaluate",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "implicit_diff": {
       "act": "Differentiate y-terms w.r.t. x and rearrange for dy/dx",
       "modelled": false,
-      "missing": "Needs a node for differentiating a term in y with respect to x, producing the dy/dx factor (d/dx of y^2 = 2y dy/dx), and then collecting all dy/dx terms on one side to make it the subject. Generic chain and product rules plus algebraic fractions do not catch the student who writes 2y with no dy/dx, or who never gathers the dy/dx terms."
+      "missing": "Needs a node for differentiating a term in y with respect to x, producing the dy/dx factor (d/dx of y^2 = 2y dy/dx), and then collecting all dy/dx terms on one side to make it the subject. Generic chain and product rules plus algebraic fractions do not catch the student who writes 2y with no dy/dx, or who never gathers the dy/dx terms.",
+      "evidence": []
     },
     "increasing_decreasing": {
       "act": "Solve the derivative inequality and state the interval",
       "modelled": false,
-      "missing": "Needs a node for solving a quadratic inequality f'(x) > 0 and expressing the answer as a range. With only roots (solve_quadratic) and the sign concept, a student who reports the two roots, or gets the interval inside/outside the wrong way round, cannot be diagnosed."
+      "missing": "Needs a node for solving a quadratic inequality f'(x) > 0 and expressing the answer as a range. With only roots (solve_quadratic) and the sign concept, a student who reports the two roots, or gets the interval inside/outside the wrong way round, cannot be diagnosed.",
+      "evidence": []
     },
     "integrate_by_substitution": {
       "act": "Change the variable, the differential and the limits",
       "modelled": false,
-      "missing": "Needs a node for executing the substitution: du = ... dx, replacing dx, and converting the limits to the new variable. Recognising what to substitute and evaluating an integral do not cover the student who forgets to replace dx or keeps the original x-limits."
+      "missing": "Needs a node for executing the substitution: du = ... dx, replacing dx, and converting the limits to the new variable. Recognising what to substitute and evaluating an integral do not cover the student who forgets to replace dx or keeps the original x-limits.",
+      "evidence": []
     },
     "integrate_expression": {
       "act": "Integrate term by term with + c",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "line_through_two_points": {
       "act": "Find gradient then write the line",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "midpoint_and_distance": {
       "act": "Apply the midpoint and distance formulas",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "multiply_divide_fractions": {
       "act": "Multiply numerators and denominators",
       "modelled": false,
-      "missing": "Needs a node for the multiplying act itself: numerator times numerator, denominator times denominator (after flipping for a division). The children give the reciprocal concept, fraction meaning and simplifying; 2/3 × 4/5 = 8/8 or cross-multiplying has no node."
+      "missing": "Needs a node for the multiplying act itself: numerator times numerator, denominator times denominator (after flipping for a division). The children give the reciprocal concept, fraction meaning and simplifying; 2/3 × 4/5 = 8/8 or cross-multiplying has no node.",
+      "evidence": []
     },
     "normal_equation": {
       "act": "Negate-and-flip the tangent gradient and write the line",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "optimisation": {
       "act": "Interpret the optimised result in context",
       "modelled": false,
-      "missing": "Needs a node for converting the stationary x back into the quantity asked for — substituting into the original function to give the maximum area/volume, and checking it against the context. As built, a student can form and optimise the function and answer with x = 4 instead of the maximum volume, with nothing to record that."
+      "missing": "Needs a node for converting the stationary x back into the quantity asked for — substituting into the original function to give the maximum area/volume, and checking it against the context. As built, a student can form and optimise the function and answer with x = 4 instead of the maximum volume, with nothing to record that.",
+      "evidence": []
     },
     "order_fdp": {
       "act": "Convert to a common form and order",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "parametric_diff": {
       "act": "Divide dy/dt by dx/dt",
       "modelled": false,
-      "missing": "Needs a node for assembling dy/dx = (dy/dt)/(dx/dt). Differentiating each parametric equation and simplifying fractions are ingredients; inverting the quotient (dx/dt over dy/dt) or multiplying the two derivatives is the actual error and it is untested."
+      "missing": "Needs a node for assembling dy/dx = (dy/dt)/(dx/dt). Differentiating each parametric equation and simplifying fractions are ingredients; inverting the quotient (dx/dt over dy/dt) or multiplying the two derivatives is the actual error and it is untested.",
+      "evidence": []
     },
     "percentage_change": {
       "act": "Apply or find a percentage change",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "perpendicular_line": {
       "act": "Perpendicular gradient then the line",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "polynomial_division": {
       "act": "Carry out the division",
       "modelled": false,
-      "missing": "Needs a node for the division process itself — long division or matching coefficients: divide the leading term, multiply back, subtract, bring down the next term. Expanding, solving linear equations and negatives are all ingredients; sign errors at the subtraction step and dropping a missing power are the real failures and have no home."
+      "missing": "Needs a node for the division process itself — long division or matching coefficients: divide the leading term, multiply back, subtract, bring down the next term. Expanding, solving linear equations and negatives are all ingredients; sign errors at the subtraction step and dropping a missing power are the real failures and have no home.",
+      "evidence": []
     },
     "rationalise_denominator": {
       "act": "Multiply by the right form of 1",
       "modelled": false,
-      "missing": "Needs a node for choosing and applying the multiplier — the surd itself, or the conjugate for a two-term denominator — to both numerator and denominator. Surds, algebraic fractions and expanding do not catch multiplying only the denominator, or using a+√b instead of the conjugate a−√b."
+      "missing": "Needs a node for choosing and applying the multiplier — the surd itself, or the conjugate for a two-term denominator — to both numerator and denominator. Surds, algebraic fractions and expanding do not catch multiplying only the denominator, or using a+√b instead of the conjugate a−√b.",
+      "evidence": []
     },
     "rearrange_formula": {
       "act": "Isolate the named letter",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "reverse_percentage": {
       "act": "Divide by the multiplier",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "second_derivative": {
       "act": "Differentiate twice and read the sign",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "share_in_ratio": {
       "act": "Find one share of the total",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "simplify_index_expression": {
       "act": "Combine into a single index form",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "simplify_logs": {
       "act": "Apply the log laws in either direction",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "simplify_ratio": {
       "act": "Divide both parts by the HCF",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "sketch_modulus_graph": {
       "act": "Sketch and read off the vertex",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "solve_both_sides": {
       "act": "Gather the unknown on one side",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "solve_exponential_equation": {
       "act": "Take logs of both sides and bring the index down",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "solve_index_equation": {
       "act": "Match bases and equate indices",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "solve_linear": {
       "act": "Solve a one or two step equation",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "solve_log_equation": {
       "act": "Convert the log statement into index form",
       "modelled": false,
-      "missing": "Needs a node for the log-to-index conversion, log_a x = b ⇒ x = a^b, once the logs have been combined. Log laws, index laws and linear solving leave the student who writes x = b^a, or who cancels the 'log' from both sides, undiagnosed."
+      "missing": "Needs a node for the log-to-index conversion, log_a x = b ⇒ x = a^b, once the logs have been combined. Log laws, index laws and linear solving leave the student who writes x = b^a, or who cancels the 'log' from both sides, undiagnosed.",
+      "evidence": []
     },
     "solve_modulus_equation": {
       "act": "Take both branches and reject invalid roots",
       "modelled": false,
-      "missing": "Needs a node for splitting into the two cases (expression = +k and = −k) and then substituting back to reject solutions that do not satisfy the original modulus equation. modulus_meaning explains the notation only; giving just the positive branch, or keeping an extraneous root, has nowhere to live."
+      "missing": "Needs a node for splitting into the two cases (expression = +k and = −k) and then substituting back to reject solutions that do not satisfy the original modulus equation. modulus_meaning explains the notation only; giving just the positive branch, or keeping an extraneous root, has nowhere to live.",
+      "evidence": []
     },
     "solve_quadratic": {
       "act": "Set each factor to zero and give both roots",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "solve_with_brackets": {
       "act": "Expand then solve",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "state_domain_range": {
       "act": "State a domain or range with justification",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "straight_line_equation": {
       "act": "Write the line from a point and gradient",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "sum_to_infinity": {
       "act": "Apply a/(1−r)",
       "modelled": false,
-      "missing": "Needs a node for the sum-to-infinity formula and its evaluation. The children supply a and r, the fraction arithmetic and the validity condition, but nothing tests forming a/(1−r) — using a/(1+r), or r−1 in the denominator, especially with a negative r."
+      "missing": "Needs a node for the sum-to-infinity formula and its evaluation. The children supply a and r, the fraction arithmetic and the validity condition, but nothing tests forming a/(1−r) — using a/(1+r), or r−1 in the denominator, especially with a negative r.",
+      "evidence": []
     },
     "tangent_equation": {
       "act": "Gradient at the point then the line",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "use_discriminant": {
       "act": "Compute b^2−4ac and interpret the sign",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     },
     "use_factor_theorem": {
       "act": "Substitute the root and solve for the constant",
       "modelled": true,
-      "missing": ""
+      "missing": "",
+      "evidence": []
     }
-  }
+  },
+  "_the_standing_rule": "A new doorway is not finished until it has been judged here. The question is not 'are its prerequisites right' but 'if a student passed every one of them, could they now do the actual question, or is there an act nobody tested'. test_assembly.py fails on any doorway with no verdict, so this cannot be skipped by forgetting. See backend/assembly.py.",
+  "_how_the_backlog_is_ordered": "By outside confirmation only, and it is derived rather than written down: recorded evidence in each entry, plus diagnoses marked wrong by a tutor on sessions that started at that doorway, which is what this fault looks like from outside. With nothing confirmed the order is alphabetical and means nothing, and the report says so rather than implying a priority."
 }

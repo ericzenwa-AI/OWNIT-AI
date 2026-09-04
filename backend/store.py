@@ -804,6 +804,34 @@ def corrections(connection: sqlite3.Connection) -> dict:
     }
 
 
+def verdicts_by_entry(connection: sqlite3.Connection) -> dict:
+    """Verdicts grouped by the doorway the session started at.
+
+    corrections() groups by the skill we NAMED, which is the right question for
+    a wrong link. This asks a different one, for a fault that link-level
+    evidence cannot see: a doorway whose children do not cover the act it names.
+
+    A student with that fault answers every prerequisite correctly and still
+    cannot do the question, so the tutor marks the diagnosis wrong while the
+    named skill was arguably fine. That signal lands on the DOORWAY, not on the
+    gap, and nothing was reading it.
+    """
+    rows = connection.execute(
+        """SELECT s.entry_skill_id AS entry, f.verdict AS verdict,
+                  f.actual_gap AS actual
+             FROM feedback f JOIN sessions s ON s.id = f.session_id"""
+    ).fetchall()
+
+    found: dict[str, dict] = {}
+    for row in rows:
+        tally = found.setdefault(
+            row["entry"], {"right": 0, "wrong": 0, "said_instead": []})
+        tally["wrong" if row["verdict"] == "wrong" else "right"] += 1
+        if row["verdict"] == "wrong" and row["actual"]:
+            tally["said_instead"].append(row["actual"])
+    return found
+
+
 def suspect_edges(connection: sqlite3.Connection, at_least: int = 1) -> list[tuple]:
     """Links the walk went through that have only ever led somewhere wrong.
 
