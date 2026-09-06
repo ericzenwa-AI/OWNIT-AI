@@ -1,0 +1,29 @@
+<svg viewBox="0 0 470 152" role="img" aria-labelledby="t" xmlns="http://www.w3.org/2000/svg">
+  <title id="t">A bar cut into eight equal parts with five shaded. The bottom of a
+  fraction counts the parts the whole is cut into; the top counts how many you have.</title>
+  <style>
+    .bar  { fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .part { fill: var(--held, #2F5D50); opacity: .8; }
+    .gone { fill: var(--broke, #8C3B2E); opacity: .35; }
+    .cut  { stroke: currentColor; stroke-width: 1; opacity: .4; }
+    .lab  { fill: currentColor; font: 500 13px var(--sans, system-ui); }
+    .say  { fill: currentColor; font: 500 13px var(--sans, system-ui); opacity: .75; }
+    .num  { fill: currentColor; font: 700 15px var(--sans, system-ui); }
+    .tick { stroke: currentColor; stroke-width: 1.2; opacity: .55; fill: none; }
+  </style>
+
+  <rect class="part" x="40" y="40" width="150" height="40"/>
+  <rect class="bar"  x="40" y="40" width="240" height="40"/>
+  <path class="cut" d="M70 40v40M100 40v40M130 40v40M160 40v40M190 40v40M220 40v40M250 40v40"/>
+
+  <path class="tick" d="M40 88v8h240v-8"/>
+  <text class="lab" x="160" y="112" text-anchor="middle">8 equal parts &#8212; the bottom</text>
+
+  <path class="tick" d="M40 32v-8h150v8"/>
+  <text class="lab" x="115" y="18" text-anchor="middle">5 of them are yours &#8212; the top</text>
+
+  <text class="num" x="345" y="55" text-anchor="middle">5</text>
+  <path class="bar" d="M327 62h36"/>
+  <text class="num" x="345" y="80" text-anchor="middle">8</text>
+  <text class="say" x="345" y="112" text-anchor="middle">five eighths</text>
+</svg>

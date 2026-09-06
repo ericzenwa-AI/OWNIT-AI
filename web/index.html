@@ -273,6 +273,15 @@
   .card.scope p { font-size: 0.95rem; }
   .card.scope .note { margin-top: 0.7rem; }
 
+  /* A picture of the gap. Inlined rather than an <img> so it inherits the
+     page's colours - one drawing, both themes - and costs no second request.
+     Sized by the card, never by itself. */
+  .visual {
+    margin: 0 0 1.2rem;
+    padding: 0.6rem 0;
+  }
+  .visual svg { width: 100%; height: auto; display: block; color: var(--ink); }
+
   .chain { color: var(--muted); font-size: 0.95rem; margin-top: 0.4rem; }
   .note { color: var(--muted); font-size: 0.95rem; }
   p { margin: 0 0 1rem; }
@@ -1057,6 +1066,8 @@ function report() {
         this one. Of what you did answer, though, this is the first thing that
         gave way &mdash; so it is the place to start:</p>` : ''}
       <p class="gap">${named ? escape(named.skill) : 'We couldn&rsquo;t pin this one down'}</p>
+      ${named && named.visual
+        ? `<figure class="visual">${named.visual}</figure>` : ''}
       ${named && named.practice
         ? `<p class="practice">${mathHtml(named.practice)}</p>` : ''}
       ${how}

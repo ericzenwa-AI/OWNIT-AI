@@ -1,0 +1,41 @@
+<svg viewBox="0 0 470 178" role="img" aria-labelledby="t" xmlns="http://www.w3.org/2000/svg">
+  <title id="t">Five eighths take away three eighths. Three of the shaded parts are
+  removed and two are left. The parts never change size, so the bottom stays 8.</title>
+  <style>
+    .bar  { fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .part { fill: var(--held, #2F5D50); opacity: .8; }
+    .gone { fill: var(--broke, #8C3B2E); opacity: .35; }
+    .cut  { stroke: currentColor; stroke-width: 1; opacity: .4; }
+    .lab  { fill: currentColor; font: 500 13px var(--sans, system-ui); }
+    .say  { fill: currentColor; font: 500 13px var(--sans, system-ui); opacity: .75; }
+    .num  { fill: currentColor; font: 700 15px var(--sans, system-ui); }
+    .tick { stroke: currentColor; stroke-width: 1.2; opacity: .55; fill: none; }
+  </style>
+
+  <rect class="part" x="30" y="30" width="100" height="34"/>
+  <rect class="gone" x="130" y="30" width="60" height="34"/>
+  <rect class="bar"  x="30" y="30" width="160" height="34"/>
+  <path class="cut" d="M50 30v34M70 30v34M90 30v34M110 30v34M130 30v34M150 30v34M170 30v34"/>
+  <text class="lab" x="110" y="84" text-anchor="middle">take 3 parts away from 5</text>
+
+  <text class="num" x="215" y="53">=</text>
+
+  <rect class="part" x="245" y="30" width="40" height="34"/>
+  <rect class="bar"  x="245" y="30" width="160" height="34"/>
+  <path class="cut" d="M265 30v34M285 30v34M305 30v34M325 30v34M345 30v34M365 30v34M385 30v34"/>
+  <text class="lab" x="325" y="84" text-anchor="middle">2 parts left, same size</text>
+
+  <text class="num" x="62" y="130">5</text>
+  <path class="bar" d="M48 137h32"/>
+  <text class="num" x="62" y="155">8</text>
+  <text class="num" x="98" y="146">&#8722;</text>
+  <text class="num" x="132" y="130">3</text>
+  <path class="bar" d="M118 137h32"/>
+  <text class="num" x="132" y="155">8</text>
+  <text class="num" x="168" y="146">=</text>
+  <text class="num" x="202" y="130">2</text>
+  <path class="bar" d="M188 137h32"/>
+  <text class="num" x="202" y="155">8</text>
+
+  <text class="say" x="250" y="146">the bottom never moves &#8212; only how many you have</text>
+</svg>

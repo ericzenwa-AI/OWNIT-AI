@@ -43,6 +43,7 @@ import bank
 import notify
 import ladder
 import practice
+import visuals
 import store
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
@@ -906,6 +907,10 @@ def _report(diagnosis, question: str | None = None) -> dict:
                 # the diagnosis; this is the only line on the page a student
                 # can act on tonight without asking anyone.
                 "practice": practice.line_for(gap),
+                # A picture of the thing, where there is one. The practice line
+                # tells them what to go and do; this shows them what it is. Only
+                # some skills have one - see visuals.py for which and why.
+                "visual": visuals.for_skill(gap),
                 "chain": [SKILLS[step].name for step in chain],
                 "nothing_there": bool(result and result.dont_know),
                 "mistake": result.mistake if result else None,
@@ -929,6 +934,7 @@ def _report(diagnosis, question: str | None = None) -> dict:
         unconfirmed = {
             "skill": SKILLS[deepest].name,
             "practice": practice.line_for(deepest),
+            "visual": visuals.for_skill(deepest),
             "nothing_there": bool(gave_way and gave_way.dont_know),
             "mistake": gave_way.mistake if gave_way else None,
         }

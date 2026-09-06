@@ -1,0 +1,34 @@
+<svg viewBox="0 0 470 170" role="img" aria-labelledby="t" xmlns="http://www.w3.org/2000/svg">
+  <title id="t">Two bars of the same length, one cut into three parts with two shaded,
+  the other into twelve with eight shaded. The same amount is coloured, so the
+  fractions are equal.</title>
+  <style>
+    .bar  { fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .part { fill: var(--held, #2F5D50); opacity: .8; }
+    .gone { fill: var(--broke, #8C3B2E); opacity: .35; }
+    .cut  { stroke: currentColor; stroke-width: 1; opacity: .4; }
+    .lab  { fill: currentColor; font: 500 13px var(--sans, system-ui); }
+    .say  { fill: currentColor; font: 500 13px var(--sans, system-ui); opacity: .75; }
+    .num  { fill: currentColor; font: 700 15px var(--sans, system-ui); }
+    .tick { stroke: currentColor; stroke-width: 1.2; opacity: .55; fill: none; }
+  </style>
+
+  <text class="num" x="22" y="42" text-anchor="middle">2</text>
+  <path class="bar" d="M8 48h28"/>
+  <text class="num" x="22" y="66" text-anchor="middle">3</text>
+  <rect class="part" x="60" y="26" width="160" height="34"/>
+  <rect class="bar"  x="60" y="26" width="240" height="34"/>
+  <path class="cut" d="M140 26v34M220 26v34"/>
+
+  <text class="num" x="22" y="122" text-anchor="middle">8</text>
+  <path class="bar" d="M8 128h28"/>
+  <text class="num" x="22" y="146" text-anchor="middle">12</text>
+  <rect class="part" x="60" y="106" width="160" height="34"/>
+  <rect class="bar"  x="60" y="106" width="240" height="34"/>
+  <path class="cut" d="M80 106v34M100 106v34M120 106v34M140 106v34M160 106v34M180 106v34M200 106v34M220 106v34M240 106v34M260 106v34M280 106v34"/>
+
+  <path class="tick" d="M310 43h22M310 123h22M332 43v80"/>
+  <text class="say" x="342" y="78">the same amount</text>
+  <text class="say" x="342" y="96">is coloured</text>
+  <text class="say" x="60" y="86">cut each part into 4 &#8212; nothing changes size</text>
+</svg>
