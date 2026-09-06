@@ -1323,6 +1323,7 @@ have nothing checking them but the reasoning that built them.</p>
   body {{ font: 15px/1.6 ui-monospace, Consolas, monospace; max-width: 44rem;
          margin: 2rem auto; padding: 0 1rem; background: #fff; color: #111; }}
   h1 {{ font-size: 1.1rem; margin-top: 2.5rem; }}
+  h3 {{ font-size: 0.9rem; margin: 1.4rem 0 0.2rem; color: #333; }}
   h2 {{ font-size: 0.95rem; margin: 1.5rem 0 0.3rem; color: #333; }}
   ul {{ list-style: none; padding: 0; }}
   li {{ border-top: 1px solid #ddd; padding: 1rem 0; }}
@@ -1503,6 +1504,68 @@ def admin_numbers(request: Request, stage: str | None = None) -> str:
         )
         return f"<table>{rows}</table>"
 
+    # What ordinary answering has said about the questions themselves. All of
+    # this has been recorded since the tables were written and read by nobody.
+    connection = store.connect()
+    try:
+        evidence = store.bank_evidence(connection)
+        seen = store.misconceptions_seen(connection)
+    finally:
+        connection.close()
+
+    def _bank_section() -> str:
+        if not evidence["judged"]:
+            return (
+                '<h2>What the questions are doing</h2>'
+                f'<p class="count">Nothing has been answered '
+                f'{evidence["min_asked"]} times yet, so there is nothing to '
+                'judge. Every answer counts towards this without anybody being '
+                'asked anything.</p>')
+
+        dull = [q for q in evidence["questions"]
+                if q["pass_rate"] > 0.95 or q["pass_rate"] < 0.05]
+        dead = [q for q in evidence["questions"] if q["dead_options"]]
+        fast = [q for q in evidence["questions"]
+                if q["median_seconds"] is not None and q["median_seconds"] < 5]
+
+        def rows(items, say):
+            return "".join(
+                f'<tr><td>{escape(SKILLS[q["skill_id"]].name)}'
+                f'<div class="about">{escape(q["question"][:80])}</div></td>'
+                f'<td class="n">{escape(say(q))}</td></tr>' for q in items
+            ) or '<tr><td colspan="2"><em>None.</em></td></tr>'
+
+        told = "".join(
+            f'<tr><td>{escape(row["misconception"][:90])}'
+            f'<div class="about">{escape(SKILLS[row["skill_id"]].name)}</div></td>'
+            f'<td class="n">{row["times"]}</td></tr>' for row in seen
+        ) or '<tr><td colspan="2"><em>Nobody has got one wrong yet.</em></td></tr>'
+
+        return f"""
+<h2>What the questions are doing</h2>
+<p class="count">{evidence["judged"]} answered at least {evidence["min_asked"]}
+times &middot; {evidence["waiting"]} still waiting</p>
+
+<h3>Not discriminating</h3>
+<p class="about">Everybody right, or nobody. Either way it is six questions of a
+student's time spent learning nothing about them.</p>
+<table>{rows(dull, lambda q: f'{q["correct"]}/{q["asked"]}')}</table>
+
+<h3>Options nobody ever picks</h3>
+<p class="about">Every wrong option claims to be a mistake a real student makes.
+This is the only place that claim is tested. Two dead options make a
+four-option question a two-option one.</p>
+<table>{rows(dead, lambda q: ", ".join(q["dead_options"]))}</table>
+
+<h3>Answered too fast to have been worked out</h3>
+<p class="about">Guessing is invisible in a pass rate and obvious on a clock.</p>
+<table>{rows(fast, lambda q: f'{q["median_seconds"]:.0f}s')}</table>
+
+<h3>Mistakes students actually made</h3>
+<p class="about">Not what the generator claimed they would make. What they did.</p>
+<table>{told}</table>
+"""
+
     drop = "".join(
         f'<tr><td>Answered {q} question{"s" if q != 1 else ""}</td>'
         f'<td class="n">{n}</td></tr>'
@@ -1586,6 +1649,7 @@ def admin_numbers(request: Request, stage: str | None = None) -> str:
 
 <h2>Skills that cost a live question</h2>
 {f'<table>{thin}</table>'}
+{_bank_section()}
 """
 
 

@@ -632,6 +632,95 @@ def bank_counts(connection: sqlite3.Connection) -> dict[str, int]:
     return {row["skill_id"]: row["held"] for row in rows}
 
 
+def bank_evidence(connection: sqlite3.Connection, min_asked: int = 10) -> dict:
+    """What students have said about the questions, without being asked.
+
+    `min_asked` is the point below which a pass rate is noise rather than
+    evidence. It is deliberately a floor and not a rate: at four answers, one
+    student having a bad day is 25%.
+    """
+    asked = connection.execute(
+        """SELECT id, skill_id, question, times_asked, times_correct
+             FROM question_bank
+            WHERE retired = 0 AND times_asked >= ?
+            ORDER BY times_asked DESC""",
+        (min_asked,),
+    ).fetchall()
+
+    # Which option was actually picked, per question. A distractor with no
+    # answers against it has never been chosen by anybody.
+    picked: dict = {}
+    for row in connection.execute(
+        """SELECT b.id AS banked_id, a.chosen AS chosen, COUNT(*) AS times
+             FROM answers a
+             JOIN question_bank b ON b.question = a.question
+            WHERE a.chosen IS NOT NULL
+            GROUP BY b.id, a.chosen"""
+    ).fetchall():
+        picked.setdefault(row["banked_id"], {})[row["chosen"]] = row["times"]
+
+    # How long they took. A median rather than a mean: one student who left the
+    # tab open over lunch should not move it.
+    times: dict = {}
+    for row in connection.execute(
+        """SELECT b.id AS banked_id, a.seconds AS seconds
+             FROM answers a
+             JOIN question_bank b ON b.question = a.question
+            WHERE a.seconds IS NOT NULL"""
+    ).fetchall():
+        times.setdefault(row["banked_id"], []).append(row["seconds"])
+
+    import json as _json
+
+    questions = []
+    for row in asked:
+        options = [row["question"]] and [
+            d["option"] for d in _json.loads(
+                connection.execute(
+                    "SELECT distractors FROM question_bank WHERE id = ?",
+                    (row["id"],)).fetchone()["distractors"])
+        ]
+        chosen = picked.get(row["id"], {})
+        seen = sorted(times.get(row["id"], []))
+        middle = seen[len(seen) // 2] if seen else None
+        questions.append({
+            "id": row["id"],
+            "skill_id": row["skill_id"],
+            "question": row["question"],
+            "asked": row["times_asked"],
+            "correct": row["times_correct"],
+            "pass_rate": row["times_correct"] / row["times_asked"],
+            "dead_options": [o for o in options if o not in chosen],
+            "median_seconds": middle,
+        })
+
+    return {
+        "min_asked": min_asked,
+        "judged": len(questions),
+        "waiting": connection.execute(
+            "SELECT COUNT(*) AS n FROM question_bank WHERE retired = 0 AND times_asked < ?",
+            (min_asked,)).fetchone()["n"],
+        "questions": questions,
+    }
+
+
+def misconceptions_seen(connection: sqlite3.Connection, limit: int = 12) -> list:
+    """The wrong beliefs students have actually shown, commonest first.
+
+    Every distractor claims to be a mistake a real student makes. This is the
+    only place that claim ever gets tested.
+    """
+    return connection.execute(
+        """SELECT misconception, skill_id, COUNT(*) AS times
+             FROM answers
+            WHERE outcome = 'wrong' AND misconception IS NOT NULL
+            GROUP BY misconception, skill_id
+            ORDER BY times DESC
+            LIMIT ?""",
+        (limit,),
+    ).fetchall()
+
+
 def weak_questions(
     connection: sqlite3.Connection, min_asked: int = 10
 ) -> list[sqlite3.Row]:
