@@ -86,10 +86,13 @@ def test_the_page_puts_it_between_the_name_and_the_practice_line():
     page = (pathlib.Path(__file__).resolve().parent.parent
             / "web" / "index.html").read_text(encoding="utf-8")
 
-    name = page.index('<p class="gap">')
-    picture = page.index('class="visual"')
-    doing = page.index('<p class="practice">')
-    assert name < picture < doing
+    # Scoped to the report card. Searching the whole file finds openStep(),
+    # which also renders a picture and sits earlier in the source - a position
+    # test that measures the wrong region passes and fails for the wrong
+    # reasons.
+    card = page[page.index('<p class="gap">'):page.index('<p class="practice">')]
+    assert 'class="visual"' in card, "the picture is not inside the gap card"
+    assert card.index('class="visual"') < card.index('class="worked"'),         "the picture should come before the worked example"
 
 
 def test_the_picture_is_inlined_not_fetched():

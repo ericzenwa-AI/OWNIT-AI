@@ -273,6 +273,33 @@
   .card.scope p { font-size: 0.95rem; }
   .card.scope .note { margin-top: 0.7rem; }
 
+  /* A step of the route, which opens. It has to read as something you can
+     press without shouting - the gap above it is the headline, not this. */
+  button.step {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+    text-align: left;
+    border-bottom: 1px solid currentColor;
+  }
+  button.step:hover { opacity: 0.75; }
+  .step-body {
+    margin: 0.8rem 0 1.2rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--line);
+  }
+  .step-body .label { margin-top: 1rem; }
+  .worked {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    background: var(--sunk);
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+  }
+
   /* The slip behind a wrong option. Stands out from the sentence around it,
      because it is the one line in the climb that is actually teaching. */
   .slip {
@@ -1026,10 +1053,16 @@ function wayBack(gap, stuckOn) {
   const upwards = gap.chain.slice().reverse().slice(1);
   if (!upwards.length) return '';
 
-  const steps = upwards.map((skill, i) => {
+  const steps = upwards.map((step, i) => {
     const last = i === upwards.length - 1;
-    return `<li>${escape(skill)}${last
-      ? ' <span class="note">&mdash; where you started</span>' : ''}</li>`;
+    const name = escape(step.name || step);
+    // The last one is their own question, not a skill to learn, so it does not
+    // open. Everything below it does.
+    if (last) {
+      return `<li>${name} <span class="note">&mdash; where you started</span></li>`;
+    }
+    return `<li><button class="step" onclick="openStep('${escape(step.id)}')">
+      ${name}</button><div class="step-body" id="step-${escape(step.id)}" hidden></div></li>`;
   }).join('');
 
   // The one caveat left on this screen. The card listing what we did not check
@@ -1044,6 +1077,42 @@ function wayBack(gap, stuckOn) {
     <p class="note">This is the first thing in the way &mdash; there may be more
     once it clears.</p>
   </div>`;
+}
+
+// Open one step of the route and read what it is. Everything needed is already
+// on the page - the explanation and any picture came down with the report - so
+// this costs no request and works with the connection dropped.
+function openStep(id) {
+  const into = document.getElementById('step-' + id);
+  if (!into) return;
+
+  if (!into.hidden) { into.hidden = true; return; }
+
+  const step = stepFor(id);
+  const said = step && step.explanation;
+  if (!said) {
+    into.innerHTML = `<p class="note">Nothing written for this one yet.</p>`;
+    into.hidden = false;
+    return;
+  }
+
+  into.innerHTML = `
+    <p>${mathHtml(said.what)}</p>
+    ${step.visual ? `<figure class="visual">${step.visual}</figure>` : ''}
+    <p class="worked">${mathHtml(said.example)}</p>
+    <p class="label">What usually goes wrong</p>
+    <p class="slip">${mathHtml(said.wrong)}</p>`;
+  into.hidden = false;
+}
+
+function stepFor(id) {
+  const gaps = ((state.report || {}).gaps) || [];
+  for (const gap of gaps) {
+    for (const step of (gap.chain || [])) {
+      if (step && step.id === id) return step;
+    }
+  }
+  return null;
 }
 
 function report() {
@@ -1111,6 +1180,11 @@ function report() {
       <p class="gap">${named ? escape(named.skill) : 'We couldn&rsquo;t pin this one down'}</p>
       ${named && named.visual
         ? `<figure class="visual">${named.visual}</figure>` : ''}
+      ${named && named.explanation ? `
+        <p>${mathHtml(named.explanation.what)}</p>
+        <p class="worked">${mathHtml(named.explanation.example)}</p>
+        <p class="label">What usually goes wrong</p>
+        <p class="slip">${mathHtml(named.explanation.wrong)}</p>` : ''}
       ${named && named.practice
         ? `<p class="practice">${mathHtml(named.practice)}</p>` : ''}
       ${how}
@@ -1446,6 +1520,12 @@ function toLatex(run) {
   out = out.replace(/\^\s*(-?\d+|-?[A-Za-z])/g, '^{$1}');
   out = out.replace(/_\s*\(([^()]*)\)/g, '_{$1}');
   out = out.replace(/_\s*(-?\d+|-?[A-Za-z])/g, '_{$1}');
+  // A bare underscore left after those two is not a subscript - it is a
+  // blank, which is how the gap in "3 + 4 = _ + 5" is written, and that
+  // is exactly the question that exposes what a student thinks the equals
+  // sign means. KaTeX refuses a subscript with nothing under it, so it
+  // gets escaped into the underscore it was always meant to be.
+  out = out.replace(/_(?!\{)/g, '\\_');
   out = out.replace(/\*/g, ' \\cdot ');
   out = out.replace(/<=/g, ' \\le ').replace(/>=/g, ' \\ge ');
   out = out.replace(/!=/g, ' \\ne ');

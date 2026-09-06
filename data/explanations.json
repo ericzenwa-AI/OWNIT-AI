@@ -1,0 +1,737 @@
+{
+  "add_subtract_fractions": {
+    "what": "To add or subtract fractions with different denominators, first rewrite both fractions so they share a common denominator, then combine the top numbers over that shared bottom.",
+    "example": "1/4 + 1/6: common denominator is 12, so 1/4 = 3/12 and 1/6 = 2/12. Then 3/12 + 2/12 = 5/12.",
+    "wrong": "Students add the tops and add the bottoms straight across, turning 1/4 + 1/6 into 2/10. This survives because it mirrors how whole number addition works, and the answer often looks like a believable fraction even though it's wrong."
+  },
+  "algebraic_fractions": {
+    "what": "Fractions with algebra in them follow the same rules as number fractions - common denominator to add or subtract, cancel common factors to simplify, multiply straight across to combine. The letters do not change the rules, they just make you factorise first to see what cancels.",
+    "example": "(x+1)/(x^2-1) = (x+1)/((x-1)(x+1)) = 1/(x-1).",
+    "wrong": "Students cancel terms that are added instead of multiplied, like cancelling the x in (x+2)/x to get 2, when nothing there actually cancels because x is not a common factor of the whole top."
+  },
+  "area_between_curves": {
+    "what": "To find the area trapped between two curves, first find where they cross - those crossing points become your limits - then integrate the top curve minus the bottom curve between them.",
+    "example": "y=x and y=x^2 cross at x=0 and x=1. Between them x is above x^2, so area = integral of (x - x^2) dx from 0 to 1 = [x^2/2 - x^3/3] = 1/2 - 1/3 = 1/6.",
+    "wrong": "Students subtract in the wrong order (x^2 - x instead of x - x^2), landing on -1/6, or they skip finding the intersection points altogether and use whatever limits were given elsewhere in the question, which usually aren't the right ones."
+  },
+  "area_under_curve": {
+    "what": "The area between a curve and the x-axis over some interval is the definite integral there - but only stays equal to that integral while the curve stays above the axis; below the axis the integral goes negative, and area can't be negative.",
+    "example": "Area under y = x^2 from x=0 to x=2 is the integral, 8/3 - 0 = 8/3.",
+    "wrong": "Students integrate straight through a curve that dips below the x-axis without splitting it up, so positive and negative regions cancel. For y=x from x=-1 to x=1 the integral comes out 0, even though the actual area (two triangles) is 1."
+  },
+  "arithmetic_sequence": {
+    "what": "An arithmetic sequence keeps adding the same fixed amount each step. The nth term is the first term plus that fixed amount repeated (n-1) times, since the first term itself hasn't had anything added yet.",
+    "example": "a = 5, d = 3. The 7th term is 5 + 6x3 = 23 (six gaps between term 1 and term 7). Working backwards: if the 4th term is 17 and the 9th term is 37, the difference across 5 steps is 37-17=20, so d = 4, and a = 17 - 3x4 = 5.",
+    "wrong": "Students use n instead of (n-1), so for the 7th term they compute 5 + 7x3 = 26 - one step too many, because they forget the first term is already 'free' and doesn't need adding to."
+  },
+  "arithmetic_series_sum": {
+    "what": "To add up the first n terms of a sequence that goes up by the same amount each time, pair the first and last terms, average them, and multiply by how many terms there are - that's what the sum formula is doing underneath.",
+    "example": "a = 2, d = 3, n = 10. Sum = (10/2) x (2x2 + 9x3) = 5 x (4+27) = 5x31 = 155.",
+    "wrong": "Students forget to divide by 2, computing n x (2a+(n-1)d) instead of n/2 x (2a+(n-1)d), which exactly doubles the true answer - here giving 310 instead of 155 - and the mistake is easy to miss because the rest of the working looks right."
+  },
+  "best_value": {
+    "what": "To compare fairly, work out the cost for the same amount of each - usually cost per single unit - then compare those, not the total prices.",
+    "example": "Small bottle: 400ml for 1.00, so 0.25 per 100ml. Large bottle: 900ml for 2.00, so about 0.222 per 100ml. Large bottle is better value.",
+    "wrong": "Students compare total price only and pick the cheaper one regardless of size (the small bottle looks cheaper at 1.00). Others divide the wrong way round, working out ml per penny instead of penny per ml, and then pick the smaller number thinking smaller means better."
+  },
+  "bidmas": {
+    "what": "When an expression has more than one operation, there's a fixed order to work through it: brackets first, then powers, then multiplication and division (left to right), then addition and subtraction (left to right). Doing them in the order they're written instead of this order gives a different, wrong number.",
+    "example": "2 + 3 x 4 = 2 + 12 = 14, not (2+3) x 4 = 20. Multiplication happens before addition even though the addition is written first.",
+    "wrong": "Students work left to right regardless of operation, turning 2 + 3 x 4 into 5 x 4 = 20, because reading left to right is how they read everything else. It's an easy mistake to miss because the wrong answer still looks like a normal number, not an obviously broken one."
+  },
+  "binomial_approximation": {
+    "what": "You can use a few terms of an expansion to get a decimal approximation for something like a square root, but only when the substituted value is small enough for the series to behave - if it isn't, the approximation is meaningless even though the arithmetic still works.",
+    "example": "sqrt(1.02) = (1+0.02)^(1/2) is about 1 + 0.01 - 0.00005 = 1.00995, using x=0.02 which is small.",
+    "wrong": "Students plug in whatever value the question gives, even when it's way outside the safe range (say x=2), and still trust the number that comes out, because the arithmetic looks fine and nothing warns them it's gone wrong."
+  },
+  "binomial_coefficients": {
+    "what": "The coefficients in a binomial expansion come from 'n choose r', worked out as n! / (r!(n-r)!) - the same numbers you'd read off Pascal's triangle - and each term is that coefficient times the two parts raised to powers that add up to n.",
+    "example": "(1+x)^4: coefficients are 4C0, 4C1, 4C2, 4C3, 4C4 = 1, 4, 6, 4, 1. So expansion is 1 + 4x + 6x^2 + 4x^3 + x^4.",
+    "wrong": "They compute nCr correctly but forget that when it's (a+b)^n rather than (1+x)^n, each term also needs a^(n-r) attached, not just the coefficient and b^r - so terms like a^3 get dropped entirely, especially when a isn't 1."
+  },
+  "binomial_validity": {
+    "what": "When the power in a binomial expansion is negative or a fraction, the expansion goes on forever rather than stopping, and it only actually adds up to the right value when the variable part is small enough in size - specifically when its absolute value is less than 1.",
+    "example": "(1+x)^-1 = 1 - x + x^2 - x^3 + ..., valid only for |x| < 1. At x = 2: 1 - 2 + 4 - 8 + ... never settles down or matches 1/3, because |x| = 2 is too big.",
+    "wrong": "They expand the series correctly but give no restriction on x at all, or write 'x < 1' forgetting negative values also break it, and for expressions like (2+x)^n they forget to rescale, stating |x|<1 when it should really be |x|<2."
+  },
+  "chain_rule": {
+    "what": "When you're differentiating something wrapped inside brackets to a power, treat the whole bracket like a single lump: bring the power down, drop the power by one, keep the bracket as is, then multiply by the derivative of what's inside the bracket.",
+    "example": "y = (3x + 1)^5 dy/dx = 5(3x+1)^4 * 3 = 15(3x+1)^4",
+    "wrong": "They apply the power rule straight to the bracket and forget the multiply-by-the-inside-derivative step entirely, giving 5(3x+1)^4 with no factor of 3. This looks right when the inside is just x (derivative 1), which is exactly why it survives on easier questions and falls apart the moment the bracket has a coefficient other than 1."
+  },
+  "chord_vs_tangent": {
+    "what": "A chord joins two separate points on a curve, and its slope is the average rate of change between them. A tangent touches the curve at just one point, and its slope is the exact rate of change right there. They only agree if the curve happens to be a straight line.",
+    "example": "For y = x^2, between x=1 and x=3: chord slope = (9-1)/(3-1) = 4. Tangent slope at x=2 (the midpoint): dy/dx = 2x = 4. Close here, but at x=3 the tangent slope is 6, not 4 - the chord only gives an average.",
+    "wrong": "Students compute the chord slope between two nearby points and treat it as 'the derivative', because it looks like the same kind of calculation and often gives a close number. It quietly falls apart once the two points aren't close together, or the question asks for gradient 'at' a specific point rather than 'between' two."
+  },
+  "classify_stationary": {
+    "what": "Once you know where a curve is flat, you need to say whether that flat point is a peak, a dip, or neither - and you do it by checking what the slope does either side, or by checking the second derivative's sign.",
+    "example": "f(x) = x^3 - 3x. f'(x) = 3x^2 - 3 = 0 gives x = 1 and x = -1. f''(x) = 6x. At x = 1, f'' = 6 (positive) so it's a min. At x = -1, f'' = -6 (negative) so it's a max.",
+    "wrong": "Students find where f' = 0 and stop, guessing max or min from the shape of the equation rather than checking. Others remember 'second derivative tells you' but flip the rule, saying positive means max - this survives because on easy symmetric functions the guess is right half the time."
+  },
+  "collect_like_terms": {
+    "what": "When an expression has several chunks of the same kind of thing, you add up how many of that thing you have, the same way you'd add 3 apples and 2 apples. Different kinds of things, like plain numbers and x's, never get merged.",
+    "example": "3x + 5 + 2x - 1: the x terms give 3x + 2x = 5x, the numbers give 5 - 1 = 4. Total: 5x + 4.",
+    "wrong": "Students add everything in sight regardless of type, turning 3x + 5 + 2x - 1 into 9x (adding 3+5+2-1=9) or into 5x + 4x by miscounting signs and losing the minus in front of 1. This survives on expressions with no subtraction, where blind addition of every number happens to look plausible even though it's the wrong operation being applied."
+  },
+  "combine_over_common_denominator": {
+    "what": "When two fractions already have the same denominator, you just add or subtract the top numbers and keep the bottom number the same, then simplify if you can.",
+    "example": "3/8 + 2/8 = 5/8. Or 7/10 - 3/10 = 4/10, which simplifies to 2/5.",
+    "wrong": "Students add the denominators too, turning 3/8 + 2/8 into 5/16. This survives because adding everything in sight feels consistent, and nobody stops to notice the denominator shouldn't move when it already matches."
+  },
+  "common_denominator": {
+    "what": "Two fractions with different bottoms cannot be added or compared directly, so you rewrite both with the same bottom number, using a number that both original bottoms divide into.",
+    "example": "1/3 and 1/4: common denominator 12. 1/3 = 4/12, 1/4 = 3/12.",
+    "wrong": "Students add or compare fractions with different denominators unchanged, so 1/3 + 1/4 becomes 2/7 (adding tops and bottoms straight across). This survives because it feels like the same logic as multiplying fractions, where you do work across top and bottom separately."
+  },
+  "complete_the_square": {
+    "what": "Rewrite a quadratic as a squared bracket plus a leftover number, so ax^2+bx+c becomes a(x+p)^2+q. Once it's in that form, the turning point is just (-p, q), no calculus needed.",
+    "example": "x^2 + 6x + 5. Half of 6 is 3, so try (x+3)^2 = x^2+6x+9. That's 4 more than what we want, so x^2+6x+5 = (x+3)^2 - 4. Turning point: (-3, -4).",
+    "wrong": "Students halve the 6 to get 3, write (x+3)^2, and forget to subtract off the extra 9 they've introduced, giving (x+3)^2+5 and turning point (-3,5) instead of (-3,-4). It survives because the squaring step feels complete on its own, and checking by expanding back out gets skipped."
+  },
+  "compose_functions": {
+    "what": "fg(x) means: do g to x first, then do f to the result. The function written on the right acts first, closest to x, and the one on the left wraps around the outside.",
+    "example": "f(x) = x+1, g(x) = 2x. fg(x) = f(g(x)) = f(2x) = 2x + 1.",
+    "wrong": "Students do them in the order written left to right, calculating f first then g, getting gf(x) instead - here that would give g(x+1) = 2x+2, the wrong answer. The notation looks like it should read left to right like a sentence, so this mistake feels natural and often isn't checked."
+  },
+  "connected_rates": {
+    "what": "When you're given how fast one thing changes and want how fast another changes, and they're linked through a third variable, you multiply the two known rates together - the variable they share cancels like a fraction.",
+    "example": "Sphere volume V = (4/3)pi r^3, so dV/dr = 4 pi r^2. Given dr/dt = 2 cm/s when r = 3, dV/dt = dV/dr times dr/dt = 4 pi (9)(2) = 72 pi.",
+    "wrong": "Students compute dV/dr and report that number as dV/dt, forgetting to multiply by dr/dt entirely - this survives when dr/dt happens to be 1 in a practice question and the missing step doesn't change the answer. Others multiply the rates but plug in the wrong value of r, using the final radius instead of the one at the moment asked about."
+  },
+  "constant_of_integration": {
+    "what": "Any constant disappears when you differentiate, so when you integrate you cannot know which constant was there originally - it could have been anything. The +c admits that gap; you only pin it down if you're told a specific point the function passes through.",
+    "example": "Both x^2 + 3 and x^2 - 100 differentiate to 2x. So integrating 2x only gives x^2 + c. If you're told the curve passes through (0,7), then c = 7.",
+    "wrong": "Students drop the +c entirely once they've done a few questions where it wasn't needed, or they add it out of habit without understanding why - so on a question giving a point to find c, they either forget the +c is even there to solve for, or they don't know why a point on the curve is enough information to find it."
+  },
+  "convergence_condition": {
+    "what": "A geometric series only settles on a finite total if each term gets smaller in size than the one before, forever - that depends purely on the size of the ratio, not its sign.",
+    "example": "r=-0.5: terms are 1,-0.5,0.25,-0.125,... they shrink toward zero even though they flip sign, so the series converges. r=-2 grows in size, so it does not.",
+    "wrong": "Students think 'negative ratio' automatically means no sum to infinity, confusing alternating sign with growing size. They also think any fraction works, missing that r=-1 or r=1.2 fail even though they look small or close to 1."
+  },
+  "convert_fdp": {
+    "what": "Fractions, decimals and percentages are three different outfits for the same number. To swap outfits: fraction to decimal, divide top by bottom; decimal to percentage, multiply by 100; percentage to fraction, put it over 100 and simplify.",
+    "example": "3/4 = 3 divided by 4 = 0.75 = 75%.",
+    "wrong": "Students convert 3/4 to 0.34 by just writing the digits next to each other instead of dividing. Or when going from percentage to fraction, they write 75/100 but forget to simplify to 3/4, which is not wrong exactly but trips them up later when asked for simplest form."
+  },
+  "coordinates": {
+    "what": "A coordinate is an address for a point: the first number says how far across, the second says how far up, always starting from (0,0).",
+    "example": "The point (3,2) is 3 across and 2 up from the origin.",
+    "wrong": "They swap the order and plot 2 across, 3 up instead, because they read it like a normal list rather than 'across then up'. Works fine when both numbers are equal, like (3,3), so the swap habit never gets corrected."
+  },
+  "definite_integral": {
+    "what": "You integrate the expression, then work out the antiderivative at the top limit, work it out again at the bottom limit, and subtract bottom from top - that subtraction is the whole point, not an afterthought.",
+    "example": "Integral of 2x from 1 to 3: antiderivative is x^2. Plug in: 3^2 - 1^2 = 9 - 1 = 8.",
+    "wrong": "Students often subtract the wrong way round (bottom minus top), flipping the sign, or they evaluate only the top limit and call that the answer, since for positive increasing functions it can look plausible."
+  },
+  "deriv_a_to_x": {
+    "what": "For any base a (not e), differentiating a^x brings down a factor of ln a: d/dx(a^x) = a^x * ln a. That ln a is the price you pay for the base not being e.",
+    "example": "d/dx(2^x) = 2^x * ln 2. At x = 0 this gives ln 2, about 0.693.",
+    "wrong": "Students carry over the e^x rule and write d/dx(2^x) = 2^x with no ln 2 attached, because that's the only exponential rule they've memorised. This is wrong for every base except e, but since e^x questions are common, the habit sticks."
+  },
+  "deriv_exp_e": {
+    "what": "e^x is the one function that is its own derivative - differentiate it and you get exactly the same thing back. If there's a constant multiplying x in the exponent, like e^(kx), that constant gets pulled down front by the chain rule.",
+    "example": "d/dx(e^x) = e^x. d/dx(e^(3x)) = 3e^(3x). d/dx(e^(-2x)) = -2e^(-2x).",
+    "wrong": "Students treat e^x like a normal power and write d/dx(e^x) = x*e^(x-1), copying the rule for x^n. Others forget the chain rule multiplier on e^(kx) and just write e^(kx) again with no k out front - this one is sneaky because it looks identical to the plain e^x case."
+  },
+  "deriv_ln": {
+    "what": "The derivative of ln x is 1/x - a completely different type of expression, not another log. It comes from ln x being the inverse of e^x, but you just need to know the result.",
+    "example": "d/dx(ln x) = 1/x. So at x = 2, the gradient of y = ln x is 1/2.",
+    "wrong": "Students guess it should look like the derivative of x^n and write something like 1/(x ln x), or they confuse it with the derivative of log base 10 rules they half-remember. Some just leave ln x alone during differentiation, treating it as a constant."
+  },
+  "deriv_polynomial": {
+    "what": "To differentiate x to the power n, bring the power down as a multiplier and reduce the power by one. This works for any n - positive, negative, or a fraction.",
+    "example": "d/dx(x^3) = 3x^2. Also d/dx(x^(-2)) = -2x^(-3), and d/dx(x^(1/2)) = (1/2)x^(-1/2).",
+    "wrong": "Students apply the rule fine for positive whole powers but freeze or guess on negative and fractional ones - for x^(-2) they might write -2x^(-1) (forgetting to subtract one from a negative correctly) or for x^(1/2) they leave the power unchanged and just multiply by 1/2, giving (1/2)x^(1/2) instead of (1/2)x^(-1/2)."
+  },
+  "deriv_sin_cos": {
+    "what": "The derivative of sin x is cos x, and the derivative of cos x is negative sin x - but this only holds when x is measured in radians, not degrees.",
+    "example": "d/dx(sin x) = cos x, so at x = 0, the slope of sin x is cos(0) = 1. d/dx(cos x) = -sin x, so at x = 0 the slope of cos x is 0.",
+    "wrong": "Students memorise 'sin becomes cos, cos becomes sin' and forget the minus sign on the cosine derivative, writing d/dx(cos x) = sin x instead of -sin x. Others apply these rules to angles in degrees without adjusting, which silently gives wrong numerical slopes even though the shape of the answer looks right."
+  },
+  "deriv_tan": {
+    "what": "The derivative of tan x is 1 over cos squared x, also written as sec squared x.",
+    "example": "d/dx(tan x) = sec^2(x) = 1/cos^2(x). At x = 0, this gives 1/cos^2(0) = 1/1 = 1.",
+    "wrong": "Students try to guess a pattern from sin and cos and write d/dx(tan x) = sec x or cos x, or they attempt to derive it from tan x = sin x/cos x using the quotient rule but botch the simplification and never reach sec^2(x), leaving an unsimplified or wrong fraction."
+  },
+  "derivative_meaning": {
+    "what": "dy/dx at a point tells you the gradient of the curve exactly there - how steep it is and which way it's heading, if you zoomed in so close the curve looked like a straight line. It's not the height of the curve, it's the steepness.",
+    "example": "For y = x^2, dy/dx = 2x. At x = 3, dy/dx = 6. That means at the point (3,9) the curve is climbing steeply, at a slope of 6 - for every 1 you move right, y goes up about 6.",
+    "wrong": "Students plug x into y = x^2 instead of into dy/dx = 2x, so they say the gradient at x=3 is 9. It feels right because you 'found a number from the curve' - but 9 is the height, not the steepness."
+  },
+  "differentiate_function": {
+    "what": "Differentiating turns a function into its rate-of-change function. For a term like a*x^n, bring the power down to multiply the front, then knock the power down by one.",
+    "example": "y = 3x^4 + 2x - 5. Differentiate term by term: 3x^4 -> 12x^3, 2x -> 2, -5 -> 0. So dy/dx = 12x^3 + 2.",
+    "wrong": "Students forget that a constant on its own (like -5) differentiates to 0, and leave it in the answer, or they subtract 1 from the power but forget to multiply by the original power, giving dy/dx = 3x^3 + 2 instead of 12x^3 + 2."
+  },
+  "direct_proportion": {
+    "what": "If one amount doubles, the other doubles too - they scale together. Find what one unit costs first, then multiply up to whatever amount you need.",
+    "example": "5 items cost 3.50. One item costs 3.50/5 = 0.70. So 8 items cost 0.70 x 8 = 5.60.",
+    "wrong": "Students add the difference instead of scaling: 8 is 3 more than 5, so they add 3 lots of something, or worse, guess the extra cost by feel. Others try to scale straight from 5 to 8 without finding the unit amount first, multiplying by 8/5 wrongly or bolting on a random extra."
+  },
+  "domain_and_range": {
+    "what": "The domain is every value you're allowed to feed into a function - what x can be. The range is every value that can come out the other end - what f(x) can be. They describe input and output separately, and one doesn't automatically tell you the other.",
+    "example": "For f(x) = x^2 with domain all real numbers, the range is f(x) >= 0, because squaring anything never gives a negative result.",
+    "wrong": "Students mix up which is which, calling the output values 'the domain'. Or they assume domain and range must both be 'all real numbers' by default, missing restrictions like square roots (domain must keep the inside >= 0) or squares (range can't go negative)."
+  },
+  "equate_indices": {
+    "what": "If two powers with the same base are equal, their indices must be equal too - but only once both sides are actually written as powers of that same base. Before you can jump from '3^a = 3^b' to 'a = b', check the base isn't zero, negative, or 1, because those bases break the rule (they can give the same value for different indices).",
+    "example": "2^(x+1) = 2^5 means x+1 = 5, so x = 4. But if you had 1^(x+1) = 1^5, you can't conclude x+1=5, since every index gives 1.",
+    "wrong": "Students see two powers set equal and immediately equate the indices, even when the bases aren't actually the same yet (like 4^x = 2^5, where 4 needs rewriting as 2^2 first). This gets easy matching-base questions right but gives nonsense like x = 5 instead of the correct x = 2.5 when the base needs converting first."
+  },
+  "equation_meaning": {
+    "what": "An equation is a claim that two things, written differently, are the exact same value. It is not an instruction to 'do' something, and it rules out the two sides ever being different, no matter what x turns out to be.",
+    "example": "x + 2 = 5 says 'x + 2' and '5' are names for the same number. That number must be 3, since only then are both sides equal.",
+    "wrong": "Students treat the equals sign as 'now write the answer', so in 3 + 4 = _ + 5 they write 7 in the blank, matching the left side total instead of finding the value that keeps both sides equal (which is 2). It survives because in most school arithmetic the equals sign only ever appears just before the answer, so nobody needs the real meaning until algebra shows up."
+  },
+  "equivalent_fractions": {
+    "what": "A fraction can be written many different ways without changing its value, as long as you multiply or divide top and bottom by the same number.",
+    "example": "2/3 = 4/6 = 6/9. To simplify 8/12, divide both by 4 to get 2/3.",
+    "wrong": "Students multiply only the top or only the bottom, turning 2/3 into 4/3 by doubling the top alone. Or when simplifying, they subtract the same number from top and bottom instead of dividing, turning 8/12 into 4/8 instead of 2/3."
+  },
+  "evaluate_composite": {
+    "what": "Working out a composite function means feeding the inner function's output straight into the outer function - either as a single new expression, or as one final number if you're given a specific x.",
+    "example": "f(x) = x+1, g(x) = x^2. fg(3): first g(3) = 9, then f(9) = 10. So fg(3) = 10.",
+    "wrong": "Students apply f first instead of g, getting f(3)=4, then g(4)=16, the answer to gf(3) instead of fg(3). Others try to combine the two functions at once without working step by step, and drop a term - for fg(x) here they might write x^2+1 correctly by luck, but on harder functions this shortcut misses brackets and gives a mangled expression."
+  },
+  "evaluate_definite_integral": {
+    "what": "Same process as any definite integral, but you keep the answer as a fraction or surd instead of turning it into a decimal - 'exact' means no rounding anywhere in the working.",
+    "example": "Integral of x^2 from 0 to 2: antiderivative x^3/3, giving 2^3/3 - 0 = 8/3.",
+    "wrong": "Students convert 8/3 to 2.67 (or worse, round it to 3) somewhere in the middle of the working, then can't get back to the exact fraction the question wanted, even though their method was fine."
+  },
+  "evaluate_index": {
+    "what": "A negative power means 'flip it and make the power positive', a fractional power means 'take a root', and anything to the power zero is 1 - these aren't three separate rules, they're all just power laws in disguise, so you can chain them.",
+    "example": "Evaluate 8^(-2/3). Take the cube root of 8 first: 8^(1/3) = 2. Square it: 2^2 = 4. Then flip it because of the negative: 8^(-2/3) = 1/4.",
+    "wrong": "Students treat the negative sign as making the answer negative, giving 8^(-2/3) = -4, or they do the power before the root and get stuck on 8^2 = 64 needing a cube root of 64, ending up with a messy decimal instead of the clean 1/4."
+  },
+  "exact_form": {
+    "what": "Some answers are meant to stay in their precise form - a surd like sqrt(2), a fraction like 1/3, or something with e or pi in it - because rounding it to a decimal throws away exactness the question is asking you to keep. If a calculator answer needs rounding, it's not exact anymore.",
+    "example": "Solve x^2 = 3. The exact answer is x = sqrt(3), not x = 1.732. If a question says 'give your answer in exact form' or 'in terms of e', writing 1.732 or 2.718 loses marks even though the decimal is a correct approximation.",
+    "wrong": "Students automatically punch the surd or fraction into a calculator and write down the decimal, because that's the habit built from years of 'find the value' questions. It gives a number that's technically close, but not what was asked for, and on non-calculator-flagged exact-answer questions it's marked wrong outright."
+  },
+  "exp_never_zero": {
+    "what": "e to any power, no matter how big, small, negative or weird, never hits zero - it gets close but never touches. So if you've factorised something and one factor is e^(something), you can cross it off the list of things that could make the whole expression zero, because it physically can't be the reason.",
+    "example": "Solve (x-2)e^(3x) = 0. Since e^(3x) is never 0, the only way to get zero is x-2=0, so x=2. You don't even look at the exponential part again.",
+    "wrong": "Students set e^(3x) = 0 anyway and try to solve it, ending up writing 3x = ln(0), then get stuck or write x = undefined as if that's a valid extra solution, sometimes even listing it alongside x=2 as if there are two answers."
+  },
+  "expand_binomial": {
+    "what": "Expanding a bracket to a power means writing out every term you'd get if you multiplied the bracket by itself that many times, using the pattern of coefficients from Pascal's triangle, and remembering that the second term inside the bracket gets raised to a power too, not just the letter.",
+    "example": "(1+2x)^3 = 1 + 3(2x) + 3(2x)^2 + (2x)^3 = 1 + 6x + 12x^2 + 8x^3.",
+    "wrong": "Students use the right coefficients 1,3,3,1 but only raise the x, not the 2 in front of it - writing 3x^2 instead of 3*(2x)^2 = 12x^2. This gives a wrong answer that still looks plausible because the powers of x are correct, just the numbers in front are too small."
+  },
+  "expand_binomial_fractional": {
+    "what": "When the power is negative or a fraction, the expansion never ends - you can only ever write the first few terms, and it only means anything as long as the bit being expanded stays small.",
+    "example": "(1+x)^(-1) = 1 - x + x^2 - x^3 + ... - carries on forever, each term flipping sign.",
+    "wrong": "Students try to use the whole-number method, expecting the expansion to stop after n+1 terms like it does for a positive whole power. For (1+x)^(-1) they might stop at 1 - x + x^2 and call that the full answer, not realising there's no last term to reach."
+  },
+  "expand_brackets": {
+    "what": "Expanding two brackets means multiplying every term in the first bracket by every term in the second, then combining any like terms at the end.",
+    "example": "(x + 3)(x + 2) = x*x + x*2 + 3*x + 3*2 = x^2 + 2x + 3x + 6 = x^2 + 5x + 6.",
+    "wrong": "Students multiply only the first terms and the last terms - getting x^2 + 6 - and skip the two 'middle' cross products entirely, because it looks like a shorter version of the same process and no one term is obviously missing."
+  },
+  "expand_single_bracket": {
+    "what": "Whatever sits outside the bracket multiplies every single term inside it, not just the first one - and if that outside thing is negative, the sign flips on every term inside too.",
+    "example": "3(2x - 5) = 3*2x - 3*5 = 6x - 15.",
+    "wrong": "Students multiply only the first term, giving 6x - 5 and leaving the second term untouched. With a negative outside, like -2(x - 4), they often get -2x - 8 instead of -2x + 8, forgetting that a negative times a negative inside flips to positive."
+  },
+  "exponential_graph": {
+    "what": "y = a^x (with a greater than 1) starts near zero for very negative x, never actually touching zero, then climbs slowly at first and then faster and faster as x increases - it never levels off and never turns downward.",
+    "example": "For y = 2^x: at x=-2, y=0.25; at x=0, y=1; at x=3, y=8; at x=5, y=32. The jumps in y get bigger and bigger even though the jumps in x stay the same size.",
+    "wrong": "Students sketch it as a curve that eventually flattens out or turns back down, like a parabola or a capped growth curve, because that's the shape of most other graphs they've seen. It survives because for small x-values near the y-axis, exponential growth actually does look gentle and easy to mistake for levelling off."
+  },
+  "factor_pairs": {
+    "what": "Two whole numbers that multiply together to make the number you started with, going through every combination that works.",
+    "example": "Factor pairs of 12: 1x12, 2x6, 3x4.",
+    "wrong": "They stop after finding one or two pairs, missing others - for 12 they might only list 2x6 and 3x4, forgetting 1x12, because they stop once the numbers 'look done'."
+  },
+  "factor_theorem_meaning": {
+    "what": "If putting a number into f(x) makes it come out zero, that number is a root, and that tells you (x minus that number) divides evenly into f(x) - it's the connection between a root and a factor written as a bracket.",
+    "example": "f(x) = x^3 - 6x^2 + 11x - 6. f(1) = 1 - 6 + 11 - 6 = 0, so (x-1) is a factor of f(x).",
+    "wrong": "Students say '1 is a factor' instead of '(x-1) is a factor' - mixing up the root value with the bracket expression. This causes trouble later when they try to write out the factorised form and get the sign backwards, writing (x+1) instead of (x-1)."
+  },
+  "factorise_common": {
+    "what": "Every term in the expression shares some factor - a number, a letter, or both - and you pull the biggest one out to the front, leaving the rest in brackets. Check by multiplying back through: it has to rebuild exactly what you started with.",
+    "example": "Factorise 6x^3 + 9x^2. Both terms share 3x^2 (biggest number that divides 6 and 9 is 3, biggest power of x shared is x^2). Take it out: 3x^2(2x + 3). Check: 3x^2 times 2x is 6x^3, 3x^2 times 3 is 9x^2. Correct.",
+    "wrong": "Students take out a factor that works but isn't the highest one - like pulling out just 3 from 6x^3 + 9x^2 to get 3(2x^3 + 3x^2), missing that x^2 was also common. It's not wrong, exactly, but it's not finished, and it causes trouble later when the question expects the fully factorised form or when solving equations, since the leftover bracket still has a common factor hiding in it."
+  },
+  "factorise_cubic": {
+    "what": "To break a cubic into three brackets, find one value that makes it zero (a root), divide the cubic by that bracket to leave a quadratic, then factorise the quadratic as normal.",
+    "example": "x^3 - 6x^2 + 11x - 6. Try x=1: 1 - 6 + 11 - 6 = 0, so (x-1) is a factor. Dividing gives x^2 - 5x + 6, which factorises to (x-2)(x-3). Full answer: (x-1)(x-2)(x-3).",
+    "wrong": "Students find the first factor and the leftover quadratic correctly, then stop - leaving the quadratic unfactorised, e.g. writing (x-1)(x^2-5x+6) as the final answer instead of going one step further. Also common: sign slips during the division step, producing a wrong quadratic that doesn't factorise nicely at all."
+  },
+  "factorise_quadratic": {
+    "what": "You're looking for two brackets that multiply out to give the quadratic back - which means finding two numbers that multiply to give the constant term and add to give the coefficient of x.",
+    "example": "Factorise x^2 + 5x + 6. Need two numbers that multiply to 6 and add to 5: that's 2 and 3. So it's (x + 2)(x + 3). Check: x^2 + 3x + 2x + 6 = x^2 + 5x + 6. Correct.",
+    "wrong": "Students find two numbers that add to 5 but forget to check they also multiply to 6 - like using 1 and 4 (they add to 5 but multiply to 4, not 6), giving (x+1)(x+4) which expands to x^2 + 5x + 4, the wrong constant term. This slips through because addition is the first thing people check and they stop there."
+  },
+  "find_inverse": {
+    "what": "An inverse undoes what the function did. To find it, write y = f(x), swap x and y, then rearrange to make y the subject again - the domain of the inverse is whatever the range of the original function was.",
+    "example": "f(x) = x^2 + 1 for x >= 0. Write y = x^2 + 1, swap: x = y^2 + 1, so y = sqrt(x-1). f^-1(x) = sqrt(x-1), domain x >= 1 (since that was the range of f).",
+    "wrong": "They rearrange f(x) for x but never swap x and y first, so they write f^-1(x) = sqrt(x-1) but call it 'x' still meaning the original variable, and lose track of which domain belongs to which function - often just copying the original domain across unchanged."
+  },
+  "find_stationary_points": {
+    "what": "To find stationary points fully, set the derivative to zero and solve for every x that satisfies it, then go back to the original function to get the matching y-value for each one.",
+    "example": "y = x^3 - 3x. dy/dx = 3x^2 - 3 = 0, so x^2 = 1, x = 1 or x = -1. At x=1: y = 1-3 = -2. At x=-1: y = -1+3 = 2. Stationary points: (1,-2) and (-1,2).",
+    "wrong": "Students solve 3x^2 - 3 = 0 correctly but then stop, giving 'x = 1, -1' as the final answer without ever computing the y-coordinates, because they treat solving for x as the finish line rather than the halfway point."
+  },
+  "first_principles": {
+    "what": "You find a derivative from scratch by looking at the slope of a chord between two points on the curve that are a tiny distance h apart, then asking what that slope settles down to as h shrinks to zero.",
+    "example": "f(x) = x^2 [f(x+h) - f(x)] / h = [(x+h)^2 - x^2] / h = [2xh + h^2] / h = 2x + h As h -> 0, this goes to 2x, so f'(x) = 2x",
+    "wrong": "A common failure is expanding (x+h)^2 wrong or forgetting to subtract the original x^2 cleanly, leaving leftover h terms that don't cancel, so the limit as h->0 doesn't obviously reduce to a clean answer - and students then just write down 2x anyway because they know that's the 'expected' answer from the power rule, without the algebra actually supporting it."
+  },
+  "form_and_solve": {
+    "what": "Read the situation, name the unknown, write down what the words or picture are actually saying in symbols, then solve that equation like any other.",
+    "example": "A rectangle has sides x and x+3, perimeter 26. Perimeter is 2(x + x+3) = 26, so 4x + 6 = 26, 4x = 20, x = 5.",
+    "wrong": "Students build the equation from only part of the situation, for example adding the two sides but forgetting perimeter needs doubling: x + (x+3) = 26 gives x = 11.5, a number that looks like a fine answer but solves the wrong problem."
+  },
+  "form_expression_from_context": {
+    "what": "You are given a real situation with two related quantities, and told or shown how they connect (a fixed perimeter, a fixed area, a fixed cost). You use that connection to remove one variable, so you end up with a single expression in one variable that you can then work with.",
+    "example": "A rectangle has perimeter 20. So 2x+2y=20, meaning y=10-x. Area = xy = x(10-x) = 10x - x^2. Now area is a function of x alone.",
+    "wrong": "Students write the area as xy and stop there, or plug in the constraint wrong (like using y=20-x instead of y=10-x), because they forget the perimeter equation has a 2 in front of each variable."
+  },
+  "form_expression_words": {
+    "what": "Read the sentence and translate each piece separately: pick a letter for the unknown number, then convert phrases like 'more than', 'twice', 'less than' into the operations they actually mean, keeping the order the words give you - which is not always the order you write them in algebra.",
+    "example": "'five more than twice a number' -> let the number be n -> twice a number is 2n -> five more than that is 2n + 5",
+    "wrong": "They write it in reading order without checking what the words mean, so 'five more than twice a number' becomes 5 + 2n written as 2n+5... except for 'five less than twice a number' the same reading-order habit gives 5 - 2n instead of the correct 2n - 5. It works by accident for 'more than' phrasing since addition doesn't care about order, which is exactly why the same habit then fails on 'less than'."
+  },
+  "fraction_meaning": {
+    "what": "The bottom number says how many equal pieces the whole thing got cut into. The top number says how many of those pieces you're actually talking about.",
+    "example": "3/5 means: cut something into 5 equal pieces, then take 3 of them.",
+    "wrong": "Students read 3/5 as '3 out of 5 things' in a vague, uncounted way, which falls apart the moment the fraction is bigger than 1, like 7/5 - they can't picture 7 pieces out of only 5, because they never separated 'size of a piece' (the bottom) from 'how many you're taking' (the top)."
+  },
+  "fraction_of_amount": {
+    "what": "To find a fraction of a quantity, divide by the bottom number to find one part, then multiply by the top number to find however many parts you need.",
+    "example": "Three fifths of 45: 45 / 5 = 9, then 9 x 3 = 27.",
+    "wrong": "Students multiply by the bottom and divide by the top instead, so three fifths of 45 becomes 45 x 5 / 3 = 75. Or they only do half the process - dividing by 5 and stopping at 9, forgetting to multiply by 3."
+  },
+  "fraction_to_decimal": {
+    "what": "A fraction is a division that hasn't been done yet. To turn it into a decimal, divide the top number by the bottom number, and keep going after the decimal point until it stops or starts repeating.",
+    "example": "3/8: divide 3 by 8. 3.000 / 8 = 0.375, since 30/8=3 rem 6, 60/8=7 rem 4, 40/8=5 rem 0. So 3/8 = 0.375. For one that doesn't terminate: 1/3: 1.000 / 3 = 0.333... the 3 repeats forever, so 1/3 = 0.333... (written as 0.3 with a dot over it).",
+    "wrong": "Students divide the bottom by the top instead, so 3/8 becomes 8/3 = 2.67, which is nowhere near right. Others stop dividing too early when they hit a remainder that isn't zero, writing 1/3 = 0.3 and calling it done, because they've never been told decimals are allowed to go on forever."
+  },
+  "fractions_arith": {
+    "what": "To add or subtract fractions you need a common denominator first; to multiply, you multiply straight across top and bottom; to divide, you flip the second fraction and multiply. Each operation has its own rule - they don't mix.",
+    "example": "1/2 + 1/3 = 3/6 + 2/6 = 5/6. But 1/2 x 1/3 = 1/6 (just multiply across). And 1/2 divided by 1/3 = 1/2 x 3/1 = 3/2.",
+    "wrong": "Students add fractions by adding top and bottom straight across, like 1/2 + 1/3 = 2/5, because that's exactly what works for multiplication and it feels consistent. It gives a wrong answer that's still a 'sensible-looking' fraction, which is why it doesn't get flagged as obviously broken."
+  },
+  "function_notation": {
+    "what": "f(x) is the output of the function when you feed it x - a value. f'(x) and dy/dx are both the derivative, the rate of change, but written in different notations depending on whether you call the function f(x) or y.",
+    "example": "If f(x) = x^2, then f(3) = 9 is a specific value, but f'(x) = 2x is a new function telling you the gradient at any x, so f'(3) = 6 is the gradient at x=3.",
+    "wrong": "Students read f'(x) as 'f times x' or think f(2) means f multiplied by 2, instead of substituting 2 into the function - so they'll compute f(2) for f(x)=x^2 as 2x^2 instead of correctly substituting to get 4."
+  },
+  "geometric_sequence": {
+    "what": "A geometric sequence keeps multiplying by the same fixed ratio each step. The nth term is the first term multiplied by that ratio raised to the power (n-1), again because the first term hasn't been multiplied yet.",
+    "example": "a = 3, r = 2. The 5th term is 3x2^4 = 48. Working backwards: if the 2nd term is 6 and the 5th term is 48, that's 3 multiplications by r: r^3 = 48/6 = 8, so r = 2, and a = 6/2 = 3.",
+    "wrong": "Students subtract terms to find r, treating it like an arithmetic sequence, so from 6 and 48 they might wrongly get 'difference 42' and try to use that instead of dividing. Others use r^n instead of r^(n-1), overshooting by one multiplication."
+  },
+  "geometric_series_sum": {
+    "what": "Each term is the last one times a fixed ratio, so instead of adding n terms by hand you plug the first term, ratio, and n into a formula that does the adding for you.",
+    "example": "a=3, r=2, n=4: terms are 3,6,12,24, sum=45. Formula: Sn = a(r^n-1)/(r-1) = 3(2^4-1)/(2-1) = 3x15 = 45.",
+    "wrong": "Students use the arithmetic series formula n/2(2a+(n-1)d) out of habit, since it is the one drilled most, or they just compute a*r^n (the nth term) thinking that is the 'total'. Both give wrong numbers that look plausible."
+  },
+  "gradient_at_point": {
+    "what": "The derivative is a formula that tells you the gradient anywhere on the curve. To get the actual gradient at one specific point, differentiate first, then plug that x-value in.",
+    "example": "y = x^2 - 4x. dy/dx = 2x - 4. Gradient at x = 3: 2(3) - 4 = 2.",
+    "wrong": "Students substitute x = 3 into the original y first (getting y = -3), then try to differentiate that number, which makes no sense but they force an answer anyway - because they don't separate 'the rule for gradient' from 'the value of y'."
+  },
+  "gradient_sign": {
+    "what": "If dy/dx is positive at a point, the curve is going uphill there as x increases. If dy/dx is negative, it's going downhill. The sign alone doesn't tell you the height, just the direction of travel.",
+    "example": "If dy/dx = -3 at x = 5, the function is decreasing there - as x increases past 5, y is getting smaller.",
+    "wrong": "Students confuse the sign of the derivative with the sign of the function itself, saying 'y is negative there' when actually y could be positive and simply decreasing. This mix-up survives because both facts can be true at once by coincidence, hiding the error."
+  },
+  "gradient_straight_line": {
+    "what": "Gradient tells you how steep a line is and which way it slants - how much y changes for every step across in x. It's a rate: change in y divided by change in x between two points on the line.",
+    "example": "Points (1, 2) and (4, 11). Change in y = 11 - 2 = 9. Change in x = 4 - 1 = 3. Gradient = 9/3 = 3, meaning y goes up by 3 for every 1 across.",
+    "wrong": "Students divide change in x by change in y instead, getting 3/9 = 1/3, because they don't fix which change goes on top - the rule 'rise over run' gets applied backwards under pressure."
+  },
+  "highest_common_factor": {
+    "what": "The biggest number (or term) that divides exactly into both things you're given, with nothing left over.",
+    "example": "HCF of 12 and 18: factors of 12 are 1,2,3,4,6,12; factors of 18 are 1,2,3,6,9,18; the biggest shared one is 6.",
+    "wrong": "They pick a common factor that isn't the highest, like saying HCF of 12 and 18 is 3, because it's the first shared number they spot and they stop checking once they find one that works."
+  },
+  "implicit_diff": {
+    "what": "When y is tangled up with x in an equation rather than isolated, you differentiate both sides term by term, treating y as a function of x, and every time you differentiate a y-term you tack on dy/dx by the chain rule - then you rearrange to get dy/dx by itself.",
+    "example": "x^2 + y^2 = 25. Differentiate: 2x + 2y(dy/dx) = 0. Rearrange: dy/dx = -x/y.",
+    "wrong": "Students differentiate y^2 as 2y and stop, forgetting the dy/dx that chain rule demands, so they get 2x + 2y = 0 and a meaningless answer. Others remember dy/dx on simple terms like y^2 but forget it's needed on mixed terms like xy, missing the product rule there too."
+  },
+  "increasing_decreasing": {
+    "what": "A function is increasing wherever its slope is positive, so you solve f'(x) > 0 as an inequality in x, not just find where the slope is zero.",
+    "example": "f(x) = x^3 - 3x, f'(x) = 3x^2 - 3. Solve 3x^2 - 3 > 0, so x^2 > 1, giving x < -1 or x > 1. The function is increasing on those two intervals.",
+    "wrong": "Students solve f'(x) = 0 to get x = -1, 1 and stop there, treating the stationary points themselves as the answer instead of testing the regions between and outside them. Others solve the inequality but drop one branch, writing only 'x > 1' and missing 'x < -1'."
+  },
+  "index_laws": {
+    "what": "There are a few fixed rules for combining powers: multiplying same bases adds the powers, dividing subtracts them, a power to a power multiplies, anything to the power 0 is 1, and a negative power flips it to the bottom (or top) of a fraction.",
+    "example": "x^3 * x^-5 = x^-2 = 1/x^2. Also (x^2)^3 = x^6, and x^0 = 1.",
+    "wrong": "Students multiply the powers when they should add (turning x^3*x^2 into x^6 instead of x^5), or panic on negative powers and just drop the sign, turning x^-2 into x^2."
+  },
+  "index_notation": {
+    "what": "Index notation is the small raised number that tells you how many times to multiply a number by itself. 2^3 means 2 x 2 x 2, not 2 x 3.",
+    "example": "2^3 = 2 x 2 x 2 = 8. 5^2 = 5 x 5 = 25.",
+    "wrong": "Students read 2^3 and multiply the base by the power, getting 2 x 3 = 6 instead of 8. It sticks because for 2^1 or anything to the power 1 the two methods happen to agree, so the error isn't caught early."
+  },
+  "integral_meaning": {
+    "what": "An integral hands you back a function whose slope at every point matches the function you started with - it undoes differentiation the way adding undoes subtracting. If differentiating F gives f, then integrating f gives F back (plus a constant), because differentiation only cares about the shape, not the starting height.",
+    "example": "Differentiate F(x) = x^2 + 5 and you get f(x) = 2x. Integrate 2x and you get x^2 + c - the +5 is gone from view, but it could be any constant, since it vanished when you differentiated.",
+    "wrong": "Students treat integration as a separate rule to memorise (raise power, divide by new power) with no link to differentiation at all, so when asked WHY it works, they describe the procedure instead of the undoing relationship - and get stuck the moment a question asks them to check an answer by differentiating it."
+  },
+  "integrate_by_substitution": {
+    "what": "When the expression is built from an inner function, you rename that inner function u, rewrite everything (including the limits) in terms of u, integrate the simpler thing, and only then you're done - no need to switch back if the limits were changed to u already.",
+    "example": "Integral of 2x(x^2+1)^3 dx from x=0 to 1. Let u = x^2+1, so du = 2x dx. When x=0, u=1; when x=1, u=2. Integral becomes integral of u^3 du from 1 to 2 = [u^4/4] = (16-1)/4 = 15/4.",
+    "wrong": "Students substitute u into the expression correctly but then plug the original x-limits (0 and 1) into the u-answer instead of converting them, getting a completely wrong number even though the algebra up to that point was right."
+  },
+  "integrate_expression": {
+    "what": "To integrate a power of x you raise the power by one and divide by the new power - do that to every term, then stick a +C on the end because any constant vanishes when you differentiate.",
+    "example": "Integrate 3x^2 + 4x: each term goes up a power and divides by the new power, giving x^3 + 2x^2 + C.",
+    "wrong": "The most common slip is forgetting the +C entirely, since it doesn't change the shape of the answer and often isn't checked. Also common: dividing by the old power instead of the new one, or forgetting to raise the power at all and just multiplying."
+  },
+  "integrate_powers": {
+    "what": "To integrate a power of x, push the index up by one and divide by that new index - the exact reverse of the differentiation rule that brings the index down and multiplies by it.",
+    "example": "Integrate x^3: raise the power to 4, divide by 4, get x^4/4 + c. Integrate x^(-2): raise to -1, divide by -1, get -x^(-1) + c, i.e. -1/x + c.",
+    "wrong": "Students divide by the OLD power instead of the new one, turning x^3 into x^4/3. With negative or fractional powers they often forget to raise the index at all, or mishandle the sign - integrating x^(-2) as x^(-1) + c without the minus sign, since the sign flip from dividing by a negative index is easy to miss."
+  },
+  "inverse_function": {
+    "what": "The inverse function undoes what the original function does. To find it, write y = f(x), swap x and y so the roles reverse, then rearrange to get y on its own again - that new expression is f^-1(x).",
+    "example": "y = 3x + 2. Swap: x = 3y + 2. Rearrange: x - 2 = 3y, so y = (x-2)/3. That's f^-1(x).",
+    "wrong": "Students rearrange first without swapping x and y, so they find x in terms of y but call it the inverse without ever switching the letters - it looks like progress but it's actually just solving for x, not undoing the function. Others swap correctly but then make an algebra slip while rearranging, like forgetting to divide the whole side by 3."
+  },
+  "inverse_operations": {
+    "what": "Every operation has one that cancels it out completely - add undoes subtract, multiply undoes divide, squaring undoes square root. If a number is stuck to your letter by one of these, doing the opposite operation to both sides removes it while keeping the equation true, because whatever you do to one side you must do to the other or the balance breaks.",
+    "example": "x + 7 = 12. Addition is stuck on x, so subtract 7 from both sides: x = 5.",
+    "wrong": "Students subtract 7 only from the side that has the x, leaving x = 12, or they apply the inverse operation to one side and a different operation to the other. This survives because when both sides start off looking almost equal (like x + 0 = 5) skipping the second side changes nothing, so the habit never gets tested."
+  },
+  "like_terms_meaning": {
+    "what": "Terms can only be combined if they are built from the exact same letters raised to the exact same powers - x and x are alike, but x and x^2, or x and a plain number, are different kinds of quantity and can't be merged into one count.",
+    "example": "In 4x + 3x^2 + 2x, the 4x and 2x are alike (both plain x), but 3x^2 is not, since it's x squared, not x.",
+    "wrong": "Students combine 4x and 3x^2 into 7x^2 or 7x, treating any term with an x in it as the same kind. This survives because when only one power of x appears in a whole question, the distinction never gets tested, so the false rule 'if it has x, add it' works every time until x^2 turns up."
+  },
+  "limit_h_to_zero": {
+    "what": "Picture two points on a curve joined by a straight line - a chord. Its gradient is a rough estimate of the curve's steepness. As you slide the second point closer and closer to the first, that chord gradient settles down toward one exact number, and that number is the gradient of the curve at that single point - the derivative.",
+    "example": "For y = x^2 at x = 1, the chord to x = 1+h has gradient ((1+h)^2 - 1)/h = 2 + h. As h shrinks toward 0 - try h = 0.1, 0.01, 0.001 - this gradient goes 2.1, 2.01, 2.001, closing in on 2.",
+    "wrong": "Students think you literally set h = 0 from the start, which gives 0/0 and looks like nonsense, so they conclude the whole method is broken or meaningless. The point is that h never actually reaches 0 - you watch where the value is heading, not where it lands, and that's why the algebra has to simplify away the h in the denominator first."
+  },
+  "line_through_two_points": {
+    "what": "Find the gradient from the two points using rise over run, then use one of the points with y=mx+c (or point-gradient form) to pin down the full equation.",
+    "example": "Points (1,4) and (3,10). Gradient m = (10-4)/(3-1) = 6/2 = 3. Using (1,4): 4 = 3(1) + c, so c = 1. Equation: y = 3x + 1.",
+    "wrong": "Students compute the gradient correctly but then plug the x and y from the point into the wrong slots, writing something like c = 4/1 = 4 instead of solving 4 = 3(1)+c properly, or they swap which coordinate is x and which is y when substituting. This gives a plausible-looking but wrong c value like y=3x+4."
+  },
+  "log_laws": {
+    "what": "Logs turn multiplying into adding, dividing into subtracting, and powers into multiplying out front. That's the whole toolkit - there's no rule for log of a sum or log of a difference, because those don't simplify at all.",
+    "example": "log(20) = log(4x5) = log(4) + log(5). Also log(8) = log(2^3) = 3log(2). But log(4+5) is NOT log(4)+log(5) - log(9) is about 0.954, while log(4)+log(5) is about 0.602+0.699=1.301. Different numbers entirely.",
+    "wrong": "Students see log(a+b) and split it into log(a) + log(b) because it looks like the product rule, especially under time pressure when the shape of the expression matches something they half-remember. It feels like the same move as log(ab), but there is no rule to justify it, and it silently gives a wrong number that often still looks plausible."
+  },
+  "midpoint_and_distance": {
+    "what": "The midpoint is the average of the x's and the average of the y's - it just finds the point exactly halfway between two points. The distance is Pythagoras in disguise: the gap in x and the gap in y are the two legs of a right triangle, and the distance is the hypotenuse.",
+    "example": "Points (1,2) and (5,8). Midpoint = ((1+5)/2, (2+8)/2) = (3,5). Distance = sqrt((5-1)^2 + (8-2)^2) = sqrt(16+36) = sqrt(52) = 2*sqrt(13).",
+    "wrong": "Students square-root too early, writing sqrt(4^2)+sqrt(6^2) = 4+6 = 10 instead of sqrt(52). Or they leave the answer as a decimal (7.21) when the question asks for exact form, losing marks for a correctly done calculation."
+  },
+  "modulus_graph": {
+    "what": "To sketch y = |f(x)|, sketch y = f(x) normally, then flip any part that dips below the x-axis up above it, like folding the paper along the x-axis. The bottom of that fold, where the graph touches or turns, is the vertex.",
+    "example": "y = |x - 3| is a V-shape. It touches zero at x = 3 (the vertex), and rises with slope 1 on both sides, since |x-3| can't go below 0.",
+    "wrong": "Students draw the plain unfolded graph (like a straight line through zero for y = x-3, dipping below the axis) and forget to reflect the negative part upward, so the graph is wrong below the axis and there's no V at all. They also often place the vertex at the wrong x-value, forgetting it's where the inside of the modulus equals zero."
+  },
+  "modulus_meaning": {
+    "what": "The modulus of x, written |x|, is the distance of x from zero on the number line. Distance can't be negative, so |x| strips away the sign and leaves you with the size of the number.",
+    "example": "|5| = 5, and |-5| = 5 too, because -5 is 5 steps from zero, same as 5 is.",
+    "wrong": "Students think |x| means 'make it negative' or confuse it with brackets and just ignore the bars, so |-5| gets left as -5. It also trips people up in equations: they solve |x-2|=3 by only doing x-2=3, missing that x-2=-3 is also valid, and lose half the solutions."
+  },
+  "multiplier_method": {
+    "what": "Every percentage change is one multiplication. A rise of x% means multiply by (1 + x/100). A fall of x% means multiply by (1 - x/100). To undo it, divide by that same number.",
+    "example": "A 15% increase multiplies by 1.15. To undo a 15% increase, divide by 1.15, not multiply by 0.85.",
+    "wrong": "Students think a 15% increase is undone by a 15% decrease, multiplying by 0.85 to reverse it - this doesn't get back to the start because 15% off the bigger number is more than 15% of the original. They mix up increase and decrease multipliers, using 1.15 when they mean 0.85 or the reverse."
+  },
+  "multiply_divide_fractions": {
+    "what": "To multiply fractions, multiply the tops together and the bottoms together. To divide by a fraction, flip the second one upside down and multiply instead. Simplify at the end (or cancel early if you can).",
+    "example": "2/3 x 4/5 = 8/15. For division: 2/3 / 4/5 = 2/3 x 5/4 = 10/12 = 5/6.",
+    "wrong": "Students try to find a common denominator for multiplication like they do for adding, giving a wrong answer such as turning 2/3 x 4/5 into something over 15 with the wrong top. For division, a common error is flipping the first fraction instead of the second, or forgetting to flip at all and just multiplying straight across."
+  },
+  "multiply_terms": {
+    "what": "Multiply the numbers together, then multiply the letters together, and stick the results side by side.",
+    "example": "3 times 2x: 3*2 = 6, so answer is 6x. x times x: that's x^2, not 2x.",
+    "wrong": "For x times x, they write 2x, treating it like addition (x + x = 2x) instead of multiplication. It survives because x + x and x times x look similarly 'simple' and both feel like combining two x's into one thing."
+  },
+  "negatives": {
+    "what": "Negatives flip direction: subtracting a negative is the same as adding, and multiplying two negatives gives a positive. The sign rules matter more than the size of the numbers.",
+    "example": "5 - (-3) = 5 + 3 = 8. And (-4) x (-2) = 8, but (-4) x 2 = -8. Two negative signs cancel; one negative sign doesn't.",
+    "wrong": "Students see 5 - (-3) and either ignore the second negative and write 2, or they see two minus signs and just make it '-8' by multiplying the numbers instead of adding them. With multiplication, a common one is (-4) x (-2) = -8, treating negatives as always making things more negative rather than tracking that two negatives cancel."
+  },
+  "normal_equation": {
+    "what": "The normal is the line at right angles to the tangent, at the same point. Perpendicular lines have gradients that multiply to -1, so take the tangent's gradient, flip it upside down, and change its sign.",
+    "example": "Tangent gradient at a point is 4. Normal gradient = -1/4. If the point is (2,4): y - 4 = -1/4 (x - 2).",
+    "wrong": "Students just negate the gradient without flipping it (using -4 instead of -1/4), because 'opposite' feels like it should just mean a sign change, not a reciprocal too."
+  },
+  "nth_term_rule": {
+    "what": "An nth term rule is a formula that tells you what any term in a sequence is, based on its position. Feed in the position number n, and it hands back the value sitting there.",
+    "example": "nth term = 3n + 2. The 10th term means put n = 10: 3(10) + 2 = 32.",
+    "wrong": "Students plug the term's value into n instead of its position, or they treat n as if it were the term itself - so asked for 'the term worth 32' they might just write 32 into the formula rather than solving 3n+2=32 for n."
+  },
+  "null_factor": {
+    "what": "If two things multiply together and the answer is zero, one of them has to be zero - there's no other way to make a product vanish. So each bracket can be set equal to zero on its own.",
+    "example": "(x - 3)(x + 2) = 0. Either x - 3 = 0, giving x = 3, or x + 2 = 0, giving x = -2.",
+    "wrong": "Students try to expand the brackets first and then solve, which works but is slow and error-prone, or worse, they set the whole expression equal to zero and try to isolate x directly without splitting into cases, getting stuck or finding only one solution because they never separated the two factors."
+  },
+  "optimisation": {
+    "what": "You turn a real situation into a single-variable function using whatever constraint links the variables, then differentiate that function to find the best value - the maths only starts once the setup is done.",
+    "example": "A rectangle has perimeter 20, so x + y = 10, meaning y = 10 - x. Area A = xy = x(10-x) = 10x - x^2. dA/dx = 10 - 2x = 0 gives x = 5, so y = 5 and max area = 25.",
+    "wrong": "Students try to differentiate A = xy directly while it still has two variables, getting nonsense like dA/dx = y. Others substitute the constraint correctly but forget to check the stationary point is actually a maximum, sometimes reporting a minimum or a boundary value as the answer."
+  },
+  "order_fdp": {
+    "what": "To compare a mix of fractions, decimals and percentages, get them all into the same outfit first, usually decimals, then line them up by size.",
+    "example": "Order 3/5, 0.4, 45%. As decimals: 0.6, 0.4, 0.45. So order is 0.4, 0.45, 0.6, meaning 0.4, 45%, 3/5.",
+    "wrong": "Students compare the numbers as they look on the page, so 3/5 gets judged by the digit 5, 0.4 by the digit 4, and 45% by the digit 45, leading to nonsense orderings like putting 45% above 3/5 because 45 is bigger than 5. It survives because with easy numbers like 1/2, 0.5, 50% there is nothing to get wrong."
+  },
+  "parametric_diff": {
+    "what": "When x and y are both written in terms of some other letter like t, you find dy/dt and dx/dt separately, then divide one by the other to get dy/dx - the parameter cancels like it would in a fraction.",
+    "example": "x = t^2, y = 2t. dx/dt = 2t, dy/dt = 2. dy/dx = (dy/dt)/(dx/dt) = 2/(2t) = 1/t.",
+    "wrong": "Students divide the wrong way round, computing dx/dt over dy/dt instead, getting t instead of 1/t - this survives because both look like plausible answers and nothing in the question flags which is upside down. Others try to eliminate t first to get y in terms of x directly, which works sometimes but wastes time and often goes wrong on messier equations."
+  },
+  "percentage_as_decimal": {
+    "what": "A percentage is a number out of 100, so to write it as a decimal you divide by 100, which just shifts the digits two places. Going back, you multiply by 100.",
+    "example": "32% as a decimal: 32 / 100 = 0.32. And 0.07 as a percentage: 0.07 x 100 = 7%.",
+    "wrong": "Students move the decimal point the wrong way, turning 32% into 3.2, or turning 0.07 into 0.0007%. This survives because the direction of the shift is easy to guess wrong under pressure, and they rarely check the size makes sense."
+  },
+  "percentage_change": {
+    "what": "To change an amount by a percentage, work out what that percentage is worth, then add it on or take it off the original amount.",
+    "example": "Increase 60 by 20%: 20% of 60 is 12, so new amount is 60 + 12 = 72.",
+    "wrong": "Students find the percentage correctly but forget to add or subtract it, giving 12 as the final answer instead of 72. Others use the wrong original amount when the question involves several changes, working the second percentage off the first result's percentage rather than off the whole new amount."
+  },
+  "percentage_of_amount": {
+    "what": "A percentage is a chunk out of 100, so to find it of an amount you turn the percentage into a fraction or decimal of 100 and multiply by the amount.",
+    "example": "Find 15% of 60. 15% = 15/100 = 0.15. 0.15 x 60 = 9.",
+    "wrong": "Students divide the amount by the percentage number instead of multiplying, so for 15% of 60 they do 60 / 15 = 4. This looks plausible because it gives a smaller number, and often goes unnoticed on percentages under 50."
+  },
+  "perpendicular_gradients": {
+    "what": "Two lines are perpendicular when their gradients multiply to give -1 - so to find the perpendicular gradient, flip the original fraction upside down and change its sign.",
+    "example": "Gradient is 2 (which is 2/1). Flip it: 1/2. Change sign: -1/2. Check: 2 times -1/2 = -1. Correct.",
+    "wrong": "Students just change the sign and forget to flip - turning gradient 2 into -2 instead of -1/2. It survives because 'change the sign' is the part people remember, and for a gradient like 1, flipping does nothing, so -1 for '1' happens to be right and reinforces the shortcut wrongly."
+  },
+  "perpendicular_line": {
+    "what": "Perpendicular lines have gradients that multiply to give -1, so to get the perpendicular gradient, flip the original gradient upside down and change its sign. Then use the given point to find the equation as usual.",
+    "example": "Line y = 2x + 3, perpendicular through (4,1). Original gradient 2, so perpendicular gradient = -1/2. Using (4,1): 1 = -1/2(4) + c, 1 = -2 + c, c = 3. Equation: y = -1/2 x + 3.",
+    "wrong": "Students flip the sign but forget to also flip the fraction (or vice versa), turning gradient 2 into -2 instead of -1/2. The resulting line looks reasonable and even passes through the given point, so the error only shows up if someone checks the two gradients actually multiply to -1."
+  },
+  "place_value": {
+    "what": "A digit is worth more or less depending on where it sits, not just what it says. Moving right of the decimal point, each spot is worth ten times less than the one before it: tenths, then hundredths, then thousandths.",
+    "example": "In 4.06, the 4 is worth 4 whole ones, the 0 is worth 0 tenths, and the 6 is worth 6 hundredths - so the number is 4 + 0/10 + 6/100.",
+    "wrong": "Students see 4.06 and read the digits after the point as '06', treating it like a two-digit number bolted onto the end, so they think 4.06 is bigger than 4.3 because '06' looks bigger than '3'. They're comparing the digits as if position doesn't change what they're worth."
+  },
+  "polynomial_division": {
+    "what": "Dividing a cubic by a linear factor works like long division with numbers - you divide, multiply back, subtract, and bring down the next term, ending up with a quadratic (and maybe a remainder).",
+    "example": "(x^3 - 6x^2 + 11x - 6) divided by (x-1) gives x^2 - 5x + 6, with no remainder.",
+    "wrong": "Students get the sign wrong when subtracting during the process, so terms that should cancel don't, and the quotient comes out with the wrong middle coefficient - here getting x^2 + 5x + 6 or similar because a minus was dropped partway through."
+  },
+  "power_of_a_negative_term": {
+    "what": "When you raise a whole term like -2x to a power, everything inside gets raised - the number, the sign, and the letter all together. The sign that comes out depends on whether the power is odd or even, not on what sign you started with.",
+    "example": "(-2x)^3 = (-2)^3 * x^3 = -8x^3. But (-2x)^4 = (-2)^4 * x^4 = 16x^4 - positive, because four negatives multiply to a positive.",
+    "wrong": "Students cube or raise the letter but leave the coefficient as -2 instead of -8, writing -2x^3 instead of -8x^3. Or they assume the answer keeps the original negative sign regardless of the power, so they write -16x^4 for the even case, not noticing the sign should have flipped positive."
+  },
+  "power_rule": {
+    "what": "To differentiate a power of x, bring the power down in front as a multiplier and knock the power down by one. This works for any power - negative, fractional, whatever - as long as it's written as x to a power.",
+    "example": "y = 3x^4 - 2x^-1 + x^(1/2) dy/dx = 12x^3 + 2x^-2 + (1/2)x^(-1/2) (each term: multiply by old power, subtract 1 from power)",
+    "wrong": "They apply it fine to whole number powers like x^3 but freeze on x^-2 or sqrt(x). For sqrt(x) they often forget to rewrite it as x^(1/2) first, so they either leave it undifferentiated or guess the derivative is (1/2)sqrt(x). For 1/x^2 written as x^-2, they multiply by -2 but then flip the sign of the power the wrong way, landing on -2x^-3 becoming +2x^-1 or similar sign slips."
+  },
+  "product_rule": {
+    "what": "When two functions are multiplied together, you can't just differentiate each one and multiply the results. Differentiate the first, keep the second as it is, add that to the first kept as it is times the derivative of the second.",
+    "example": "y = x^2 * sin(x) dy/dx = 2x*sin(x) + x^2*cos(x)",
+    "wrong": "The instinctive wrong move is to differentiate both factors and multiply them, giving dy/dx = 2x*cos(x) for the example above. It survives because it feels like the 'obvious' extension of single-function rules, and students never check it against a case where the two answers actually differ, like x=pi/2, where the real derivative and the wrong one give different numbers."
+  },
+  "quotient_rule": {
+    "what": "For one function divided by another, differentiate the top times the bottom, subtract the top times the derivative of the bottom, then divide the whole thing by the bottom squared. Order matters because subtraction isn't symmetric.",
+    "example": "y = x^2 / (x+1) dy/dx = [2x(x+1) - x^2(1)] / (x+1)^2 = (x^2 + 2x) / (x+1)^2",
+    "wrong": "Students often get the rule mostly right but swap the order of subtraction on top, writing [x^2(1) - 2x(x+1)] / (x+1)^2, which gives the negative of the correct numerator. Because both versions look 'balanced' and use all the right pieces, it's easy to write the wrong order and not notice, especially under time pressure."
+  },
+  "radians": {
+    "what": "Radians measure angles using the radius of a circle instead of degrees - a full turn is 2*pi radians instead of 360 degrees. Calculus and most real-world formulas involving angles want radians, not degrees, because the maths only comes out clean that way.",
+    "example": "180 degrees = pi radians. So 90 degrees = pi/2, and 60 degrees = pi/3. To convert 45 degrees to radians: 45 * (pi/180) = pi/4.",
+    "wrong": "Students leave their calculator in degree mode when a question needs radians (or vice versa), getting numbers that are wildly off but not obviously wrong-looking, since both modes give 'a number'. It survives because most early-level questions don't force the distinction, so the habit of not checking mode never gets punished until it matters."
+  },
+  "ratio_meaning": {
+    "what": "A ratio like 2:3 says for every 2 of one thing there are 3 of the other - it's about the split between them, not the total. Add the parts to find out how many equal shares the whole thing is cut into.",
+    "example": "In a ratio of 2:3, there are 2 + 3 = 5 parts total. If the total is 20, each part is 20/5 = 4, so the amounts are 8 and 12.",
+    "wrong": "Students read 2:3 as meaning 2 out of 3, treating it like a fraction of the whole and getting shares that don't add up properly. Others assume the ratio gives the actual amounts directly, saying the two quantities simply are 2 and 3 regardless of what total the question gives."
+  },
+  "rationalise_denominator": {
+    "what": "A surd sitting under a fraction line is considered 'untidy', so you multiply top and bottom by something that turns that surd into a whole number, without changing the value of the fraction since you're really multiplying by 1.",
+    "example": "Simplify 3/sqrt(2). Multiply top and bottom by sqrt(2): (3*sqrt(2))/(sqrt(2)*sqrt(2)) = (3*sqrt(2))/2.",
+    "wrong": "Students multiply only the denominator by sqrt(2) and forget the numerator, turning 3/sqrt(2) into 3/2 and losing the sqrt(2) entirely, or they multiply by sqrt(2)/sqrt(2) correctly but simplify sqrt(2)*sqrt(2) as 2sqrt(2) instead of 2."
+  },
+  "rearrange_formula": {
+    "what": "Making a letter 'the subject' means getting it alone on one side of the equals sign, using the same moves you'd use to solve an equation - whatever you do to one side, you do to the other, undoing operations in reverse order.",
+    "example": "C = 2 pi r, make r the subject. Divide both sides by 2 pi: C/(2 pi) = r. So r = C/(2 pi).",
+    "wrong": "Students divide only the C, writing r = C/2 pi meaning C/2 times pi, or they divide by 2 and forget the pi entirely, getting r = C/2. Both come from treating 2 pi as two separate things instead of one multiplied block sitting next to r."
+  },
+  "reciprocal": {
+    "what": "Dividing by a fraction asks how many of that fraction fit into your number. Flipping the fraction and multiplying works because dividing by something small makes the answer bigger, and multiplying by its reciprocal does exactly that.",
+    "example": "6 / (1/2) asks how many halves fit into 6, which is 12. Using the rule: 6 x 2/1 = 12, matching the answer.",
+    "wrong": "Students think dividing always makes numbers smaller, so they expect an answer smaller than 6 and get confused or forget to flip, computing 6 / 1 / 2 = 3 instead, which happens to look plausible because it is still a small clean number."
+  },
+  "recognise_composite": {
+    "what": "A composite function is one built by putting one function inside another - you do something to x, then do something else to the result. To spot one, ask: is there an 'outer' action being applied to a whole 'inner' expression, rather than to x directly?",
+    "example": "sin(x^2) is composite: the inner function is x^2, the outer function is sin(). But sin(x) + x^2 is not composite - it's just two separate pieces added together.",
+    "wrong": "Students see any expression with two operations in it and call it composite, so they say x^2 + 3x is composite because it has a power and a multiplication. The real test is whether one whole expression is sitting inside another, not just whether there's more than one operation."
+  },
+  "recognise_index_form": {
+    "what": "Some expressions look like ordinary numbers or products but are actually powers of the same base in disguise - things like 9, 27, 1/8, or sqrt(2). Before you can add, compare, or solve anything with them, you have to see that 9 is really 3^2 and 27 is really 3^3, so they share a base and can be combined.",
+    "example": "You are asked to solve 9^x = 27. As written you cannot do anything - different bases. Rewrite both as powers of 3: 9 = 3^2, 27 = 3^3. Now the equation is (3^2)^x = 3^3, so 3^(2x) = 3^3, so 2x = 3.",
+    "wrong": "Students try to solve 9^x = 27 directly, sometimes taking logs clumsily or guessing x = 3, because they don't spot that 9 and 27 are both powers of 3. Without that spotting step, the whole method never starts."
+  },
+  "recognise_product": {
+    "what": "A product is two separate functions of x multiplied together, where neither is a fixed number. Spotting one means picking out the two pieces, u and v, that are each doing their own thing with x.",
+    "example": "x^2 * sin(x) is a product: u = x^2, v = sin(x). But 3 * sin(x) is not a product needing the product rule - 3 is just a constant multiplier.",
+    "wrong": "Students label anything with a multiplication sign as a product needing the product rule, so they overcomplicate 5x^3 (which is just a constant times a power) by splitting it into u=5, v=x^3 and grinding through unnecessary steps. It still gives the right answer, so the habit never gets corrected."
+  },
+  "recognise_quotient": {
+    "what": "Some expressions are written as one thing divided by another, but that doesn't mean you must use the quotient rule - if the bottom is just a number or a simple power of x, it's often faster to rewrite it as a product with a negative power.",
+    "example": "x^3 / 5 is easier as (1/5)x^3, a simple power - no quotient rule needed. But (x^2 + 1)/(x - 1) genuinely needs the quotient rule, since both top and bottom vary with x in a complicated way.",
+    "wrong": "Students see a fraction and immediately reach for the quotient rule, even when the denominator is a constant like x/2 or x^3/7, turning a one-line power rule problem into a messy quotient rule calculation - which often still works but wastes time and invites arithmetic slips."
+  },
+  "recognise_reverse_chain": {
+    "what": "Some integrals are one function stuffed inside another, with the derivative of the inside sitting right there as a factor. If you can see 'a function of a function, times the derivative of the inner bit', that's your signal to substitute u = inner bit.",
+    "example": "Look at the integral of 2x(x^2+1)^5 dx. The inner function is x^2+1, its derivative is 2x, and 2x is sitting right there multiplying the bracket. So substitute u = x^2+1, du = 2x dx, giving integral of u^5 du = u^6/6 + C = (x^2+1)^6/6 + C.",
+    "wrong": "Students try to expand (x^2+1)^5 first with the binomial, or they guess the answer is (x^2+1)^6/6 without checking the 2x was needed - which works here by luck but fails the moment the factor out front isn't the exact derivative, like integral of x(x^2+1)^5 dx where they forget the missing factor of 2."
+  },
+  "reverse_percentage": {
+    "what": "When you're given the amount after a percentage change, don't undo it by adding or subtracting the percentage back. Work out what the original was multiplied by, then divide by that.",
+    "example": "After a 20% increase, a price is 72. That's 120% of the original, so original = 72 / 1.20 = 60.",
+    "wrong": "Students take 20% of 72 and subtract it, getting 72 - 14.40 = 57.60 instead of 60. This feels like 'undoing' the increase but percentages don't reverse like that, because the 20% was worked out from the smaller original amount, not from 72."
+  },
+  "rewrite_index_form": {
+    "what": "Roots and fractions are just powers in disguise. A square root is a power of 1/2, and dividing by x to a power is the same as multiplying by x to the negative of that power. Once everything is x to some power, you can use the index laws on it.",
+    "example": "3/x^2 = 3x^-2. sqrt(x) = x^(1/2). So 3/sqrt(x) = 3x^(-1/2).",
+    "wrong": "Students leave the root or fraction as it is and try to differentiate or simplify it directly, getting stuck or using the wrong rule entirely - like trying to use the chain rule on 3/x^2 instead of just writing it as 3x^-2 first and using the power rule."
+  },
+  "second_derivative": {
+    "what": "Differentiate once to get the rate of change, then differentiate that result again to get the rate of change of the rate of change. The sign of this second result tells you whether the original graph is curving upward like a smile (positive) or downward like a frown (negative).",
+    "example": "y = x^3 - 3x dy/dx = 3x^2 - 3 d^2y/dx^2 = 6x At x = 2: 6(2) = 12, positive, so curve is concave up there.",
+    "wrong": "They differentiate once, get dy/dx, and treat that as the answer to a question asking about concavity - stopping a step early because dy/dx also involves derivatives so it 'feels' like the right kind of object. Or they differentiate twice correctly but then read the sign backwards, saying positive means the curve bends downward."
+  },
+  "set_derivative_zero": {
+    "what": "Stationary points are where the curve is momentarily flat - gradient zero. Once you already have dy/dx, the move is just to write dy/dx = 0; that equation is the thing you solve to find where those points are.",
+    "example": "dy/dx = 3x^2 - 12. The equation to solve is 3x^2 - 12 = 0.",
+    "wrong": "Students set y = 0 instead of dy/dx = 0, because they're chasing 'where the curve crosses the x-axis' rather than 'where it's flat' - a different question that happens to look similar."
+  },
+  "share_in_ratio": {
+    "what": "Add up the ratio parts to find how many equal shares there are in total, work out what one share is worth, then give each part its number of shares.",
+    "example": "Share 30 in the ratio 2:3. Total parts = 2+3 = 5. One part = 30/5 = 6. So shares are 2*6=12 and 3*6=18.",
+    "wrong": "They split the amount straight by the ratio numbers without finding one share first, like giving 2 and 3 directly, or dividing 30 by 2 and by 3 separately (15 and 10), which doesn't add back to 30 and ignores what the ratio numbers actually represent."
+  },
+  "simplify_derivative": {
+    "what": "After differentiating, you often get a messy sum of terms with common factors buried in them - powers of x, brackets, whatever - and the job is to pull those shared factors out front so the expression is one tidy product instead of an addition.",
+    "example": "y' = 3x^2(x-1)^2 + 2x^3(x-1) simplifies by taking out the common factor x^2(x-1): y' = x^2(x-1)[3(x-1) + 2x] = x^2(x-1)(5x-3).",
+    "wrong": "Students leave the derivative as a sum because it's technically already an answer, then can't solve y'=0 from it since a sum of terms doesn't reveal its roots the way a product does. Others try to factor but miss the smaller shared power (pulling out x^3 instead of x^2), leaving a leftover x sitting outside the bracket where it shouldn't be."
+  },
+  "simplify_index_expression": {
+    "what": "Roots are fractional powers and fractions of powers are subtractions - once everything is written as a single base raised to a single index, you just add, subtract or multiply the indices using the normal power rules.",
+    "example": "Simplify (x^3 * sqrt(x)) / x^2. Write sqrt(x) as x^(1/2): (x^3 * x^(1/2))/x^2 = x^(3+1/2-2) = x^(3/2).",
+    "wrong": "Students simplify the whole numbers and the roots separately, or forget to convert the root into a fractional power at all, leaving an answer like x^3 * sqrt(x) / x^2 uncombined, or wrongly cancelling to get x^(1/2) by matching 'x^3 over x^2' and ignoring the sqrt(x) term."
+  },
+  "simplify_logs": {
+    "what": "Logs turn multiplication into addition and division into subtraction, and a power in front of a log becomes a multiplier out front (or vice versa). Use these three moves to squash several logs into one, or to pull one log apart.",
+    "example": "Write 2log(x) + log(y) - log(z) as a single log. 2log(x) = log(x^2). So log(x^2) + log(y) - log(z) = log(x^2 y) - log(z) = log(x^2 y / z).",
+    "wrong": "Students try to add the logs first and write log(x) + log(y) = log(x+y), treating log like it distributes over addition the way multiplication does. This is backwards - log(x)+log(y) = log(xy), not log(x+y) - but it feels natural because addition 'should' combine simply."
+  },
+  "simplify_ratio": {
+    "what": "Divide both sides of the ratio by the same number, over and over, until nothing but 1 divides both parts evenly.",
+    "example": "Simplify 8:12: both divide by 4, giving 2:3.",
+    "wrong": "They divide by a number that only works on one side, or stop too early - for 8:12 they might divide by 2 and stop at 4:6, thinking it's simplified because both numbers got smaller."
+  },
+  "sketch_modulus_graph": {
+    "what": "Sketch the graph as if there were no modulus, then take any part that dips below the x-axis and flip it upward, like folding the paper along the x-axis.",
+    "example": "y = |x - 3|. Without the modulus this is a straight line through (3,0) with gradient 1. The part where x < 3 would go negative, so flip that part up - result is a V-shape with vertex at (3, 0).",
+    "wrong": "They draw the plain straight line or parabola and forget to reflect the negative section, so the graph dips below the x-axis where it never should - modulus output can't be negative."
+  },
+  "solve_both_sides": {
+    "what": "When x shows up on both sides, get all the x-terms together on one side and all the plain numbers together on the other, moving each term across the equals sign by doing the opposite operation.",
+    "example": "5x - 3 = 2x + 9. Subtract 2x from both sides: 3x - 3 = 9. Add 3 to both sides: 3x = 12. Divide by 3: x = 4.",
+    "wrong": "Students shift the x-term correctly but forget to flip the sign on the number when it crosses, writing 3x = 9 - 3 = 6, giving x = 2 instead of 4."
+  },
+  "solve_exponential_equation": {
+    "what": "When the two sides of an equation with x in the index can't be forced onto the same base, taking logs of both sides brings x down out of the index so you can solve for it normally.",
+    "example": "Solve 5^x = 20. Take logs: log(5^x) = log(20), so x*log(5) = log(20), so x = log(20)/log(5), which is about 1.86.",
+    "wrong": "Students try to force 20 into a power of 5 by trial and error and get stuck, or they take the log of only one side, writing x = log(20)/5 instead of x = log(20)/log(5), producing a wildly wrong decimal answer."
+  },
+  "solve_index_equation": {
+    "what": "To solve for x in the index, get both sides written as a power of the same base, then the indices themselves become a normal equation you solve like any other.",
+    "example": "Solve 9^x = 27. Write both as powers of 3: (3^2)^x = 3^3, so 3^(2x) = 3^3, so 2x = 3, so x = 1.5.",
+    "wrong": "Students try to solve 9^x = 27 by taking logs straight away or by guessing whole number values of x, missing that x = 1.5 works, since it isn't obvious from trial and error, and often just give up or write x = 3 by dividing 27 by 9."
+  },
+  "solve_linear": {
+    "what": "Solving a linear equation means undoing what's been done to x, one step at a time, in reverse order, until x is alone.",
+    "example": "3x + 7 = 22. Subtract 7 from both sides: 3x = 15. Divide both sides by 3: x = 5.",
+    "wrong": "Students divide by 3 first while the +7 is still there, getting 3x/3 + 7 = 22/3, which turns into a mess like x + 7 = 7.33, because they treat 'undo the equation' as 'divide everything by the coefficient' without clearing the addition first."
+  },
+  "solve_log_equation": {
+    "what": "Get all the logs onto one side, squash them into a single log, then use the fact that if log_b(A) = c, then A = b^c. This turns a log equation into an ordinary equation you can solve, but you must check your answers actually work in the original equation because logs of negative numbers or zero don't exist.",
+    "example": "Solve log2(x) + log2(x-2) = 3. Combine: log2(x(x-2)) = 3. So x(x-2) = 2^3 = 8. x^2 - 2x - 8 = 0, (x-4)(x+2)=0, x=4 or x=-2. Check x=-2: log2(-2) is undefined, reject it. Answer: x=4.",
+    "wrong": "Students solve the quadratic and write down both roots as the answer, because the quadratic-solving step feels like the finish line and they forget logs need positive inputs. On easier questions where both roots happen to be positive this mistake never gets caught, which is why it sticks around."
+  },
+  "solve_modulus_equation": {
+    "what": "A modulus equation splits into two cases: the inside expression equals the other side, or the inside expression equals minus the other side. Solve both, then check each answer actually works in the original equation, since a modulus can never come out negative.",
+    "example": "|x - 5| = 2x + 1. Case 1: x - 5 = 2x + 1 gives x = -6, but then 2x+1 = -11, negative, and modulus can't equal a negative number - reject. Case 2: x - 5 = -(2x+1) gives 3x = 4, x = 4/3, check: |4/3 - 5| = 11/3 = 2(4/3)+1 = 11/3 - valid. Only x = 4/3 works.",
+    "wrong": "They find both x-values from the two cases and give both as final answers without checking whether the right-hand side is actually non-negative at each one, so an invalid extra solution like x = -6 slips through."
+  },
+  "solve_quadratic": {
+    "what": "A quadratic usually has two values of x that make it true, and to find both you get everything to one side equal to zero, factorise, then use that each bracket can be zero on its own. If it won't factorise nicely, the formula or completing the square gets you there instead.",
+    "example": "Solve x^2 - x - 6 = 0. Factorise: (x - 3)(x + 2) = 0. So x = 3 or x = -2.",
+    "wrong": "Students find one solution - often just the positive one - and stop, forgetting a quadratic normally has two. This survives because many textbook answers only ask you to 'solve for x' and one root often looks like enough, especially if the negative root seems less obviously relevant to the context of the question."
+  },
+  "solve_with_brackets": {
+    "what": "A bracket means everything inside gets multiplied by whatever sits outside it, so that has to happen before anything else to the equation.",
+    "example": "3(x + 2) = 21. Expand: 3x + 6 = 21. Subtract 6: 3x = 15. Divide by 3: x = 5.",
+    "wrong": "Students multiply only the first term inside the bracket, turning it into 3x + 2 = 21, and solve from there to get x = 19/3, which is wrong because the 2 never got multiplied by 3."
+  },
+  "standard_integrals": {
+    "what": "Some integrals just have to be known, the same way some derivatives just have to be known - there's no procedure to derive them from scratch in an exam, you recall them.",
+    "example": "Integral of e^x is e^x + c. Integral of 1/x is ln|x| + c. Integral of sin x is -cos x + c. Integral of cos x is sin x + c.",
+    "wrong": "Students mix up the signs on sin and cos, writing integral of sin x as cos x + c (forgetting the minus), or they forget the absolute value bars on ln|x|, or they try to integrate 1/x using the power rule (raise power, divide by new power) which fails because dividing by zero is undefined - that's exactly why 1/x needs its own separate rule."
+  },
+  "state_domain_range": {
+    "what": "Domain is every input you're allowed to feed in, range is every output you can actually get out. Values get excluded from the domain when they'd break the function (like dividing by zero or square-rooting a negative), and the range narrows because of how the function shapes those inputs.",
+    "example": "f(x) = 1/(x-2). Domain: all real x except x = 2, because that would divide by zero. Range: all real y except y = 0, because 1/(x-2) can get arbitrarily close to 0 but never equal it.",
+    "wrong": "They state the domain restriction but skip the range, or they say 'x cannot be 2' without saying why - and for range, they often just guess 'all real numbers' without checking whether some output is actually impossible to reach."
+  },
+  "stationary_definition": {
+    "what": "A stationary point is a place on a curve where the gradient is zero - the curve is momentarily flat, neither rising nor falling, like the top of a hill or bottom of a dip.",
+    "example": "For y = x^2 - 4x, the point x=2 is stationary because at that spot the tangent line is horizontal - the curve turns from falling to rising there.",
+    "wrong": "Students say a stationary point is 'where you set the derivative to zero and solve', collapsing the idea into the method. That's fine until they're asked to explain what stationary *means* without doing any algebra - then they can't answer, because they never separated the condition (gradient = 0) from the technique for finding it."
+  },
+  "straight_line_equation": {
+    "what": "A line is fixed once you know its steepness and one point it passes through - plug the gradient and the point's coordinates into y = mx + c and solve for c, the only unknown left.",
+    "example": "Line through (2, 5) with gradient 3. Use y = 3x + c. Plug in the point: 5 = 3(2) + c, so 5 = 6 + c, so c = -1. Equation: y = 3x - 1.",
+    "wrong": "Students plug the point in wrong, swapping x and y - putting 2 in for y and 5 in for x - giving c = 5 - 6 = -1 by coincidence in some cases but a completely different wrong c in general, like 2 = 3(5) + c leading to c = -13. The swap survives because both numbers are just sitting there and nothing visually flags which is which."
+  },
+  "substitute_expr": {
+    "what": "Substitution means swapping a letter in an expression for a number and working out the result, keeping track of signs carefully - especially when the number is negative.",
+    "example": "Find the value of 2x + 5 when x = -3. Replace x: 2(-3) + 5 = -6 + 5 = -1.",
+    "wrong": "Students substitute -3 but drop the negative sign partway through, writing 2(3) + 5 = 11, because they read '-3' as 'the number 3' once it's inside the brackets rather than carrying the sign with it."
+  },
+  "sum_to_infinity": {
+    "what": "When the ratio is small enough in size (between -1 and 1), the terms shrink forever and the running total creeps up to a fixed value - you get that value from a one-line formula.",
+    "example": "a=4, r=0.5: S = a/(1-r) = 4/(1-0.5) = 8.",
+    "wrong": "Students plug numbers into S=a/(1-r) even when r is outside -1 to 1, getting a number like S=4/(1-2)=-4 for a series that actually has no sum, and not checking the condition first."
+  },
+  "surds": {
+    "what": "A surd is a root left in root form because its value is not a whole number, like sqrt(2) or sqrt(3). You simplify by pulling out any square factors, and you can switch between root form and fractional power form whenever it helps.",
+    "example": "sqrt(50) = sqrt(25*2) = 5sqrt(2). Also sqrt(2) = 2^(1/2).",
+    "wrong": "Students leave sqrt(50) as is instead of spotting the factor of 25, or they try to simplify sqrt(2)+sqrt(3) into sqrt(5), treating the surd like it splits over addition when it only splits over multiplication."
+  },
+  "tangent_equation": {
+    "what": "A tangent is a straight line that touches the curve at one point and has the same gradient as the curve there. Find that gradient from the derivative, find the y-value at that point, then build the line through it.",
+    "example": "y = x^2 at x = 2. y-value: 4. Gradient: dy/dx = 2x = 4. Line through (2,4) with gradient 4: y - 4 = 4(x - 2), so y = 4x - 4.",
+    "wrong": "Students use the gradient of the curve at x=2 but forget to find the actual y-coordinate first, and just plug x=2 into y - y1 = m(x - x1) using y1 = 2 (the x-value) by mistake, or they round 4x-4 to a decimal instead of leaving it exact."
+  },
+  "unit_value": {
+    "what": "If you know what several identical items cost together, you find one item's cost by dividing by how many there are. That single value then lets you scale up to any other number you want.",
+    "example": "5 pens cost 2 pounds. One pen: 2 / 5 = 0.40 pounds. So 8 pens would cost 8 x 0.40 = 3.20 pounds.",
+    "wrong": "Students divide by the wrong number, like dividing the number of items by the cost, getting 5 / 2 = 2.5 instead of 0.40. Or when scaling up, they add instead of multiply - after finding one pen is 0.40, they do 0.40 + 8 = 8.40 instead of 0.40 x 8."
+  },
+  "use_discriminant": {
+    "what": "The discriminant b^2-4ac tells you what kind of roots a quadratic has without solving it: positive means two different real roots, zero means one repeated root, negative means no real roots at all.",
+    "example": "For 2x^2 - 3x + 5: a=2, b=-3, c=5. Discriminant = (-3)^2 - 4(2)(5) = 9 - 40 = -31. Negative, so no real roots.",
+    "wrong": "Students plug in with the wrong sign on b, or forget to square b properly when b is negative, writing b^2 as -9 instead of 9 for b=-3. This flips a positive discriminant into a negative one (or vice versa) and gives the completely wrong conclusion about how many roots exist."
+  },
+  "use_factor_theorem": {
+    "what": "If putting a number into a polynomial makes it equal zero, then the bracket for that number is a factor. So if you're told a bracket like (x-2) is a factor, you know plugging x=2 into the whole expression must give zero - and you can use that to pin down any unknown letters in it.",
+    "example": "p(x) = x^3 + kx^2 - 5x - 6, and (x-2) is a factor. Then p(2) = 0: 8 + 4k - 10 - 6 = 0, so 4k - 8 = 0, k = 2.",
+    "wrong": "Students plug in x = -2 instead of x = 2, mixing up the sign inside the bracket with the number to substitute - (x-2) means substitute +2, not -2. This gives a completely different, wrong value for k, but the method looks the same so the error goes unnoticed."
+  }
+}

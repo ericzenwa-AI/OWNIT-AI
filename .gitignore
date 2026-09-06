@@ -16,3 +16,4 @@ data/*.jpeg
 data/*.webp
 data/*.pdf
 data/papers/
+backend/explanations_checked.json

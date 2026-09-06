@@ -189,9 +189,15 @@ def thin_reason(line: str) -> str | None:
 # a student would notice.
 def _tidy(line: str) -> str:
     line = line.strip()
-    while line and line[-1] not in '.!?"':
-        line = line[:-1].rstrip()
-    return line
+    trimmed = line
+    while trimmed and trimmed[-1] not in '.!?"':
+        trimmed = trimmed[:-1].rstrip()
+    # Never return nothing. A line with no sentence end anywhere - which
+    # is normal for pure maths - would otherwise be stripped away
+    # entirely. It has not bitten here, because a practice line always
+    # ends with a search phrase, but the same function emptied six
+    # explanation examples before a checker caught it.
+    return trimmed or line
 
 
 def load() -> dict[str, str]:

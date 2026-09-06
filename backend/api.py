@@ -44,6 +44,7 @@ import notify
 import ladder
 import practice
 import visuals
+import explain
 import store
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
@@ -914,7 +915,20 @@ def _report(diagnosis, question: str | None = None) -> dict:
                 # tells them what to go and do; this shows them what it is. Only
                 # some skills have one - see visuals.py for which and why.
                 "visual": visuals.for_skill(gap),
-                "chain": [SKILLS[step].name for step in chain],
+                "explanation": explain.for_skill(gap),
+                # Each step carries what it needs to be opened and read, not
+                # just its name. The chain has been the route back up since it
+                # was written and inert the whole time - a list of skill names
+                # is a lesson plan a student cannot act on.
+                "chain": [
+                    {
+                        "id": step,
+                        "name": SKILLS[step].name,
+                        "explanation": explain.for_skill(step),
+                        "visual": visuals.for_skill(step),
+                    }
+                    for step in chain
+                ],
                 "nothing_there": bool(result and result.dont_know),
                 "mistake": result.mistake if result else None,
                 "held_beneath": beneath,
@@ -938,6 +952,7 @@ def _report(diagnosis, question: str | None = None) -> dict:
             "skill": SKILLS[deepest].name,
             "practice": practice.line_for(deepest),
             "visual": visuals.for_skill(deepest),
+            "explanation": explain.for_skill(deepest),
             "nothing_there": bool(gave_way and gave_way.dont_know),
             "mistake": gave_way.mistake if gave_way else None,
         }
