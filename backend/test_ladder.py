@@ -294,3 +294,76 @@ def test_the_prompt_says_which_question_is_theirs():
     assert "THE STUDENT'S OWN QUESTION" in verbatim
     assert "READ FROM A PHOTO" in paraphrased
     assert "not their exact wording" in paraphrased
+
+
+# ---- Telling them how each step went ---------------------------------------
+
+
+def _page():
+    import pathlib as _p
+    return (_p.Path(__file__).resolve().parent.parent
+            / "web" / "index.html").read_text(encoding="utf-8")
+
+
+def test_the_server_marks_every_step_not_just_the_last():
+    """right and mistake come back on every rung. They always did - the page
+    was dropping them, which is why a student could get three steps wrong and
+    be told nothing."""
+    import inspect
+
+    import api
+
+    source = inspect.getsource(api.answer_ladder)
+    before_final = source.split("cleared = [")[0]
+    assert '"right": right' in before_final
+    assert '"mistake": picked["mistake"]' in before_final
+
+
+def test_the_page_shows_the_result_before_the_next_step():
+    """A correction read in passing on the way to the next question is not read
+    at all, so it gets its own screen."""
+    page = _page()
+    assert "function drawMark(" in page
+    assert "function nextRung(" in page
+    # answerRung must hand off to the mark, not straight to the next question.
+    start = page.index("async function answerRung(")
+    hand_off = page[start:page.index("function climbDone(", start)]
+    assert "drawMark();" in hand_off
+    assert "climb.said" in hand_off
+
+
+def test_a_wrong_step_names_the_slip():
+    """The named misconception behind the option they picked is the only
+    teaching anywhere in the climb."""
+    mark = _page()
+    mark = mark[mark.index("function drawMark("):mark.index("function nextRung(")]
+    assert "said.mistake" in mark
+    assert 'class="slip"' in mark
+    assert "Not that one" in mark
+
+
+def test_a_right_step_says_so_and_moves_on():
+    mark = _page()
+    mark = mark[mark.index("function drawMark("):mark.index("function nextRung(")]
+    assert "said.right" in mark
+    assert "Right" in mark
+
+
+def test_the_slip_is_escaped():
+    """It is model-written text going onto a page."""
+    mark = _page()
+    mark = mark[mark.index("function drawMark("):mark.index("function nextRung(")]
+    assert "escape(said.mistake" in mark
+
+
+def test_the_stale_comment_about_not_marking_is_gone():
+    """It said marking each step would turn the climb into a second diagnosis.
+    That was true when the ladder was a check on the walk and wrong once the
+    ladder became the part that gets a student to their own question."""
+    import inspect
+
+    import api
+
+    source = inspect.getsource(api.answer_ladder)
+    assert "not a second diagnosis" not in source
+    assert "only teaching anywhere in the climb" in source

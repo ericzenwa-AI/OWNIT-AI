@@ -814,9 +814,12 @@ def answer_ladder(request: LadderAnswer) -> dict:
         right = picked["mistake"] is None
         nxt = store.ladder_rung(connection, request.session_id, request.position + 1)
 
-        # Every rung but the last just moves on, right or wrong - this is a
-        # climb, not a second diagnosis, and stopping to mark it would make it
-        # one.
+        # `right` and `mistake` come back on every rung, not just the last.
+        # This used to say that marking each step would turn a climb into a
+        # second diagnosis, and left the page to drop them - which meant a
+        # student got a step wrong, was told nothing, and reached their own
+        # question no better equipped. The named slip behind the option they
+        # picked is the only teaching anywhere in the climb.
         if nxt is not None:
             return {
                 "right": right,
