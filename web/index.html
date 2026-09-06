@@ -1050,7 +1050,10 @@ function wayBack(gap, stuckOn) {
 
   // Stored top-down: the question first, the gap last. It opens up the other
   // way, and the gap itself is already named above.
-  const upwards = gap.chain.slice().reverse().slice(1);
+  // `steps` when the reply has it, `chain` when it does not. Both are the same
+  // route; one carries what is needed to open a step and the other is names.
+  const route = (gap.steps && gap.steps.length) ? gap.steps : (gap.chain || []);
+  const upwards = route.slice().reverse().slice(1);
   if (!upwards.length) return '';
 
   const steps = upwards.map((step, i) => {
@@ -1108,7 +1111,7 @@ function openStep(id) {
 function stepFor(id) {
   const gaps = ((state.report || {}).gaps) || [];
   for (const gap of gaps) {
-    for (const step of (gap.chain || [])) {
+    for (const step of (gap.steps || [])) {
       if (step && step.id === id) return step;
     }
   }

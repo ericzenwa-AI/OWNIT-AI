@@ -80,9 +80,11 @@ def test_the_report_explains_the_gap_and_every_step_of_the_route():
     assert gap["explanation"]["what"]
     assert gap["explanation"]["wrong"]
 
-    chain = gap["chain"]
-    assert chain, "there is a route back up"
-    for step in chain:
+    # `steps` is the openable route; `chain` stayed a list of names so a page
+    # older than this reply still renders it.
+    steps = gap["steps"]
+    assert steps, "there is a route back up"
+    for step in steps:
         assert step["id"] in SKILLS
         assert step["explanation"], f"{step['id']} on the route has no explanation"
 
@@ -110,3 +112,65 @@ def test_what_goes_wrong_is_shown_not_just_stored():
             / "web" / "index.html").read_text(encoding="utf-8")
     assert page.count("What usually goes wrong") >= 2, (
         "shown for the gap and for an opened step")
+
+
+# ---- Not breaking a page we cannot reload ---------------------------------
+
+
+def test_chain_stays_a_list_of_names():
+    """This shipped broken and reached a real screen.
+
+    `chain` was changed from names to objects so each step could be opened. The
+    browser is not ours and cannot be made to reload: a student holding the page
+    from before the deploy ran the old code against the new reply and got
+    "[object Object]" for every step of the route back to their own question.
+
+    New data goes in a new key. `chain` is what it always was.
+    """
+    import api
+    from eval import _cannot_do
+    from walk import SkillResult, diagnose
+
+    broken = _cannot_do("fraction_meaning")
+    diagnosis = diagnose(
+        "add_subtract_fractions",
+        check=lambda s: SkillResult(s.id, held=s.id not in broken, mistake="x"),
+        max_depth=8)
+    gap = api._report(diagnosis, question="q")["gaps"][0]
+
+    assert gap["chain"], "there is a route"
+    for step in gap["chain"]:
+        assert isinstance(step, str), (
+            "chain must stay a list of names - a page older than this reply "
+            "renders it directly, and an object comes out as [object Object]")
+
+    assert gap["steps"], "the openable route lives here instead"
+    for step in gap["steps"]:
+        assert isinstance(step, dict) and step["id"] and step["name"]
+
+
+def test_the_two_routes_are_the_same_route():
+    import api
+    from eval import _cannot_do
+    from walk import SkillResult, diagnose
+
+    broken = _cannot_do("fraction_meaning")
+    diagnosis = diagnose(
+        "add_subtract_fractions",
+        check=lambda s: SkillResult(s.id, held=s.id not in broken, mistake="x"),
+        max_depth=8)
+    gap = api._report(diagnosis, question="q")["gaps"][0]
+
+    assert gap["chain"] == [s["name"] for s in gap["steps"]]
+
+
+def test_the_page_falls_back_to_names():
+    """So it still works against a reply that predates `steps`."""
+    import pathlib as _p
+
+    page = (_p.Path(__file__).resolve().parent.parent
+            / "web" / "index.html").read_text(encoding="utf-8")
+    way = page[page.index("function wayBack("):page.index("function report(")]
+    assert "gap.steps" in way and "gap.chain" in way, (
+        "wayBack must read either shape")
+    assert "step.name || step" in way, "and cope with a name or an object"

@@ -916,11 +916,16 @@ def _report(diagnosis, question: str | None = None) -> dict:
                 # some skills have one - see visuals.py for which and why.
                 "visual": visuals.for_skill(gap),
                 "explanation": explain.for_skill(gap),
-                # Each step carries what it needs to be opened and read, not
-                # just its name. The chain has been the route back up since it
-                # was written and inert the whole time - a list of skill names
-                # is a lesson plan a student cannot act on.
-                "chain": [
+                # Names, exactly as they have always been. The browser is not
+                # ours and we cannot make it reload: a student who has the page
+                # cached from before a deploy will run old code against this
+                # reply, and changing the shape of a field they already read
+                # turned every step of the route into "[object Object]" on a
+                # live screen. New data goes in a new key instead.
+                "chain": [SKILLS[step].name for step in chain],
+                # The same route, with what each step needs to be opened and
+                # read. A page that does not know about this simply ignores it.
+                "steps": [
                     {
                         "id": step,
                         "name": SKILLS[step].name,
