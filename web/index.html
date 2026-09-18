@@ -300,6 +300,24 @@
     border-radius: 10px;
   }
 
+  /* Asking how they got it. Deliberately the same card as everything else -
+     it is part of the conversation, not an interruption to it. */
+  .card.why textarea {
+    width: 100%;
+    margin-bottom: 0.4rem;
+    padding: 0.9rem 1rem;
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    resize: vertical;
+  }
+  /* What happened, said back to them. The one line they came for. */
+  .said-back { font-size: 1.05rem; line-height: 1.65; }
+
   /* What they got right. Quiet rather than celebratory - it is there to make
      the finding land, not to congratulate anyone. */
   .held-up { color: var(--muted); margin-bottom: 1.1rem; }
@@ -730,6 +748,9 @@ function wireParts() {
 
 async function answer(label) {
   document.querySelectorAll('button.option').forEach(b => b.disabled = true);
+  // The question they are answering now, held before the reply replaces it.
+  const was = {position: state.asked_so_far + 1,
+               question: (state.asking || {}).question || ''};
   try {
     state = await post('/api/answer', {
       session_id: state.session_id,
@@ -737,6 +758,15 @@ async function answer(label) {
       answered_before: state.asked_so_far,
     });
     rememberSession(state.session_id);
+
+    // Only when it did not hold, and never when they said they did not know -
+    // there is nothing to investigate about "I don't know", and asking would
+    // punish the honest answer the page spent effort encouraging.
+    const last = (state.so_far || [])[(state.so_far || []).length - 1];
+    if (last && !last.held && !last.dont_know) {
+      askWhy(was.position, was.question);
+      return;
+    }
     draw();
   } catch (error) {
     screen.insertAdjacentHTML('beforeend', `<p class="error">${error.message}</p>`);
@@ -828,7 +858,81 @@ function newQuestion() {
   askScreen();
 }
 
+// Between answering and the next question: a chance to say how they got it.
+//
+// `state.asking` is already the NEXT question by the time this runs - the walk
+// moved on when the answer landed - so the one just answered is held here
+// rather than read back off state.
+let asking_why = null;
+
+function askWhy(position, questionText) {
+  asking_why = {position: position, question: questionText};
+  screen.innerHTML = `
+    <div class="card why">
+      <p class="label">That tells me something</p>
+      <p>How did you get that? Whatever you did, even if you guessed &mdash;
+      it's the most useful thing you can tell me.</p>
+      <textarea id="said" rows="3" placeholder="I differentiated and then put 3 in..."></textarea>
+      <p>
+        <button id="send-why">Tell me</button>
+        <button class="plain" onclick="skipWhy()">Skip</button>
+      </p>
+      <p class="note" id="why-said" role="status" aria-live="polite"></p>
+    </div>`;
+  document.getElementById('send-why').onclick = sendWhy;
+  document.getElementById('said').focus();
+}
+
+function skipWhy() {
+  asking_why = null;
+  draw();
+}
+
+async function sendWhy() {
+  const box = document.getElementById('said');
+  const button = document.getElementById('send-why');
+  const said = document.getElementById('why-said');
+  const text = (box.value || '').trim();
+
+  if (text.split(/\s+/).filter(Boolean).length < 2) {
+    said.className = 'note';
+    said.textContent = 'A few words is enough - even "I guessed".';
+    return;
+  }
+
+  button.disabled = true;
+  said.className = 'note';
+  said.textContent = 'Reading that...';
+
+  try {
+    const got = await post('/api/why', {
+      session_id: state.session_id,
+      position: asking_why.position,
+      said: text});
+
+    if (!got.read) {
+      // Never a dead end. The answer stands, the walk is untouched, and they
+      // have lost nothing by trying.
+      asking_why = null;
+      draw();
+      return;
+    }
+
+    screen.innerHTML = `
+      <div class="card why">
+        <p class="label">Here's what happened</p>
+        ${got.got_right ? `<p class="held-up">${mathHtml(got.got_right)}</p>` : ''}
+        <p class="said-back">${mathHtml(got.said_back)}</p>
+        <p><button onclick="skipWhy()">Keep going</button></p>
+      </div>`;
+  } catch (error) {
+    asking_why = null;
+    draw();
+  }
+}
+
 function draw() {
+  if (asking_why) return;
   if (state.message) return outOfScope();
   if (state.parts && !state.session_id) return chooseScreen();
   if (state.finished) return report();
