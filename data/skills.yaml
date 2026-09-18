@@ -1304,3 +1304,319 @@ nodes:
     kind: concept
     probe: Say what each digit in a decimal is worth.
     needs: []
+
+  # ---- Simultaneous equations -----------------------------------------------
+  #
+  # Measured, not guessed: a real GCSE Higher paper run through the matcher on
+  # 2026-09-18 placed 9 of 32 questions, and simultaneous equations was one of
+  # the topics it turned away. There was no node for it at all.
+  #
+  # THE ASSEMBLY STEP. A student can solve a linear equation, collect like
+  # terms and substitute, and still not be able to do this - because none of
+  # those is the act of MAKING TWO COEFFICIENTS MATCH and then deciding whether
+  # to add or subtract. That act has its own nodes here rather than being
+  # assumed to fall out of the ingredients.
+
+  - id: solve_simultaneous_elimination
+    name: Simultaneous equations by elimination
+    level: 4
+    topic: simultaneous equations
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Solve a pair of linear simultaneous equations where at least one equation
+      must first be multiplied through to make the coefficients of a variable
+      match.
+    needs: [pair_of_unknowns, match_coefficients, eliminate_by_adding_or_subtracting, back_substitute]
+
+  - id: solve_simultaneous_substitution
+    name: Simultaneous equations by substitution
+    level: 4
+    topic: simultaneous equations
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Solve a pair of linear simultaneous equations by rearranging one for a
+      single unknown and putting that expression into the other.
+    needs: [pair_of_unknowns, rearrange_formula, substitute_expr, solve_linear, back_substitute]
+
+  - id: simultaneous_linear_quadratic
+    name: A line and a curve together
+    level: 4
+    topic: simultaneous equations
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Solve one linear and one quadratic equation simultaneously, giving both
+      pairs of values.
+    needs: [pair_of_unknowns, substitute_expr, solve_quadratic, back_substitute, two_pairs_of_answers]
+
+  - id: form_simultaneous_from_context
+    name: Simultaneous equations from a situation
+    level: 4
+    topic: simultaneous equations
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Turn a worded situation with two unknowns - two purchases at different
+      quantities, say - into a pair of equations, then solve it.
+    needs: [form_expression_words, pair_of_unknowns, solve_simultaneous_elimination]
+
+  - id: pair_of_unknowns
+    name: What a pair of equations is asking
+    level: 5
+    kind: concept
+    probe: >-
+      Say why two equations are needed for two unknowns, and what the answer
+      has to satisfy - one pair of values that works in BOTH, not either.
+    needs: [equation_meaning]
+    note: >-
+      A student who treats the two lines as separate problems will solve the
+      first for x, the second for y, and hand in two numbers that do not go
+      together. It looks like an arithmetic slip and it is not one.
+
+  - id: match_coefficients
+    name: Making the coefficients match
+    level: 5
+    kind: procedure
+    probe: >-
+      Given a pair of equations, multiply one or both through so that one
+      variable has the same size coefficient in each. Must not require solving.
+    needs: [multiply_terms, negatives]
+
+  - id: eliminate_by_adding_or_subtracting
+    name: Adding or subtracting the two equations
+    level: 5
+    kind: procedure
+    probe: >-
+      Given two equations whose coefficients already match, say whether to add
+      or subtract to remove that variable, and carry it out with the signs
+      right.
+    needs: [negatives, collect_like_terms]
+    note: >-
+      The step where it usually goes. Same signs subtract, different signs add,
+      and subtracting a negative constant is where the sign gets dropped.
+
+  - id: back_substitute
+    name: Putting the first answer back in
+    level: 5
+    kind: procedure
+    probe: >-
+      Given one of two unknowns and either original equation, find the other
+      unknown.
+    needs: [substitute_expr, solve_linear]
+
+  - id: two_pairs_of_answers
+    name: Why a line and a curve give two answers
+    level: 5
+    kind: concept
+    probe: >-
+      Say why solving a linear and a quadratic equation together usually gives
+      two pairs of values, and that each x belongs with its own y.
+    needs: [pair_of_unknowns]
+    note: >-
+      Students routinely find both x values and stop, or pair every x with
+      every y. The answer is two points, not four.
+
+  # ---- Inequalities ---------------------------------------------------------
+  #
+  # Turned away four times across the paper run and the probe set on
+  # 2026-09-18, and absent from the graph entirely.
+  #
+  # THE ASSEMBLY STEP. Solving an inequality is mechanically the same as
+  # solving an equation, which is exactly why testing the equation is not
+  # enough: the two things that break are knowing the answer is a RANGE and
+  # knowing the sign turns over when you divide by a negative. Neither is part
+  # of solving a linear equation, so both are nodes of their own.
+
+  - id: solve_linear_inequality
+    name: Solving a linear inequality
+    level: 4
+    topic: inequalities
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Solve a linear inequality, including one where dividing by a negative
+      turns the sign over.
+    needs: [inequality_meaning, inequality_sign_flip, solve_linear, inverse_operations]
+
+  - id: inequality_on_number_line
+    name: Showing a solution on a number line
+    level: 4
+    topic: inequalities
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Read an inequality off a number line, or say how one would be drawn,
+      including whether the circle at the end is filled in.
+    needs: [inequality_meaning, solution_is_a_range]
+
+  - id: integer_solutions
+    name: Listing the integers that fit
+    level: 4
+    topic: inequalities
+    stage: gcse
+    kind: procedure
+    probe: >-
+      List every integer satisfying an inequality, including where the ends are
+      and are not included.
+    needs: [inequality_meaning, solution_is_a_range, solve_linear_inequality]
+
+  - id: solve_quadratic_inequality
+    name: Solving a quadratic inequality
+    level: 4
+    topic: inequalities
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Solve a quadratic inequality, giving the range or ranges of x rather than
+      just the critical values.
+    needs: [solve_quadratic, factorise_quadratic, quadratic_sign_between_roots, solution_is_a_range]
+
+  - id: inequality_meaning
+    name: What the inequality signs say
+    level: 5
+    kind: concept
+    probe: >-
+      Say what each of the four signs means, and the difference between the two
+      that include their end value and the two that do not.
+    needs: [negatives]
+
+  - id: solution_is_a_range
+    name: An inequality answers with a range
+    level: 5
+    kind: concept
+    probe: >-
+      Say why the answer to an inequality is every value in a range rather than
+      one number.
+    needs: [inequality_meaning]
+    note: >-
+      The commonest thing on the page is a single number. A student who writes
+      x = 3 has done the algebra correctly and answered a different question.
+
+  - id: inequality_sign_flip
+    name: Dividing by a negative turns the sign
+    level: 5
+    kind: fact
+    probe: >-
+      Say what happens to the inequality sign when both sides are multiplied or
+      divided by a negative number, and why.
+    needs: [inequality_meaning, negatives]
+    note: >-
+      Named in examiner reports year after year. Going from -2x > 6 to x > -3
+      is the most predictable single error in the topic.
+
+  - id: quadratic_sign_between_roots
+    name: Where a quadratic is above or below zero
+    level: 5
+    kind: concept
+    probe: >-
+      Given the roots of a quadratic and which way its curve opens, say for
+      which values of x it is positive and for which it is negative.
+    needs: [null_factor, solution_is_a_range]
+    note: >-
+      The assembly step for quadratic inequalities. A student who can factorise
+      and find both roots still has to know that a positive quadratic is BELOW
+      the axis between them and above it outside, and nothing in factorising
+      teaches that. Whether the answer is 2 < x < 3 or x < 2 or x > 3 turns on
+      this alone.
+
+  # ---- Standard form --------------------------------------------------------
+  #
+  # The most frequently turned away in-scope topic of the 2026-09-18 run: twice
+  # on the real paper and twice in the probe set.
+  #
+  # THE ASSEMBLY STEP. Multiplying the front numbers and adding the powers is
+  # index laws, which the graph already had. What it did not have is the step
+  # after: 34 x 10^5 is a correct multiplication and a wrong answer, because
+  # standard form is a condition on the front number and nothing in the index
+  # laws mentions it.
+
+  - id: write_in_standard_form
+    name: Writing a number in standard form
+    level: 4
+    topic: standard form
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Write an ordinary number in standard form, including a small one that
+      needs a negative power.
+    needs: [standard_form_meaning, power_of_ten, place_value]
+
+  - id: standard_form_to_ordinary
+    name: Writing it back as an ordinary number
+    level: 4
+    topic: standard form
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Write a number given in standard form as an ordinary number, including
+      one with a negative power.
+    needs: [standard_form_meaning, power_of_ten, place_value]
+
+  - id: standard_form_multiply_divide
+    name: Multiplying and dividing in standard form
+    level: 4
+    topic: standard form
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Multiply or divide two numbers written in standard form, giving an answer
+      that is itself in standard form.
+    needs: [standard_form_meaning, index_laws, back_into_standard_form]
+
+  - id: standard_form_add_subtract
+    name: Adding and subtracting in standard form
+    level: 4
+    topic: standard form
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Add or subtract two numbers in standard form whose powers of ten are
+      different.
+    needs: [standard_form_meaning, power_of_ten, back_into_standard_form, place_value]
+    note: >-
+      Harder than multiplying and taught as though it were easier. The powers
+      cannot be added or left alone - the numbers have to be brought to a
+      common power of ten first, and that is the step that gets skipped.
+
+  - id: compare_standard_form
+    name: Ordering numbers in standard form
+    level: 4
+    topic: standard form
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Put a list of numbers written in standard form in order of size,
+      including negative powers.
+    needs: [standard_form_meaning, power_of_ten, negatives]
+
+  - id: standard_form_meaning
+    name: What standard form is
+    level: 5
+    kind: concept
+    probe: >-
+      Say what form a number in standard form has to take, and why the front
+      number must be at least 1 and less than 10.
+    needs: [place_value, index_notation]
+
+  - id: power_of_ten
+    name: What a power of ten is worth
+    level: 5
+    kind: fact
+    probe: >-
+      Say what 10 to a given power is worth, including a negative power, and
+      what multiplying by it does to a number.
+    needs: [index_notation, place_value, negatives]
+
+  - id: back_into_standard_form
+    name: Tidying the answer back into standard form
+    level: 5
+    kind: procedure
+    probe: >-
+      Given an answer such as 34 x 10^5 or 0.6 x 10^-3, rewrite it in proper
+      standard form. Must not require any other arithmetic.
+    needs: [standard_form_meaning, power_of_ten]
+    note: >-
+      The assembly step. The multiplication and the index law can both be right
+      and the answer still wrong, and this is the only node that catches it.

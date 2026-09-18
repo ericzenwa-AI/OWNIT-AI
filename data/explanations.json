@@ -29,6 +29,16 @@
     "example": "a = 2, d = 3, n = 10. Sum = (10/2) x (2x2 + 9x3) = 5 x (4+27) = 5x31 = 155.",
     "wrong": "Students forget to divide by 2, computing n x (2a+(n-1)d) instead of n/2 x (2a+(n-1)d), which exactly doubles the true answer - here giving 310 instead of 155 - and the mistake is easy to miss because the rest of the working looks right."
   },
+  "back_into_standard_form": {
+    "what": "Standard form needs the front number between 1 and 10. If your working gives you something outside that range, slide the decimal point and adjust the power of 10 to make up for it - move the point left, the power goes up; move it right, the power goes down.",
+    "example": "34 x 10^5 is not standard form because 34 is bigger than 10. Move the point one place left: 34 becomes 3.4. Since you made the front number 10 times smaller, the power must get 10 times bigger: 10^5 becomes 10^6. Answer: 3.4 x 10^6. Another one: 0.6 x 10^-3. Move the point one place right: 0.6 becomes 6. That made the front number bigger, so the power gets smaller: 10^-3 becomes 10^-4. Answer: 6 x 10^-4.",
+    "wrong": "Students leave it as 34 x 10^5 because it 'looks like' standard form (a number times ten to a power) and there's no instruction telling them to check the front digit is under 10. Others fix the front number but forget to change the power at all, writing 3.4 x 10^5 - which is a completely different size of number, out by a factor of 10."
+  },
+  "back_substitute": {
+    "what": "Once one unknown is known, put that number into either original equation to work out the other one - the original equation still has to be true.",
+    "example": "From x = 3 and 3x + 2y = 16: 3(3) + 2y = 16, so 9 + 2y = 16, 2y = 7, y = 3.5.",
+    "wrong": "Students substitute into an equation they've already changed halfway through solving, using wrong coefficients, or they substitute the value into the wrong variable's slot. They often get an answer that looks plausible but doesn't satisfy the other original equation, and never check it."
+  },
   "best_value": {
     "what": "To compare fairly, work out the cost for the same amount of each - usually cost per single unit - then compare those, not the total prices.",
     "example": "Small bottle: 400ml for 1.00, so 0.25 per 100ml. Large bottle: 900ml for 2.00, so about 0.222 per 100ml. Large bottle is better value.",
@@ -83,6 +93,11 @@
     "what": "Two fractions with different bottoms cannot be added or compared directly, so you rewrite both with the same bottom number, using a number that both original bottoms divide into.",
     "example": "1/3 and 1/4: common denominator 12. 1/3 = 4/12, 1/4 = 3/12.",
     "wrong": "Students add or compare fractions with different denominators unchanged, so 1/3 + 1/4 becomes 2/7 (adding tops and bottoms straight across). This survives because it feels like the same logic as multiplying fractions, where you do work across top and bottom separately."
+  },
+  "compare_standard_form": {
+    "what": "The power of ten decides the size almost every time - bigger power means bigger number, smaller (more negative) power means smaller number. Only compare the front numbers when the powers are equal.",
+    "example": "Order 4 x 10^-2, 3 x 10^3, 5 x 10^-5. By power alone: 10^-5 is smallest, then 10^-2, then 10^3. So order is 5 x 10^-5, 4 x 10^-2, 3 x 10^3.",
+    "wrong": "Students compare the front numbers first, thinking 5 x 10^-5 must be biggest because 5 is bigger than 4 and 3. They treat standard form like reading two separate numbers instead of one number where the power dominates."
   },
   "complete_the_square": {
     "what": "Rewrite a quadratic as a squared bracket plus a leftover number, so ax^2+bx+c becomes a(x+p)^2+q. Once it's in that form, the turning point is just (-p, q), no calculus needed.",
@@ -173,6 +188,11 @@
     "what": "The domain is every value you're allowed to feed into a function - what x can be. The range is every value that can come out the other end - what f(x) can be. They describe input and output separately, and one doesn't automatically tell you the other.",
     "example": "For f(x) = x^2 with domain all real numbers, the range is f(x) >= 0, because squaring anything never gives a negative result.",
     "wrong": "Students mix up which is which, calling the output values 'the domain'. Or they assume domain and range must both be 'all real numbers' by default, missing restrictions like square roots (domain must keep the inside >= 0) or squares (range can't go negative)."
+  },
+  "eliminate_by_adding_or_subtracting": {
+    "what": "If the same letter has the same coefficient (like both have 3y) in both equations, adding or subtracting the whole equations cancels that letter out. Same sign on that term means subtract, opposite signs means add - because you want that letter to end up as zero.",
+    "example": "3x + 2y = 12 and 3x - 2y = 6. The x terms have the same sign, so subtract: (3x+2y) - (3x-2y) = 12-6, giving 4y = 6, y = 1.5. If instead you had 3x+2y=12 and -3x+4y=... you'd add.",
+    "wrong": "Students always subtract regardless of signs, so when the coefficients are already opposite (like +3x and -3x), subtracting doubles the x term instead of cancelling it - they get 6x + ... = 6 instead of the correct 6y = 18, and don't notice because the numbers still look 'reasonable'."
   },
   "equate_indices": {
     "what": "If two powers with the same base are equal, their indices must be equal too - but only once both sides are actually written as powers of that same base. Before you can jump from '3^a = 3^b' to 'a = b', check the base isn't zero, negative, or 1, because those bases break the rule (they can give the same value for different indices).",
@@ -294,6 +314,11 @@
     "example": "'five more than twice a number' -> let the number be n -> twice a number is 2n -> five more than that is 2n + 5",
     "wrong": "They write it in reading order without checking what the words mean, so 'five more than twice a number' becomes 5 + 2n written as 2n+5... except for 'five less than twice a number' the same reading-order habit gives 5 - 2n instead of the correct 2n - 5. It works by accident for 'more than' phrasing since addition doesn't care about order, which is exactly why the same habit then fails on 'less than'."
   },
+  "form_simultaneous_from_context": {
+    "what": "Two unknown prices (or amounts), two different combinations mentioned - each combination becomes its own equation, and the two equations together pin down both unknowns.",
+    "example": "2 apples and 1 banana cost 1.10 pounds. 1 apple and 1 banana cost 0.70 pounds. Let a=apple price, b=banana price: 2a+b=1.10 and a+b=0.70. Subtracting: a=0.40, then b=0.30.",
+    "wrong": "Students write one equation per sentence but mix up what's being counted - turning '2 apples and 1 banana' into a+2b=1.10 instead of 2a+b=1.10 - because they read left to right without checking which number belongs to which item. The equations still solve to give some pair of values, so the mistake looks like a valid answer, just the wrong one."
+  },
   "fraction_meaning": {
     "what": "The bottom number says how many equal pieces the whole thing got cut into. The top number says how many of those pieces you're actually talking about.",
     "example": "3/5 means: cut something into 5 equal pieces, then take 3 of them.",
@@ -369,6 +394,26 @@
     "example": "2^3 = 2 x 2 x 2 = 8. 5^2 = 5 x 5 = 25.",
     "wrong": "Students read 2^3 and multiply the base by the power, getting 2 x 3 = 6 instead of 8. It sticks because for 2^1 or anything to the power 1 the two methods happen to agree, so the error isn't caught early."
   },
+  "inequality_meaning": {
+    "what": "Each sign tells you how two things compare: < means strictly smaller, > means strictly bigger, and adding the line underneath (<= or >=) means the end value itself counts too, not just the values beyond it.",
+    "example": "x < 5 means x can be 4.999 but not 5. x <= 5 means x can be exactly 5 as well as anything smaller.",
+    "wrong": "Students treat < and <= as basically the same thing and forget to check boundary cases, so on a question asking 'can x equal 5' with x <= 5 they say no, because they're picturing the open circle from < instead of the filled one."
+  },
+  "inequality_on_number_line": {
+    "what": "On a number line, a filled-in circle means that value is included (the inequality has 'or equal to'), and an open circle means it isn't; the arrow shows which side of that value counts.",
+    "example": "x >= 2 is drawn with a filled circle at 2 and an arrow going right, covering 2, 3, 4 and everything above.",
+    "wrong": "Students draw an open circle for 'greater than or equal to', or fill it in for strict inequality, because they don't connect the circle style to the equals sign in the inequality. They also sometimes point the arrow the wrong way, showing x <= 2 as an arrow going right."
+  },
+  "inequality_sign_flip": {
+    "what": "When you multiply or divide both sides of an inequality by a negative number, the direction of the inequality reverses, because negating flips the order of numbers on the number line - what was bigger becomes smaller.",
+    "example": "Start with 2 < 5, both true. Multiply both sides by -1: -2 and -5. Now -2 is bigger than -5, so the sign must flip: -2 > -5.",
+    "wrong": "Students multiply or divide by a negative and keep the sign the same, so solving -x > 4 they write x > -4 instead of x < -4 - the algebra step feels identical to the positive case, so the flip gets skipped."
+  },
+  "integer_solutions": {
+    "what": "To list the integers that satisfy an inequality, check the boundary numbers themselves - whether they're included depends on whether the inequality is strict or not - then count the whole numbers between or beyond them.",
+    "example": "List integers satisfying -1 < x <= 4: -1 is excluded, 4 is included, so the answers are 0, 1, 2, 3, 4.",
+    "wrong": "Students include or exclude both ends the same way, for example writing -1, 0, 1, 2, 3, 4 by including -1 even though the inequality is strict there, because they don't check each end separately against its own sign."
+  },
   "integral_meaning": {
     "what": "An integral hands you back a function whose slope at every point matches the function you started with - it undoes differentiation the way adding undoes subtracting. If differentiating F gives f, then integrating f gives F back (plus a constant), because differentiation only cares about the shape, not the starting height.",
     "example": "Differentiate F(x) = x^2 + 5 and you get f(x) = 2x. Integrate 2x and you get x^2 + c - the +5 is gone from view, but it could be any constant, since it vanished when you differentiated.",
@@ -418,6 +463,11 @@
     "what": "Logs turn multiplying into adding, dividing into subtracting, and powers into multiplying out front. That's the whole toolkit - there's no rule for log of a sum or log of a difference, because those don't simplify at all.",
     "example": "log(20) = log(4x5) = log(4) + log(5). Also log(8) = log(2^3) = 3log(2). But log(4+5) is NOT log(4)+log(5) - log(9) is about 0.954, while log(4)+log(5) is about 0.602+0.699=1.301. Different numbers entirely.",
     "wrong": "Students see log(a+b) and split it into log(a) + log(b) because it looks like the product rule, especially under time pressure when the shape of the expression matches something they half-remember. It feels like the same move as log(ab), but there is no rule to justify it, and it silently gives a wrong number that often still looks plausible."
+  },
+  "match_coefficients": {
+    "what": "Before you can eliminate a variable, its coefficient has to be the same size in both equations. You look at what each equation is multiplied by, and scale one or both so that one letter's numbers line up.",
+    "example": "2x+3y=7 and x-2y=1. Multiply the second equation by 2: 2x-4y=2. Now the x-coefficient is 2 in both equations, ready for elimination.",
+    "wrong": "Students multiply only part of the equation - scaling the x-term but leaving the constant on the other side untouched, so x-2y=1 becomes 2x-4y=1 instead of 2x-4y=2. It looks like the coefficients match, but the equation itself is no longer true, so everything built on it afterward is wrong."
   },
   "midpoint_and_distance": {
     "what": "The midpoint is the average of the x's and the average of the y's - it just finds the point exactly halfway between two points. The distance is Pythagoras in disguise: the gap in x and the gap in y are the two legs of a right triangle, and the distance is the hypotenuse.",
@@ -479,6 +529,11 @@
     "example": "Order 3/5, 0.4, 45%. As decimals: 0.6, 0.4, 0.45. So order is 0.4, 0.45, 0.6, meaning 0.4, 45%, 3/5.",
     "wrong": "Students compare the numbers as they look on the page, so 3/5 gets judged by the digit 5, 0.4 by the digit 4, and 45% by the digit 45, leading to nonsense orderings like putting 45% above 3/5 because 45 is bigger than 5. It survives because with easy numbers like 1/2, 0.5, 50% there is nothing to get wrong."
   },
+  "pair_of_unknowns": {
+    "what": "One equation with two unknowns has infinitely many pairs of values that work - you can't pin down x and y from it alone. A second, different equation cuts that down to exactly one pair. The answer isn't 'a value for x' and separately 'a value for y' - it's one matched pair that makes both equations true at the same time.",
+    "example": "x + y = 5 alone is satisfied by (1,4), (2,3), (0,5), endless options. Add x - y = 1: now only x=3, y=2 satisfies both. That pair is the answer, not any x and y found separately.",
+    "wrong": "Students solve one equation for x, then plug some other value into the second equation to find y without checking the two answers actually satisfy the first equation too, ending up with a 'solution' that only works in one of the two original equations. They treat it as two separate one-line puzzles rather than one shared answer."
+  },
   "parametric_diff": {
     "what": "When x and y are both written in terms of some other letter like t, you find dy/dt and dx/dt separately, then divide one by the other to get dy/dx - the parameter cancels like it would in a fraction.",
     "example": "x = t^2, y = 2t. dx/dt = 2t, dy/dt = 2. dy/dx = (dy/dt)/(dx/dt) = 2/(2t) = 1/t.",
@@ -524,6 +579,11 @@
     "example": "(-2x)^3 = (-2)^3 * x^3 = -8x^3. But (-2x)^4 = (-2)^4 * x^4 = 16x^4 - positive, because four negatives multiply to a positive.",
     "wrong": "Students cube or raise the letter but leave the coefficient as -2 instead of -8, writing -2x^3 instead of -8x^3. Or they assume the answer keeps the original negative sign regardless of the power, so they write -16x^4 for the even case, not noticing the sign should have flipped positive."
   },
+  "power_of_ten": {
+    "what": "10 to a positive power is 1 followed by that many zeros. 10 to a negative power is 1 divided by that many zeros' worth of ten, so it's a small decimal. Multiplying by 10^n shifts the decimal point n places - right if n is positive, left if n is negative.",
+    "example": "10^3 = 1000. 10^-3 = 1/1000 = 0.001. So 7 x 10^-3 = 0.007.",
+    "wrong": "Students treat a negative power as a negative number, saying 10^-3 = -1000, because the minus sign in the exponent gets read the same way as a minus sign anywhere else in a sum."
+  },
   "power_rule": {
     "what": "To differentiate a power of x, bring the power down in front as a multiplier and knock the power down by one. This works for any power - negative, fractional, whatever - as long as it's written as x to a power.",
     "example": "y = 3x^4 - 2x^-1 + x^(1/2) dy/dx = 12x^3 + 2x^-2 + (1/2)x^(-1/2) (each term: multiply by old power, subtract 1 from power)",
@@ -533,6 +593,11 @@
     "what": "When two functions are multiplied together, you can't just differentiate each one and multiply the results. Differentiate the first, keep the second as it is, add that to the first kept as it is times the derivative of the second.",
     "example": "y = x^2 * sin(x) dy/dx = 2x*sin(x) + x^2*cos(x)",
     "wrong": "The instinctive wrong move is to differentiate both factors and multiply them, giving dy/dx = 2x*cos(x) for the example above. It survives because it feels like the 'obvious' extension of single-function rules, and students never check it against a case where the two answers actually differ, like x=pi/2, where the real derivative and the wrong one give different numbers."
+  },
+  "quadratic_sign_between_roots": {
+    "what": "A quadratic's sign only changes at its roots, so between two roots it's one sign the whole way through, and outside them it's the other sign - which one is which depends on whether the curve opens upward or downward.",
+    "example": "Roots at x=-1 and x=4, curve opens upward (U-shape). Below the curve is negative, so between the roots (-1 < x < 4) it's negative, and outside (x < -1 or x > 4) it's positive.",
+    "wrong": "Students assume 'between the roots' always means positive, giving -1 < x < 4 as where it's positive when actually the upward-opening shape makes that region negative - they picture a downward curve or just guess without checking which way it opens."
   },
   "quotient_rule": {
     "what": "For one function divided by another, differentiate the top times the bottom, subtract the top times the derivative of the bottom, then divide the whole thing by the bottom squared. Order matters because subtraction isn't symmetric.",
@@ -634,10 +699,20 @@
     "example": "Simplify 8:12: both divide by 4, giving 2:3.",
     "wrong": "They divide by a number that only works on one side, or stop too early - for 8:12 they might divide by 2 and stop at 4:6, thinking it's simplified because both numbers got smaller."
   },
+  "simultaneous_linear_quadratic": {
+    "what": "The line crosses the curve in up to two places, so you set the two expressions for y (or x) equal to each other, get a quadratic, solve it for two x-values, then find the matching y for each.",
+    "example": "y=x+1 and y=x^2-1. Set them equal: x+1=x^2-1, so x^2-x-2=0, which factors to (x-2)(x+1)=0. So x=2 or x=-1. Using y=x+1: x=2 gives y=3, x=-1 gives y=0. Answers: (2,3) and (-1,0).",
+    "wrong": "Students solve the quadratic and stop there, giving x=2 and x=-1 as 'the answer' without ever finding the matching y-values - because the quadratic felt like the hard part and the question felt finished. Others find y using the quadratic equation instead of the linear one, which technically also works but doubles the arithmetic and invites mistakes."
+  },
   "sketch_modulus_graph": {
     "what": "Sketch the graph as if there were no modulus, then take any part that dips below the x-axis and flip it upward, like folding the paper along the x-axis.",
     "example": "y = |x - 3|. Without the modulus this is a straight line through (3,0) with gradient 1. The part where x < 3 would go negative, so flip that part up - result is a V-shape with vertex at (3, 0).",
     "wrong": "They draw the plain straight line or parabola and forget to reflect the negative section, so the graph dips below the x-axis where it never should - modulus output can't be negative."
+  },
+  "solution_is_a_range": {
+    "what": "An inequality doesn't pin x down to one exact spot, it only says x is bigger, smaller, or equal to something - so every number that fits that description is a valid answer, and there are infinitely many of them.",
+    "example": "x + 2 > 5 gives x > 3. That's true for x=3.1, x=4, x=1000 - all of them at once, so the answer is the whole range x > 3, not a single value.",
+    "wrong": "Students solve the inequality like an equation, get x = 3, and give that as THE answer - because solving equations trains you to expect one number, and the habit doesn't let go just because the sign changed."
   },
   "solve_both_sides": {
     "what": "When x shows up on both sides, get all the x-terms together on one side and all the plain numbers together on the other, moving each term across the equals sign by doing the opposite operation.",
@@ -659,6 +734,11 @@
     "example": "3x + 7 = 22. Subtract 7 from both sides: 3x = 15. Divide both sides by 3: x = 5.",
     "wrong": "Students divide by 3 first while the +7 is still there, getting 3x/3 + 7 = 22/3, which turns into a mess like x + 7 = 7.33, because they treat 'undo the equation' as 'divide everything by the coefficient' without clearing the addition first."
   },
+  "solve_linear_inequality": {
+    "what": "Solve it like an equation, moving terms and dividing as usual, but if you multiply or divide both sides by a negative number, the inequality sign flips direction.",
+    "example": "Solve -2x + 3 > 7. Subtract 3: -2x > 4. Divide by -2 (flip the sign): x < -2.",
+    "wrong": "Students divide by the negative and keep the sign the same, getting x > -2 instead of x < -2. It looks like ordinary equation-solving so the flip step gets skipped, and the answer is backwards."
+  },
   "solve_log_equation": {
     "what": "Get all the logs onto one side, squash them into a single log, then use the fact that if log_b(A) = c, then A = b^c. This turns a log equation into an ordinary equation you can solve, but you must check your answers actually work in the original equation because logs of negative numbers or zero don't exist.",
     "example": "Solve log2(x) + log2(x-2) = 3. Combine: log2(x(x-2)) = 3. So x(x-2) = 2^3 = 8. x^2 - 2x - 8 = 0, (x-4)(x+2)=0, x=4 or x=-2. Check x=-2: log2(-2) is undefined, reject it. Answer: x=4.",
@@ -674,10 +754,45 @@
     "example": "Solve x^2 - x - 6 = 0. Factorise: (x - 3)(x + 2) = 0. So x = 3 or x = -2.",
     "wrong": "Students find one solution - often just the positive one - and stop, forgetting a quadratic normally has two. This survives because many textbook answers only ask you to 'solve for x' and one root often looks like enough, especially if the negative root seems less obviously relevant to the context of the question."
   },
+  "solve_quadratic_inequality": {
+    "what": "Find the roots of the quadratic, sketch the shape of the curve, and use that shape to read off which x values make the inequality true - the answer is one or two ranges, not just the two numbers you found.",
+    "example": "Solve x^2 - x - 6 > 0. Factor: (x-3)(x+2) > 0, roots at x=3 and x=-2. Curve is a U-shape, positive outside the roots. Answer: x < -2 or x > 3.",
+    "wrong": "Students solve for the roots x=-2 and x=3 and just write those down as the answer, or write -2 < x < 3 without checking against the shape of the curve - which happens to be exactly backwards here since the parabola is positive outside the roots, not between them."
+  },
+  "solve_simultaneous_elimination": {
+    "what": "You've got two equations, two unknowns, and neither variable lines up neatly. So you scale one or both equations up until one variable has matching (or opposite) coefficients, then add or subtract the whole equations to wipe that variable out.",
+    "example": "3x+2y=16 and x+y=6. Multiply the second by 2: 2x+2y=12. Subtract this from the first: (3x+2y)-(2x+2y)=16-12, giving x=4. Put x=4 back into x+y=6: y=2.",
+    "wrong": "Students multiply only the equation they're 'working on' and forget the other side of the equals sign, or multiply one equation but not scale the y-term the same way - so they might turn x+y=6 into 2x+y=12 (only doubling x). The coefficients then don't actually match, and subtracting gives a wrong value that still looks like a clean number, so it slips through unnoticed."
+  },
+  "solve_simultaneous_substitution": {
+    "what": "Get one equation to say 'y equals something' (or x equals something), then swap that something into the other equation wherever that letter appears. That turns two equations with two unknowns into one equation with one unknown, which you can actually solve.",
+    "example": "y = x + 1 and 2x + y = 7. Substitute: 2x + (x+1) = 7, so 3x + 1 = 7, 3x = 6, x = 2. Then y = x+1 = 3. Check: 2(2)+3 = 7, correct.",
+    "wrong": "Students substitute into the same equation they got the expression from, going in a circle and getting 0=0 or something meaningless. Or they substitute correctly but forget the brackets, writing 2x + x + 1 = 7 as 2x + x1 = 7 or dropping the +1 halfway through, so they get x = 3 instead of x = 2."
+  },
   "solve_with_brackets": {
     "what": "A bracket means everything inside gets multiplied by whatever sits outside it, so that has to happen before anything else to the equation.",
     "example": "3(x + 2) = 21. Expand: 3x + 6 = 21. Subtract 6: 3x = 15. Divide by 3: x = 5.",
     "wrong": "Students multiply only the first term inside the bracket, turning it into 3x + 2 = 21, and solve from there to get x = 19/3, which is wrong because the 2 never got multiplied by 3."
+  },
+  "standard_form_add_subtract": {
+    "what": "You can't add the front numbers unless the powers of ten match, because they're not counting the same size unit. Rewrite one number so both have the same power, then add or subtract the fronts.",
+    "example": "3 x 10^4 + 5 x 10^3: rewrite second as 0.5 x 10^4. Now add fronts: 3 + 0.5 = 3.5. Answer 3.5 x 10^4.",
+    "wrong": "Students add the front numbers and add the powers regardless, getting 8 x 10^7 for the example above instead of 3.5 x 10^4, treating it like the multiplication rule because that's the other standard form rule they've memorised."
+  },
+  "standard_form_meaning": {
+    "what": "Standard form writes any number as a single digit before the decimal point (from 1 up to just under 10), times a power of ten. The power of ten carries all the size, so the front number only ever describes the 'shape' of the digits.",
+    "example": "450000 becomes 4.5 x 10^5 - the front number 4.5 sits between 1 and 10, and the power 5 carries how big the number actually is.",
+    "wrong": "Students write something like 45 x 10^4 or 0.45 x 10^6, which is mathematically equal but not standard form, because they never checked the rule that the front number must be at least 1 and less than 10 - they just moved the decimal point somewhere that looked plausible."
+  },
+  "standard_form_multiply_divide": {
+    "what": "Deal with the front numbers and the powers of ten separately, then check the front number is still between 1 and 10. If it isn't, shift one power of ten across to fix it.",
+    "example": "(2 x 10^3) x (4 x 10^5): multiply fronts, 2 x 4 = 8. Add powers, 3 + 5 = 8. Answer 8 x 10^8. If fronts had multiplied to 12, you'd get 1.2 x 10^9 instead by moving a power across.",
+    "wrong": "Students multiply the fronts and multiply the powers of ten instead of adding them, since 'multiply the whole thing' feels consistent - giving 8 x 10^15 instead of 8 x 10^8. Or they forget to fix the front number when it comes out as 10 or more, leaving something like 12 x 10^8 as a final answer, which isn't standard form."
+  },
+  "standard_form_to_ordinary": {
+    "what": "Standard form is a x 10^n. A positive power n means the decimal point moves right (number gets bigger), a negative power means it moves left (number gets smaller, more zeros after the decimal point before the digits start).",
+    "example": "3.2 x 10^-3 means move the decimal point 3 places left: 0.0032. Check: 0.0032 x 10^3 = 3.2, correct.",
+    "wrong": "Students treat the negative sign as meaning 'move right' (since positive powers move right), writing 3.2 x 10^-3 as 3200 instead of 0.0032 - they remember 'move the point n places' but forget the direction flips with the sign."
   },
   "standard_integrals": {
     "what": "Some integrals just have to be known, the same way some derivatives just have to be known - there's no procedure to derive them from scratch in an exam, you recall them.",
@@ -719,6 +834,11 @@
     "example": "y = x^2 at x = 2. y-value: 4. Gradient: dy/dx = 2x = 4. Line through (2,4) with gradient 4: y - 4 = 4(x - 2), so y = 4x - 4.",
     "wrong": "Students use the gradient of the curve at x=2 but forget to find the actual y-coordinate first, and just plug x=2 into y - y1 = m(x - x1) using y1 = 2 (the x-value) by mistake, or they round 4x-4 to a decimal instead of leaving it exact."
   },
+  "two_pairs_of_answers": {
+    "what": "A straight line can cross a curve at up to two points, so solving them together can give two different x values, and each x comes with its own matching y - they are not mix-and-match.",
+    "example": "y = x + 1 meets y = x^2 - 1 where x + 1 = x^2 - 1, giving x^2 - x - 2 = 0, so x = 2 or x = -1. Then x=2 gives y=3, and x=-1 gives y=0. The pairs are (2,3) and (-1,0), not (2,0) or (-1,3).",
+    "wrong": "Students find both x values, then both y values, and pair them up in whichever order they were written, or pick just one pair because they think there should only be one answer. This gives points that don't actually lie on both graphs."
+  },
   "unit_value": {
     "what": "If you know what several identical items cost together, you find one item's cost by dividing by how many there are. That single value then lets you scale up to any other number you want.",
     "example": "5 pens cost 2 pounds. One pen: 2 / 5 = 0.40 pounds. So 8 pens would cost 8 x 0.40 = 3.20 pounds.",
@@ -733,5 +853,10 @@
     "what": "If putting a number into a polynomial makes it equal zero, then the bracket for that number is a factor. So if you're told a bracket like (x-2) is a factor, you know plugging x=2 into the whole expression must give zero - and you can use that to pin down any unknown letters in it.",
     "example": "p(x) = x^3 + kx^2 - 5x - 6, and (x-2) is a factor. Then p(2) = 0: 8 + 4k - 10 - 6 = 0, so 4k - 8 = 0, k = 2.",
     "wrong": "Students plug in x = -2 instead of x = 2, mixing up the sign inside the bracket with the number to substitute - (x-2) means substitute +2, not -2. This gives a completely different, wrong value for k, but the method looks the same so the error goes unnoticed."
+  },
+  "write_in_standard_form": {
+    "what": "Standard form writes a number as something between 1 and 10, times a power of 10 - the power tells you how many places the decimal point moved, and it goes negative for small numbers less than 1.",
+    "example": "0.00034 becomes 3.4 x 10^-4, because moving the decimal point 4 places right (making it 3.4) means the original number is 3.4 divided by 10^4.",
+    "wrong": "Students write small numbers with a positive power, giving 3.4 x 10^4 instead of 3.4 x 10^-4, because they count the decimal shifts correctly but forget that shifting right for a small number means the power must be negative, not positive."
   }
 }
