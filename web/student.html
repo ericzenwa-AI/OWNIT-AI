@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ownIT &mdash; find out what's actually stopping you</title>
+<meta name="description" content="Stuck on a maths question? You might not be struggling with the topic you think you are. Free, no sign-up.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap">
+
+<style>
+  /* ------------------------------------------------------------------
+     Two colour systems live here, and they are not the same thing.
+
+     The page furniture is neutral with one accent, spent only on things
+     you can click. Everything else is white, off-white and dark text.
+
+     The diagnostic visual keeps green and rust untouched, because in the
+     app those two carry meaning - green is a skill that held, rust is
+     where it broke. The accent never appears inside that block, and
+     those two never appear outside it.
+     ------------------------------------------------------------------ */
+  :root {
+    --bg:      #FAFAFB;
+    --card:    #FFFFFF;
+    --sunk:    #F4F5F7;
+    --ink:     #0E1013;
+    /* Both darkened after measuring them rather than looking at them. On the
+       off-white ground the old muted was 6.0:1 and read washed out on a phone
+       at low brightness; faint was 3.07:1, which is below the 4.5:1 minimum for
+       body text and was being used for the footer and the examiner citation.
+       Now 8.2:1 and 5.0:1. */
+    --muted:   #464C5A;
+    --faint:   #666C7A;
+    --line:    #E9EAEE;
+    --accent:  #4F46E5;
+    --on-accent: #FFFFFF;
+
+    /* Unchanged. These mean something. */
+    --held:    #2F5D50;
+    --broke:   #8C3B2E;
+
+    --lift: 0 1px 2px rgba(14, 16, 19, 0.04),
+            0 8px 24px -6px rgba(14, 16, 19, 0.08);
+    --lift-strong: 0 1px 2px rgba(14, 16, 19, 0.05),
+                   0 18px 40px -12px rgba(14, 16, 19, 0.14);
+
+    --shell: 46rem;
+    --sans: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:     #0A0B0E;
+      --card:   #131519;
+      --sunk:   #0F1114;
+      --ink:    #F1F2F5;
+      --muted:  #A2A8B4;
+      --faint:  #6F7583;
+      --line:   #23262D;
+      --accent: #8B84F5;
+      --on-accent: #0A0B0E;
+      --held:   #7FB9A5;
+      --broke:  #E08A72;
+      /* Shadow does nothing on a dark ground; the border carries the edge. */
+      --lift: none;
+      --lift-strong: none;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:     #0A0B0E;
+    --card:   #131519;
+    --sunk:   #0F1114;
+    --ink:    #F1F2F5;
+    --muted:  #A2A8B4;
+    --faint:  #6F7583;
+    --line:   #23262D;
+    --accent: #8B84F5;
+    --on-accent: #0A0B0E;
+    --held:   #7FB9A5;
+    --broke:  #E08A72;
+    --lift: none;
+    --lift-strong: none;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0 1.25rem 6rem;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  main {
+    max-width: var(--shell);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* ---- hero: the statement gets the room ---- */
+
+  header {
+    padding: 5.5rem 0 4.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .wordmark {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin: 0 0 5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .wordmark::before {
+    content: "";
+    width: 0.6rem; height: 0.6rem;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+
+  /* Two sentences rather than one, so it is set a size down and given a wider
+     measure. At the old 4.5rem and 15ch this ran to eight lines on a phone and
+     read as a wall rather than a statement. */
+  h1 {
+    font-size: clamp(2.1rem, 6vw, 3.3rem);
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+    margin: 0 0 1.5rem;
+    max-width: 24ch;
+    text-wrap: balance;
+  }
+
+  .lead {
+    font-size: clamp(1.15rem, 3.2vw, 1.4rem);
+    line-height: 1.5;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0 0 1rem;
+    max-width: 34ch;
+    text-wrap: pretty;
+  }
+
+
+  /* ---- every idea is its own block ---- */
+
+  section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    box-shadow: var(--lift);
+  }
+
+  h2 {
+    font-size: clamp(1.6rem, 4.5vw, 2.1rem);
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+    margin: 0 0 1.5rem;
+    max-width: 20ch;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.35rem;
+  }
+
+  p { margin: 0 0 1.25rem; text-wrap: pretty; }
+  p:last-child { margin-bottom: 0; }
+
+  section > p { color: var(--muted); }
+  section > p strong, section > p em { color: var(--ink); }
+  em { font-style: italic; }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+
+  /* ---- the diagnostic, kept in its own voice ---- */
+
+  .descent {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.5rem 1.4rem;
+    margin: 2rem 0;
+    overflow-x: auto;
+  }
+  .step {
+    display: flex;
+    gap: 0.9rem;
+    align-items: baseline;
+    padding: 0.45rem 0;
+    white-space: nowrap;
+    color: var(--ink);
+  }
+  .step .name { flex: 1; }
+  .step .mark {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  .ok   { color: var(--held); }
+  .bad  { color: var(--broke); }
+  .d1 { padding-left: 1.3rem; }
+  .d2 { padding-left: 2.6rem; }
+  .rule {
+    border-top: 1px solid var(--line);
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    white-space: normal;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .rule b { font-family: var(--mono); font-size: 0.85rem; color: var(--broke); font-weight: 500; }
+
+  /* Sits under the diagnostic, saying what it is. Quiet on purpose - it is a
+     note about the picture, not part of the argument. */
+  .caption {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--faint);
+    margin: -0.75rem 0 0;
+  }
+
+  /* Three columns rather than a table, so it stacks readably on a phone
+     instead of scrolling sideways. */
+  .compare {
+    margin: 2rem 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .compare .row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 0.5rem 1rem;
+    padding: 0.85rem 1.2rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.92rem;
+    align-items: baseline;
+  }
+  .compare .row:first-child { border-top: none; }
+  .compare .head {
+    background: var(--sunk);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .compare .no { color: var(--broke); }
+  .compare .yes { color: var(--held); }
+  @media (max-width: 32rem) {
+    .compare .row { grid-template-columns: 1fr; gap: 0.15rem; }
+    .compare .row span:first-child { font-weight: 600; }
+    .compare .head { display: none; }
+    .compare .no::before { content: "prompting: "; color: var(--faint); }
+    .compare .yes::before { content: "ownIT: "; color: var(--faint); }
+  }
+
+  blockquote {
+    margin: 2rem 0;
+    padding: 1.5rem 1.6rem;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    color: var(--ink);
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+  blockquote cite {
+    display: block;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* ---- steps as their own small blocks ---- */
+
+  ol.steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: n;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  ol.steps li {
+    counter-increment: n;
+    display: grid;
+    grid-template-columns: 2.1rem 1fr;
+    gap: 0 1.1rem;
+    align-items: start;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.4rem 1.5rem;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--on-accent);
+    background: var(--accent);
+    border-radius: 8px;
+    width: 2.1rem; height: 2.1rem;
+    display: grid; place-items: center;
+  }
+  ol.steps p { font-size: 0.98rem; color: var(--muted); margin: 0; }
+
+  /* ---- the ask ---- */
+
+  #join { box-shadow: var(--lift-strong); }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 1.5rem 0 0.5rem;
+  }
+  input[type=email], input[type=text] {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    font-family: var(--sans);
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  input::placeholder { color: var(--faint); }
+  input:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input:disabled { opacity: 0.6; }
+
+  button {
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    width: 100%;
+    margin-top: 1.75rem;
+    padding: 0.95rem 1.4rem;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+  button:active:not(:disabled) { transform: translateY(0); }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  /* The way in. Styled as the page's button rather than as a link, because
+     it is the primary action and a link reads as a footnote next to a filled
+     waitlist button. Sized to its text instead of full width so it does not
+     compete with the form lower down. */
+  .try {
+    display: inline-block;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    padding: 0.95rem 1.6rem;
+    margin: 1.75rem 0 0.6rem;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    text-decoration: none;
+    transition: filter 0.15s ease, transform 0.15s ease;
+  }
+  .try:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .try:active { transform: translateY(0); }
+
+  .small { font-size: 0.92rem; color: var(--muted); }
+  .said { margin-top: 1rem; font-size: 0.95rem; font-weight: 500; }
+  .said.bad { color: var(--broke); }
+  .said.ok { color: var(--held); }
+
+  footer {
+    max-width: var(--shell);
+    margin: 1.5rem auto 0;
+    padding: 2.5rem 2.5rem 0;
+    color: var(--faint);
+    font-size: 0.9rem;
+    line-height: 1.65;
+    border-top: 1px solid var(--line);
+  }
+  footer a { color: var(--muted); }
+
+  /* Quiet on purpose. Someone who wants to say something will look for it;
+     nobody arriving for the first time needs it in the way. */
+  /* The feedback form. It used to sit collapsed in the footer behind a summary
+     nobody clicks, which is the wrong place for the one thing that can correct
+     the map. It is a section now, open, and styled like the rest of the page. */
+  #say form { margin-top: 1.5rem; }
+  #say textarea {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    resize: vertical;
+  }
+  #say input { background: var(--card); }
+  #say button { margin-top: 1.25rem; }
+
+  @media (max-width: 34rem) {
+    section { padding: 2.25rem 1.5rem; border-radius: 16px; }
+    header { padding: 4rem 0 3rem; }
+    .wordmark { margin-bottom: 3.5rem; }
+    footer { padding: 2rem 1.5rem 0; }
+    ol.steps li { grid-template-columns: 1.8rem 1fr; gap: 0 0.9rem; padding: 1.2rem 1.2rem; }
+    ol.steps li::before { width: 1.8rem; height: 1.8rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+<body>
+<main>
+
+<header>
+  <p class="wordmark">ownIT</p>
+  <h1>Stuck on a maths question?</h1>
+  <p class="lead">Find out what's actually stopping you. You might not be
+  struggling with the topic you think you are.</p>
+
+  <p>Paste a question or take a photo of it. ownIT asks you a few short
+  questions and works out what's underneath the one you're stuck on.</p>
+
+  <p><a class="try" href="/start">Find my gap</a></p>
+  <p class="small">Free. No sign-up. Nothing to download.</p>
+</header>
+
+<section>
+  <h2>Don't just get the answer. Find out why you're stuck.</h2>
+  <p>You can get the answer to any question in about four seconds. That is not
+  the problem. The problem is the next question, which looks different and gets
+  you again.</p>
+  <p>Almost every maths question sits on top of something else. When you can't
+  do one, it's usually not the topic on the front of the exercise &mdash; it's
+  something further down that nobody checked.</p>
+</section>
+
+<section>
+  <p class="eyebrow">What actually happens</p>
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>
+      <div>
+        <h3>Send the question you're stuck on</h3>
+        <p>A photo of the page is best &mdash; typing maths out loses the
+        powers and the fractions. If you tried something and it didn't work,
+        send that too. It helps.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <h3>Answer a few short ones</h3>
+        <p>Usually about six, multiple choice. They get simpler, not harder
+        &mdash; each one checks something the last one sat on.
+        <strong>"I don't know" is always there</strong>, and picking it is more
+        useful than guessing. Nothing is marked and nothing is saved against
+        you.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <h3>Find out what's in the way</h3>
+        <p>One thing, not a list of twelve. What it is, in plain words. A
+        worked example. What people usually get wrong about it &mdash; which is
+        often the bit that makes it click. And every step between it and the
+        question you came in with, each one you can open and read.</p>
+      </div>
+    </li>
+    <li>
+      <div>
+        <h3>Come back and run it again</h3>
+        <p>Once you've worked on it, put the same question in again. It starts
+        from scratch, so if you've fixed it, it goes straight past and finds
+        whatever is next. That's how you know it worked.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>It won't do your homework</h2>
+  <p>It never gives you the answer to the question you came in with. That's on
+  purpose. It tells you what's in the way and what to do about it, and the
+  question stays yours to finish.</p>
+  <p>If you want the answer, there are plenty of places to get one. This is for
+  when you're tired of needing them.</p>
+</section>
+
+<section id="join">
+  <p class="eyebrow">Before you start</p>
+  <h2>What it covers</h2>
+  <p>A-level Pure &mdash; differentiation, integration, logs, sequences,
+  quadratics, functions, indices and surds, binomial expansion, coordinate
+  geometry, polynomials. And the GCSE underneath all of that: linear equations,
+  expanding and factorising, ratio and proportion, and fractions, decimals and
+  percentages &mdash; which is where an A-level question surprisingly often
+  turns out to fail.</p>
+  <p><strong>Not trigonometry, statistics or mechanics yet.</strong> If it
+  can't work out what your question is asking, it says so instead of guessing.</p>
+
+  <p><a class="try" href="/start">Find my gap</a></p>
+</section>
+
+<section id="say">
+  <p class="eyebrow">If you try it</p>
+  <h2>Tell me if it got you wrong</h2>
+  <p>This is new, and it's built by one maths tutor. If it told you the wrong
+  thing, or couldn't read your question, or just felt useless &mdash; say so.
+  It goes straight to me and it's the most useful thing you could send.</p>
+
+  <form id="comment-form">
+    <label for="comment">What happened?</label>
+    <textarea id="comment" rows="4"
+              placeholder="It said indices but I actually didn't get the fractions bit."></textarea>
+
+    <label for="about">Which topic? (optional)</label>
+    <input type="text" id="about" placeholder="Trigonometry">
+
+    <label for="contact">Your email, only if you want a reply (optional)</label>
+    <input type="email" id="contact" placeholder="you@example.com">
+
+    <button type="submit" id="send">Send</button>
+    <p class="said" id="comment-said" role="status" aria-live="polite"></p>
+  </form>
+</section>
+
+</main>
+
+<footer>
+  <p>Built by a maths and physics tutor, in the open. It's free while it's
+  being tested.</p>
+  <p><a href="/">If you're a tutor or a parent, there's more detail here.</a></p>
+</footer>
+
+<script>
+const commentForm = document.getElementById('comment-form');
+const commentSaid = document.getElementById('comment-said');
+const send = document.getElementById('send');
+
+commentForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const comment = document.getElementById('comment').value.trim();
+
+  if (!comment) {
+    saidComment('Write something first.', false);
+    return;
+  }
+
+  send.disabled = true;
+  saidComment('Sending...', true);
+
+  try {
+    const response = await fetch('/api/comment', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        comment: comment,
+        about: document.getElementById('about').value.trim() || null,
+        contact: document.getElementById('contact').value.trim() || null,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      send.disabled = false;
+      saidComment(data.detail || 'That did not send. Try again in a moment.', false);
+      return;
+    }
+
+    commentForm.querySelectorAll('textarea, input').forEach(i => i.disabled = true);
+    send.textContent = 'Sent';
+    saidComment(data.message || 'Thank you. That is worth knowing.', true);
+  } catch (error) {
+    send.disabled = false;
+    saidComment('That did not send. Check your connection and try again.', false);
+  }
+});
+
+function saidComment(text, good) {
+  commentSaid.textContent = text;
+  commentSaid.className = 'said ' + (good ? 'ok' : 'bad');
+}
+</script>
+</body>
+</html>

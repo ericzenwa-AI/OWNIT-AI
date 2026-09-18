@@ -300,6 +300,11 @@
     border-radius: 10px;
   }
 
+  /* What they got right. Quiet rather than celebratory - it is there to make
+     the finding land, not to congratulate anyone. */
+  .held-up { color: var(--muted); margin-bottom: 1.1rem; }
+  .held-up strong { color: var(--ink); }
+
   /* What usually goes wrong. Set apart from the sentences around it because
      it is the line a student recognises themselves in, and the one thing
      here that a correct explanation cannot do on its own. */
@@ -888,13 +893,23 @@ function question() {
            most of how you would approach their question, and announcing what
            we suspect before they answer invites them to answer to it. The
            skill's own name is our vocabulary anyway - it belongs in the
-           tutor's report, not on a student's screen. -->
-      <div class="skill">Something your question rests on</div>
+           tutor's report, not on a student's screen.
+
+           The first one explains what is happening, because being asked
+           something that is not your question, with no reason given, is the
+           moment a student decides this is a test and leaves. -->
+      <div class="skill">${state.asked_so_far
+        ? 'Something your question rests on'
+        : 'Before your question &mdash; something underneath it'}</div>
       <div class="question">${mathHtml(q.question)}</div>
       <div id="options"></div>
     </div>
     ${descent()}
-    <p class="counter">${state.asked_so_far} answered</p>`;
+    <!-- A count, never "3 of 6". The walk is adaptive - median three questions
+         and anywhere from one to thirteen - so any denominator would be made
+         up, and it would be the only number on the screen. -->
+    <p class="counter">Question ${state.asked_so_far + 1}${state.asked_so_far
+      ? ' &middot; nothing here is marked' : ''}</p>`;
 
   const box = document.getElementById('options');
   q.options.forEach(o => {
@@ -1011,6 +1026,9 @@ function report() {
   // absurd one: "you came in stuck on X" followed by "what's getting in the way
   // is X", after three answers all marked correct. It is also the one outcome
   // that is good news, and saying so is most of the fix.
+  // Everything they answered correctly on the way down, in the order asked.
+  const heldUp = ((r.asked || []).filter(a => a.held).map(a => a.skill));
+
   const nothingBelow = Boolean(
     gap && gap.skill === r.stuck_on && (r.asked || []).length &&
     (r.asked || []).every(a => a.held));
@@ -1048,7 +1066,7 @@ function report() {
       ${nothingBelow ? '' :
         `<p class="note">You came in stuck on ${escape(r.stuck_on)}</p>`}
       <p class="label">${nothingBelow ? 'Nothing underneath was missing'
-        : gap ? 'What&rsquo;s getting in the way' : 'Where to start'}</p>
+        : gap ? 'We found something' : 'Where to start'}</p>
       ${nothingBelow ? `<p>You got every question we asked. Everything this
         rests on held up, so there is no gap lower down to go back for &mdash;
         the method itself is the thing to work on:</p>` : ''}
@@ -1056,6 +1074,14 @@ function report() {
         this one. Of what you did answer, though, this is the first thing that
         gave way &mdash; so it is the place to start:</p>` : ''}
       <p class="gap">${named ? escape(named.skill) : 'We couldn&rsquo;t pin this one down'}</p>
+      <!-- What they got right, first. It is true, it comes straight off the
+           answers, and it changes the sentence entirely: "you did the
+           differentiation fine, it was the bracket" is heard, and "you cannot
+           expand brackets" is not. Only when there is something to say - a
+           student who got nothing right must not be told they did. -->
+      ${gap && heldUp.length ? `<p class="held-up">You got
+        ${listOf(heldUp.map(escape))} right. It&rsquo;s this one underneath
+        that&rsquo;s getting in the way.</p>` : ''}
       ${named && named.visual
         ? `<figure class="visual">${named.visual}</figure>` : ''}
       ${named && named.explanation ? `

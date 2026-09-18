@@ -121,6 +121,7 @@ app.add_middleware(
 WEB = Path(__file__).resolve().parent.parent / "web"
 PAGE = WEB / "index.html"
 LANDING = WEB / "landing.html"
+STUDENT_PAGE = WEB / "student.html"
 
 # Every start is a call to the best model, so every start costs money, and the
 # page is public with no sign-in. Without a ceiling, one script - or one class
@@ -1530,6 +1531,25 @@ four-option question a two-option one.</p>
 def diagnostic(request: Request):
     """The diagnostic itself."""
     return _page(PAGE, request)
+
+
+@app.get("/student")
+def for_students(request: Request):
+    """The front door written for the student rather than for the buyer.
+
+    Two doors on purpose. A tutor or a parent arriving at / is deciding whether
+    to trust a method, and that page argues the method. A sixteen year old with
+    a question in front of them is not evaluating anything - they are stuck -
+    and the only line that makes them press a button is one they recognise
+    themselves in.
+
+    Its own path so the two can be told apart in the numbers: which door people
+    came through is the difference between "students will use this" and
+    "tutors will recommend it", and those are separate questions.
+    """
+    if not STUDENT_PAGE.exists():
+        return _page(LANDING, request)
+    return _page(STUDENT_PAGE, request)
 
 
 @app.get("/")
