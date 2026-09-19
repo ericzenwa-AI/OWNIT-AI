@@ -323,6 +323,49 @@
   .held-up { color: var(--muted); margin-bottom: 1.1rem; }
   .held-up strong { color: var(--ink); }
 
+  /* The line the page exists for: what the thing actually means, with no
+     maths in it. Larger than body text because on this screen it IS the body
+     text - everything under it is detail for somebody who wants detail. */
+  .plain-said {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    margin: 0 0 1.1rem;
+    text-wrap: pretty;
+  }
+
+  /* The real-life version, set in its own block so it reads as a step
+     sideways rather than as more of the same paragraph. Often absent: some
+     things are not like anything, and a forced comparison is worse than
+     none, so this styles what is there and never leaves a gap when it
+     isn't. */
+  .like {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin: 0 0 1.2rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--sunk);
+    border-radius: 12px;
+  }
+  .like-tag {
+    display: block;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+
+  /* The accurate sentence, for whoever wants it. Closed by default and styled
+     quietly on purpose: a student who understood the plain version should be
+     able to walk past this without feeling they skipped something. */
+  .precise { margin: 0 0 1.1rem; }
+  .precise summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .precise p { margin: 0.7rem 0 0; }
+
   /* What usually goes wrong. Set apart from the sentences around it because
      it is the line a student recognises themselves in, and the one thing
      here that a correct explanation cannot do on its own. */
@@ -1094,9 +1137,14 @@ function openStep(id) {
     return;
   }
 
+  // Same order as the finding above it, for the same reason: somebody opening
+  // a step of the route is opening it because they do not know what it is.
   into.innerHTML = `
-    <p>${mathHtml(said.what)}</p>
+    ${said.plain ? `<p class="plain-said">${mathHtml(said.plain)}</p>` : ''}
+    ${said.like ? `<p class="like"><span class="like-tag">Think of it like
+      this</span> ${mathHtml(said.like)}</p>` : ''}
     ${step.visual ? `<figure class="visual">${step.visual}</figure>` : ''}
+    <p>${mathHtml(said.what)}</p>
     <p class="worked">${mathHtml(said.example)}</p>
     <p class="label">What usually goes wrong</p>
     <p class="slip">${mathHtml(said.wrong)}</p>`;
@@ -1187,10 +1235,41 @@ function report() {
       ${gap && heldUp.length ? `<p class="held-up">You got
         ${listOf(heldUp.map(escape))} right. It&rsquo;s this one underneath
         that&rsquo;s getting in the way.</p>` : ''}
+      <!-- The order here is the whole point of this screen, and it is not the
+           order the explanation is stored in.
+
+           A student who has just been told they are missing something does not
+           need a correct definition first. They need the moment where the name
+           stops being a label and starts meaning something - so `plain` leads,
+           in words with no maths in them, then `like` puts it next to
+           something that happens in real life, then the picture, and only then
+           the accurate version and the worked case.
+
+           Told the other way round, which is how it read before, the first
+           sentence a struggling student meets is the one written for somebody
+           who already knows. -->
+      ${named && named.explanation && named.explanation.plain
+        ? `<p class="plain-said">${mathHtml(named.explanation.plain)}</p>` : ''}
+      ${named && named.explanation && named.explanation.like
+        ? `<p class="like"><span class="like-tag">Think of it like this</span>
+           ${mathHtml(named.explanation.like)}</p>` : ''}
       ${named && named.visual
         ? `<figure class="visual">${named.visual}</figure>` : ''}
       ${named && named.explanation ? `
-        <p>${mathHtml(named.explanation.what)}</p>
+        <!-- `what` is the accurate sentence, and on a skill whose plain line
+             is already accurate the two say the same thing twice - which is
+             how a page stops being read. So when the plain line is there,
+             this becomes something you can open rather than something you
+             have to get past, and the story runs straight from the meaning to
+             a worked case. When it is not there, it is the only explanation
+             on the screen and stays where it was. -->
+        ${named.explanation.plain
+          ? `<details class="precise">
+               <summary>Say that more precisely</summary>
+               <p>${mathHtml(named.explanation.what)}</p>
+             </details>`
+          : `<p>${mathHtml(named.explanation.what)}</p>`}
+        ${named.explanation.plain ? '<p class="label">Here it is with numbers</p>' : ''}
         <p class="worked">${mathHtml(named.explanation.example)}</p>
         <p class="label">What usually goes wrong</p>
         <p class="slip">${mathHtml(named.explanation.wrong)}</p>` : ''}
