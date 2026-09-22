@@ -92,15 +92,7 @@ CREATE TABLE IF NOT EXISTS answers (
     chosen        TEXT,
     outcome       TEXT    NOT NULL,
     misconception TEXT,
-    seconds       REAL,
-    -- How they say they got it, in their own words, and what was made of it.
-    -- All optional: explaining is work and most students will not, and the
-    -- walk must be identical whether they do or not.
-    said          TEXT,
-    pattern       TEXT,
-    evidence      TEXT,
-    got_right     TEXT,
-    said_back     TEXT
+    seconds       REAL
 );
 
 -- Filled in afterwards by whoever knows: was this diagnosis actually right?
@@ -284,16 +276,6 @@ LATER_COLUMNS = {
     "sessions": (
         ("reused_reading", "INTEGER NOT NULL DEFAULT 0"),
         ("plain_summary", "TEXT"),
-    ),
-    # What a student said about how they got an answer, and what that reading
-    # made of it. Optional throughout - most answers will have none, and the
-    # walk is identical either way.
-    "answers": (
-        ("said", "TEXT"),
-        ("pattern", "TEXT"),
-        ("evidence", "TEXT"),
-        ("got_right", "TEXT"),
-        ("said_back", "TEXT"),
     ),
 }
 
@@ -480,57 +462,6 @@ def skill_stats(connection: sqlite3.Connection) -> list[SkillStats]:
         )
         for row in rows
     ]
-
-
-def record_reasoning(connection: sqlite3.Connection, session_id: int,
-                     position: int, said: str, reading) -> None:
-    """Keep what they said and what was read from it, against that answer.
-
-    Against the answer rather than in its own table: it is one more thing known
-    about a response, like the option picked and how long it took, and splitting
-    it off would mean a join for every place that wants to say what happened.
-    """
-    connection.execute(
-        """UPDATE answers
-              SET said = ?, pattern = ?, evidence = ?, got_right = ?, said_back = ?
-            WHERE session_id = ? AND position = ?""",
-        (said,
-         getattr(reading, "pattern", None),
-         getattr(reading, "evidence", None),
-         getattr(reading, "got_right", None) or None,
-         getattr(reading, "said_back", None),
-         session_id, position))
-    connection.commit()
-
-
-def reasoning_in(connection: sqlite3.Connection, session_id: int) -> list:
-    """Everything a student explained during one walk, in the order asked."""
-    return connection.execute(
-        """SELECT position, skill_id, question, chosen, said, pattern,
-                  evidence, got_right, said_back
-             FROM answers
-            WHERE session_id = ? AND said IS NOT NULL
-            ORDER BY position""",
-        (session_id,),
-    ).fetchall()
-
-
-def patterns_seen(connection: sqlite3.Connection, limit: int = 12) -> list:
-    """How students have been going wrong, across everybody.
-
-    The distractors claim to know this already. This is the version that came
-    from students describing their own reasoning rather than from four boxes
-    written in advance.
-    """
-    return connection.execute(
-        """SELECT pattern, COUNT(*) AS times
-             FROM answers
-            WHERE pattern IS NOT NULL
-            GROUP BY pattern
-            ORDER BY times DESC
-            LIMIT ?""",
-        (limit,),
-    ).fetchall()
 
 
 def common_misconceptions(

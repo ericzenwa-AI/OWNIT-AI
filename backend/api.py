@@ -42,7 +42,6 @@ from pydantic import BaseModel, Field
 import bank
 import notify
 import practice
-import reasoning
 import visuals
 import explain
 import store
@@ -717,72 +716,6 @@ def _as_known_skill(text: str) -> str | None:
         if wanted in (skill.id.casefold(), skill.name.casefold()):
             return skill.id
     return None
-
-
-class WhyRequest(BaseModel):
-    session_id: int
-    position: int
-    said: str = Field("", max_length=4_000)
-
-
-@app.post("/api/why")
-def why(request: WhyRequest) -> dict:
-    """What they say about how they got an answer, read and kept.
-
-    Always optional and never on the walk's critical path. If the reading fails,
-    or there is too little to read, the answer stays exactly as it was and the
-    student is told so plainly - they have not lost anything and the diagnosis
-    is untouched.
-
-    It does not move the walk. The next question is still decided only by the
-    answers given, which is what lets a student shut the tab and come back, and
-    what makes the walk measurable at all.
-    """
-    connection = store.connect()
-    try:
-        row = connection.execute(
-            """SELECT a.skill_id, a.question, a.chosen, a.outcome
-                 FROM answers a
-                WHERE a.session_id = ? AND a.position = ?""",
-            (request.session_id, request.position)).fetchone()
-        if row is None:
-            raise HTTPException(404, "No such answer.")
-        if row["skill_id"] not in SKILLS:
-            raise HTTPException(400, "That answer is not about a skill we hold.")
-
-        # The option that was right, taken from the bank rather than from the
-        # page, so nothing the browser sends decides what counts as correct.
-        banked = connection.execute(
-            "SELECT correct_option FROM question_bank WHERE question = ? LIMIT 1",
-            (row["question"],)).fetchone()
-        correct = banked["correct_option"] if banked else ""
-
-        try:
-            reading = reasoning.read(
-                question=row["question"] or "",
-                chosen=row["chosen"] or "",
-                correct=correct,
-                said=request.said,
-                skill_id=row["skill_id"])
-        except reasoning.NotWorthReading as error:
-            return {"read": False, "why": str(error)}
-        except APIError:
-            return {"read": False, "why": "That could not be read just now."}
-
-        store.record_reasoning(
-            connection, request.session_id, request.position, request.said, reading)
-
-        return {
-            "read": True,
-            "said_back": reading.said_back,
-            "got_right": reading.got_right or None,
-            # The pattern and the quoted evidence are for the report and the
-            # tutor, not for the student mid-walk - a label for how somebody is
-            # thinking is a thing to hand to a teacher, not to a sixteen year
-            # old in the middle of trying.
-        }
-    finally:
-        connection.close()
 
 
 @app.post("/api/feedback")
