@@ -9,700 +9,822 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap">
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400..700&family=Google+Sans+Code:wght@400..600&display=swap">
 
 <style>
   /* ------------------------------------------------------------------
-     Two colour systems live here, and they are not the same thing.
+     Laid out after spacefs.com: one big claim, the product shown working
+     inside a window straight underneath it, three short reasons, then the
+     detail for whoever wants detail, the terms, the questions people
+     actually have, and the button again at the bottom.
 
-     The page furniture is neutral with one accent, spent only on things
-     you can click. Everything else is white, off-white and dark text.
-
-     The diagnostic visual keeps green and rust untouched, because in the
-     app those two carry meaning - green is a skill that held, rust is
-     where it broke. The accent never appears inside that block, and
-     those two never appear outside it.
+     Two colour systems, and they are still not the same thing. The page is
+     neutral with one blue, spent only on things you can press. Green and
+     rust appear only inside the diagnostic window, because in the app those
+     two mean something - green held, rust is where it broke.
      ------------------------------------------------------------------ */
   :root {
-    --bg:      #FAFAFB;
+    --bg:      #F8F8F8;
     --card:    #FFFFFF;
-    --sunk:    #F4F5F7;
-    --ink:     #0E1013;
-    /* Both darkened after measuring them rather than looking at them. On the
-       off-white ground the old muted was 6.0:1 and read washed out on a phone
-       at low brightness; faint was 3.07:1, which is below the 4.5:1 minimum for
-       body text and was being used for the footer and the examiner citation.
-       Now 8.2:1 and 5.0:1. */
-    --muted:   #464C5A;
-    --faint:   #666C7A;
-    --line:    #E9EAEE;
-    --accent:  #4F46E5;
+    --sunk:    #F0F0F2;
+    --ink:     #0B0B0D;
+    --muted:   #4A4D55;
+    --faint:   #6B6E76;
+    --line:    #E6E6EA;
+    /* Apple's link blue rather than the brighter system blue: white on
+       #0A84FF is 3.6:1, which fails for button text; this is 4.6:1. */
+    --accent:  #0071E3;
     --on-accent: #FFFFFF;
 
-    /* Unchanged. These mean something. */
-    --held:    #2F5D50;
-    --broke:   #8C3B2E;
+    /* The window is dark in both themes, like the one it is modelled on,
+       so its colours do not change with the page. */
+    --win:       #1C1C1E;
+    --win-bar:   #2C2C2E;
+    --win-line:  #3A3A3D;
+    --win-ink:   #F2F2F4;
+    --win-muted: #A1A1A8;
+    --held:      #7FC4A8;
+    --broke:     #F0957C;
 
-    --lift: 0 1px 2px rgba(14, 16, 19, 0.04),
-            0 8px 24px -6px rgba(14, 16, 19, 0.08);
-    --lift-strong: 0 1px 2px rgba(14, 16, 19, 0.05),
-                   0 18px 40px -12px rgba(14, 16, 19, 0.14);
+    --lift: 0 1px 2px rgba(11, 11, 13, 0.04), 0 10px 30px -10px rgba(11, 11, 13, 0.12);
+    --lift-window: 0 2px 4px rgba(11, 11, 13, 0.06), 0 40px 80px -24px rgba(11, 11, 13, 0.35);
 
-    --shell: 46rem;
-    --sans: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
-    --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+    --shell: 68rem;
+    --prose: 40rem;
+    --sans: "Google Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "Google Sans Code", ui-monospace, "Cascadia Mono", Consolas, monospace;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg:     #0A0B0E;
-      --card:   #131519;
-      --sunk:   #0F1114;
-      --ink:    #F1F2F5;
-      --muted:  #A2A8B4;
-      --faint:  #6F7583;
-      --line:   #23262D;
-      --accent: #8B84F5;
-      --on-accent: #0A0B0E;
-      --held:   #7FB9A5;
-      --broke:  #E08A72;
-      /* Shadow does nothing on a dark ground; the border carries the edge. */
+      --bg:     #0B0B0D;
+      --card:   #151518;
+      --sunk:   #111113;
+      --ink:    #F2F2F4;
+      --muted:  #A6A9B1;
+      --faint:  #82858D;
+      --line:   #26262B;
+      --accent: #3D9BFF;
+      --on-accent: #0B0B0D;
+      --win:     #161618;
+      --win-bar: #222225;
       --lift: none;
-      --lift-strong: none;
+      --lift-window: 0 0 0 1px var(--win-line), 0 40px 80px -24px rgba(0, 0, 0, 0.6);
     }
   }
-
   :root[data-theme="dark"] {
-    --bg:     #0A0B0E;
-    --card:   #131519;
-    --sunk:   #0F1114;
-    --ink:    #F1F2F5;
-    --muted:  #A2A8B4;
-    --faint:  #6F7583;
-    --line:   #23262D;
-    --accent: #8B84F5;
-    --on-accent: #0A0B0E;
-    --held:   #7FB9A5;
-    --broke:  #E08A72;
+    --bg:     #0B0B0D;
+    --card:   #151518;
+    --sunk:   #111113;
+    --ink:    #F2F2F4;
+    --muted:  #A6A9B1;
+    --faint:  #82858D;
+    --line:   #26262B;
+    --accent: #3D9BFF;
+    --on-accent: #0B0B0D;
+    --win:     #161618;
+    --win-bar: #222225;
     --lift: none;
-    --lift-strong: none;
+    --lift-window: 0 0 0 1px var(--win-line), 0 40px 80px -24px rgba(0, 0, 0, 0.6);
   }
 
   * { box-sizing: border-box; }
-
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    padding: 0 1.25rem 6rem;
     background: var(--bg);
     color: var(--ink);
     font-family: var(--sans);
-    font-size: 1.0625rem;
-    line-height: 1.7;
-    font-weight: 400;
+    font-size: 17px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
+    padding-inline: 20px;
   }
+  .shell { max-width: var(--shell); margin-inline: auto; }
+  .prose { max-width: var(--prose); }
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); }
+  em { font-style: normal; color: var(--ink); font-weight: 600; }
 
-  main {
-    max-width: var(--shell);
-    margin: 0 auto;
+  /* ---- Navigation ------------------------------------------------------- */
+  nav {
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.1rem;
   }
+  .wordmark { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.03em; }
+  .wordmark span { color: var(--accent); }
+  nav .links { display: flex; align-items: center; gap: 1.3rem; }
+  nav .links a.quiet { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
+  nav .links a.quiet:hover { color: var(--ink); }
 
-  /* ---- hero: the statement gets the room ---- */
-
-  header {
-    padding: 5.5rem 0 4.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .wordmark {
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    margin: 0 0 5rem;
+  /* ---- Buttons ---------------------------------------------------------- */
+  .button {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0.7rem 1.3rem;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
   }
-  .wordmark::before {
-    content: "";
-    width: 0.6rem; height: 0.6rem;
-    border-radius: 3px;
-    background: var(--accent);
-  }
+  .button:hover { transform: translateY(-1px); }
+  .button.primary { background: var(--accent); color: var(--on-accent); }
+  .button.secondary { background: var(--card); color: var(--ink); border-color: var(--line); }
+  .button.small { min-height: 36px; padding: 0.4rem 1rem; font-size: 0.92rem; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; }
 
-  /* Two sentences rather than one, so it is set a size down and given a wider
-     measure. At the old 4.5rem and 15ch this ran to eight lines on a phone and
-     read as a wall rather than a statement. */
-  h1 {
-    font-size: clamp(2.1rem, 6vw, 3.3rem);
-    line-height: 1.08;
-    letter-spacing: -0.04em;
-    font-weight: 800;
-    margin: 0 0 1.5rem;
-    max-width: 24ch;
-    text-wrap: balance;
-  }
-
-  .lead {
-    font-size: clamp(1.15rem, 3.2vw, 1.4rem);
-    line-height: 1.5;
-    font-weight: 400;
-    color: var(--ink);
-    margin: 0 0 1rem;
-    max-width: 34ch;
-    text-wrap: pretty;
-  }
-
-
-  /* ---- every idea is its own block ---- */
-
-  section {
+  /* ---- Hero -------------------------------------------------------------- */
+  .hero { text-align: center; padding-block: clamp(3rem, 9vw, 6.5rem) 2.5rem; }
+  .pill {
+    display: inline-block;
+    padding: 0.3rem 0.85rem;
+    margin-bottom: 1.6rem;
+    border-radius: 999px;
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 3rem 2.5rem;
-    box-shadow: var(--lift);
+    color: var(--muted);
+    font-size: 0.88rem;
   }
-
-  h2 {
-    font-size: clamp(1.6rem, 4.5vw, 2.1rem);
-    line-height: 1.15;
-    letter-spacing: -0.035em;
-    font-weight: 700;
-    margin: 0 0 1.5rem;
-    max-width: 20ch;
+  h1 {
+    font-size: clamp(38px, 7.4vw, 72px);
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+    font-weight: 500;
+    margin: 0 auto 1.4rem;
+    max-width: 15ch;
     text-wrap: balance;
   }
-
-  h3 {
-    font-size: 1.0625rem;
-    font-weight: 650;
-    letter-spacing: -0.015em;
-    margin: 0 0 0.35rem;
-  }
-
-  p { margin: 0 0 1.25rem; text-wrap: pretty; }
-  p:last-child { margin-bottom: 0; }
-
-  section > p { color: var(--muted); }
-  section > p strong, section > p em { color: var(--ink); }
-  em { font-style: italic; }
-
-  .eyebrow {
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 1rem;
-  }
-
-  /* ---- the diagnostic, kept in its own voice ---- */
-
-  .descent {
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    line-height: 1.5;
-    background: var(--sunk);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 1.5rem 1.4rem;
-    margin: 2rem 0;
-    overflow-x: auto;
-  }
-  .step {
-    display: flex;
-    gap: 0.9rem;
-    align-items: baseline;
-    padding: 0.45rem 0;
-    white-space: nowrap;
-    color: var(--ink);
-  }
-  .step .name { flex: 1; }
-  .step .mark {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    border: 1px solid currentColor;
-  }
-  .ok   { color: var(--held); }
-  .bad  { color: var(--broke); }
-  .d1 { padding-left: 1.3rem; }
-  .d2 { padding-left: 2.6rem; }
-  .rule {
-    border-top: 1px solid var(--line);
-    margin-top: 0.9rem;
-    padding-top: 0.9rem;
-    white-space: normal;
-    font-family: var(--sans);
-    font-size: 0.95rem;
-    line-height: 1.6;
+  h1 .second { color: var(--faint); }
+  .lead {
+    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
     color: var(--muted);
+    max-width: 34rem;
+    margin: 0 auto 2rem;
+    text-wrap: pretty;
   }
-  .rule b { font-family: var(--mono); font-size: 0.85rem; color: var(--broke); font-weight: 500; }
+  .hero .under { color: var(--faint); font-size: 0.9rem; margin-top: 1rem; }
 
-  /* Sits under the diagnostic, saying what it is. Quiet on purpose - it is a
-     note about the picture, not part of the argument. */
-  .caption {
-    font-size: 0.85rem;
-    line-height: 1.55;
-    color: var(--faint);
-    margin: -0.75rem 0 0;
-  }
-
-  /* Three columns rather than a table, so it stacks readably on a phone
-     instead of scrolling sideways. */
-  .compare {
-    margin: 2rem 0;
-    border: 1px solid var(--line);
+  /* ---- The window -------------------------------------------------------
+     The product, working, in the place a screenshot would go. Built from
+     markup rather than an image so it stays sharp, costs nothing to load,
+     and can be corrected with a text edit when the product changes. */
+  .window {
+    max-width: 52rem;
+    margin: 0 auto;
+    background: var(--win);
+    color: var(--win-ink);
     border-radius: 14px;
+    box-shadow: var(--lift-window);
     overflow: hidden;
+    text-align: left;
   }
-  .compare .row {
+  .window .bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--win-bar);
+    border-bottom: 1px solid var(--win-line);
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .dot.r { background: #FF5F57; } .dot.y { background: #FEBC2E; } .dot.g { background: #28C840; }
+  .window .title {
+    flex: 1;
+    text-align: center;
+    color: var(--win-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 3.2rem;
+  }
+  .window .body {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr;
-    gap: 0.5rem 1rem;
-    padding: 0.85rem 1.2rem;
-    border-top: 1px solid var(--line);
-    font-size: 0.92rem;
-    align-items: baseline;
+    grid-template-columns: 1.05fr 1fr;
   }
-  .compare .row:first-child { border-top: none; }
-  .compare .head {
-    background: var(--sunk);
+  .window .pane { padding: 1.4rem 1.5rem; }
+  .window .pane + .pane { border-left: 1px solid var(--win-line); }
+  .pane .label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--win-muted);
+    margin-bottom: 0.9rem;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 9px;
+    font-size: 0.95rem;
+  }
+  .row + .row { margin-top: 0.3rem; }
+  .row.asked { background: rgba(255, 255, 255, 0.05); }
+  .row.d1 { margin-left: 1rem; }
+  .row.d2 { margin-left: 2rem; }
+  .mark {
+    flex: none;
+    font-family: var(--mono);
     font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--faint);
+    letter-spacing: 0.05em;
+    padding: 0.18rem 0.5rem;
+    border-radius: 6px;
   }
-  .compare .no { color: var(--broke); }
-  .compare .yes { color: var(--held); }
-  @media (max-width: 32rem) {
-    .compare .row { grid-template-columns: 1fr; gap: 0.15rem; }
-    .compare .row span:first-child { font-weight: 600; }
-    .compare .head { display: none; }
-    .compare .no::before { content: "prompting: "; color: var(--faint); }
-    .compare .yes::before { content: "ownIT: "; color: var(--faint); }
+  .mark.ok  { color: var(--held);  background: rgba(127, 196, 168, 0.12); }
+  .mark.bad { color: var(--broke); background: rgba(240, 149, 124, 0.14); }
+  .row.found { outline: 1px solid rgba(240, 149, 124, 0.45); }
+
+  .finding .said { font-size: 0.8rem; color: var(--win-muted); margin-bottom: 0.3rem; }
+  .finding .gap {
+    font-size: 1.55rem;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: var(--held);
+    font-weight: 600;
+    margin-bottom: 0.9rem;
+  }
+  .finding p { font-size: 0.95rem; color: var(--win-ink); }
+  .finding .like {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.9rem;
+    color: var(--win-muted);
+  }
+  .finding .like b {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+  }
+  .caption {
+    text-align: center;
+    color: var(--faint);
+    font-size: 0.88rem;
+    max-width: 36rem;
+    margin: 1.3rem auto 0;
   }
 
+  /* ---- Sections ---------------------------------------------------------- */
+  section { padding-block: clamp(4rem, 10vw, 7rem) 0; }
+  h2 {
+    font-size: clamp(30px, 4.6vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    font-weight: 500;
+    margin: 0 0 1.3rem;
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+  .eyebrow {
+    color: var(--accent);
+    font-size: 0.92rem;
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+  }
+  section .intro { font-size: 1.12rem; color: var(--muted); max-width: 38rem; }
+
+  /* Three reasons, the way Space puts its three: a line each, set large. */
+  .three {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--line);
+    margin-top: 2.5rem;
+  }
+  .three > div { padding: 1.8rem 1.6rem 0 0; }
+  .three > div + div { padding-left: 1.6rem; border-left: 1px solid var(--line); }
+  .three h3 {
+    font-size: clamp(1.35rem, 2.3vw, 1.8rem);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    font-weight: 500;
+    margin: 0 0 0.7rem;
+    transition: transform 0.4s ease;
+  }
+  .three > div:hover h3 { transform: translateX(6px); }
+  .three p { color: var(--muted); font-size: 1rem; }
+
+  /* The examiner example: the quote and what it means side by side. */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: start;
+    margin-top: 2rem;
+  }
   blockquote {
-    margin: 2rem 0;
-    padding: 1.5rem 1.6rem;
-    background: var(--sunk);
+    margin: 0;
+    padding: 1.6rem 1.7rem;
+    background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 14px;
-    color: var(--ink);
-    font-size: 1.05rem;
-    line-height: 1.6;
+    border-radius: 16px;
+    box-shadow: var(--lift);
+    font-size: 1.12rem;
+    line-height: 1.55;
   }
   blockquote cite {
     display: block;
     margin-top: 1rem;
-    font-size: 0.75rem;
-    font-style: normal;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     color: var(--faint);
+    font-style: normal;
+    font-size: 0.88rem;
   }
+  .maths { font-family: var(--mono); font-size: 0.95em; }
 
-  /* ---- steps as their own small blocks ---- */
-
+  /* How it works: numbered, each step a heading with its line underneath. */
   ol.steps {
-    margin: 0;
-    padding: 0;
     list-style: none;
-    counter-reset: n;
-    display: flex;
-    flex-direction: column;
-    gap: 0.9rem;
+    padding: 0;
+    margin: 2.5rem 0 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    counter-reset: step;
   }
   ol.steps li {
-    counter-increment: n;
-    display: grid;
-    grid-template-columns: 2.1rem 1fr;
-    gap: 0 1.1rem;
-    align-items: start;
-    background: var(--sunk);
+    counter-increment: step;
+    background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 1.4rem 1.5rem;
+    border-radius: 16px;
+    padding: 1.6rem 1.6rem 1.2rem;
+    box-shadow: var(--lift);
   }
   ol.steps li::before {
-    content: counter(n);
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--on-accent);
-    background: var(--accent);
-    border-radius: 8px;
-    width: 2.1rem; height: 2.1rem;
-    display: grid; place-items: center;
+    content: counter(step);
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--sunk);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
   }
-  ol.steps p { font-size: 0.98rem; color: var(--muted); margin: 0; }
-
-  /* ---- the ask ---- */
-
-  #join { box-shadow: var(--lift-strong); }
-
-  label {
-    display: block;
-    font-size: 0.85rem;
+  ol.steps h3 {
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
     font-weight: 500;
-    color: var(--ink);
-    margin: 1.5rem 0 0.5rem;
+    margin: 0 0 0.5rem;
   }
-  input[type=email], input[type=text] {
-    width: 100%;
-    padding: 0.9rem 1rem;
-    font-family: var(--sans);
-    font-size: 1rem;
-    color: var(--ink);
-    background: var(--bg);
+  ol.steps p { color: var(--muted); font-size: 0.98rem; }
+
+  /* The comparison, in the shape Space gives its pricing table. */
+  .compare {
+    margin-top: 2rem;
+    background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--lift);
   }
-  input::placeholder { color: var(--faint); }
-  input:focus-visible, button:focus-visible, a:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-  input:disabled { opacity: 0.6; }
-
-  button {
-    font-family: var(--sans);
-    font-size: 1.0625rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    width: 100%;
-    margin-top: 1.75rem;
+  .compare .r {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 1rem;
     padding: 0.95rem 1.4rem;
-    color: var(--on-accent);
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: 12px;
+    font-size: 0.98rem;
+  }
+  .compare .r + .r { border-top: 1px solid var(--line); }
+  .compare .head { background: var(--sunk); font-weight: 600; font-size: 0.9rem; }
+  .compare .no { color: var(--faint); }
+  .compare .yes { color: var(--ink); font-weight: 500; }
+  .stat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 2rem 0 0;
+  }
+  .stat > div {
+    flex: 1 1 13rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.3rem 1.4rem;
+  }
+  .stat b {
+    display: block;
+    font-size: 2.4rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+  .stat span { color: var(--muted); font-size: 0.95rem; }
+
+  /* Who it is for, laid out like Space's pricing cards. It is free for
+     both, so the cards differ in what you get rather than what you pay. */
+  .plans {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 2.5rem;
+  }
+  .plan {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 1.8rem;
+    box-shadow: var(--lift);
+    display: flex;
+    flex-direction: column;
+  }
+  .plan h3 { font-size: 1.1rem; font-weight: 500; margin: 0 0 0.6rem; color: var(--muted); }
+  .plan .price {
+    font-size: 2.6rem;
+    letter-spacing: -0.04em;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .plan .per { color: var(--faint); font-size: 0.92rem; margin-bottom: 1.3rem; }
+  .plan ul { list-style: none; padding: 0; margin: 0 0 1.6rem; flex: 1; }
+  .plan li { padding: 0.45rem 0 0.45rem 1.6rem; position: relative; font-size: 0.98rem; }
+  .plan li::before {
+    content: "";
+    position: absolute;
+    left: 0.15rem;
+    top: 0.95rem;
+    width: 0.55rem;
+    height: 0.3rem;
+    border-left: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+    transform: rotate(-45deg);
+  }
+  .plan .button { align-self: flex-start; }
+
+  /* Common questions. */
+  .faq { margin-top: 2rem; border-top: 1px solid var(--line); }
+  .faq details { border-bottom: 1px solid var(--line); }
+  .faq summary {
+    list-style: none;
     cursor: pointer;
-    transition: filter 0.15s ease, transform 0.15s ease;
+    padding: 1.3rem 2.5rem 1.3rem 0;
+    font-size: 1.12rem;
+    font-weight: 500;
+    position: relative;
   }
-  button:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
-  button:active:not(:disabled) { transform: translateY(0); }
-  button:disabled { opacity: 0.5; cursor: default; }
-
-  /* The way in. Styled as the page's button rather than as a link, because
-     it is the primary action and a link reads as a footnote next to a filled
-     waitlist button. Sized to its text instead of full width so it does not
-     compete with the form lower down. */
-  .try {
-    display: inline-block;
-    font-size: 1.0625rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    padding: 0.95rem 1.6rem;
-    margin: 1.75rem 0 0.6rem;
-    color: var(--on-accent);
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: 12px;
-    text-decoration: none;
-    transition: filter 0.15s ease, transform 0.15s ease;
-  }
-  .try:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  .try:active { transform: translateY(0); }
-
-  .small { font-size: 0.92rem; color: var(--muted); }
-  .said { margin-top: 1rem; font-size: 0.95rem; font-weight: 500; }
-  .said.bad { color: var(--broke); }
-  .said.ok { color: var(--held); }
-
-  footer {
-    max-width: var(--shell);
-    margin: 1.5rem auto 0;
-    padding: 2.5rem 2.5rem 0;
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: "+";
+    position: absolute;
+    right: 0.3rem;
+    top: 1.1rem;
+    font-size: 1.5rem;
+    font-weight: 300;
     color: var(--faint);
-    font-size: 0.9rem;
-    line-height: 1.65;
-    border-top: 1px solid var(--line);
+    transition: transform 0.2s ease;
   }
-  footer a { color: var(--muted); }
+  .faq details[open] summary::after { transform: rotate(45deg); }
+  .faq details p { color: var(--muted); padding-right: 2.5rem; }
 
-  /* Quiet on purpose. Someone who wants to say something will look for it;
-     nobody arriving for the first time needs it in the way. */
-  /* The feedback form. It used to sit collapsed in the footer behind a summary
-     nobody clicks, which is the wrong place for the one thing that can correct
-     the map. It is a section now, open, and styled like the rest of the page. */
-  #say form { margin-top: 1.5rem; }
-  #say textarea {
+  /* Feedback form. */
+  form { max-width: 36rem; margin-top: 1.8rem; }
+  label { display: block; font-size: 0.95rem; font-weight: 500; margin: 1.1rem 0 0.4rem; }
+  textarea, input {
     width: 100%;
-    padding: 0.9rem 1rem;
-    font-family: var(--sans);
+    padding: 0.8rem 1rem;
+    font: inherit;
     font-size: 1rem;
-    line-height: 1.6;
     color: var(--ink);
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 12px;
-    resize: vertical;
   }
-  #say input { background: var(--card); }
-  #say button { margin-top: 1.25rem; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  form .button { margin-top: 1.2rem; }
+  .said { margin-top: 0.9rem; font-size: 0.95rem; }
+  .said.ok { color: var(--muted); }
+  .said.bad { color: #C0392B; }
 
-  @media (max-width: 34rem) {
-    section { padding: 2.25rem 1.5rem; border-radius: 16px; }
-    header { padding: 4rem 0 3rem; }
-    .wordmark { margin-bottom: 3.5rem; }
-    footer { padding: 2rem 1.5rem 0; }
-    ol.steps li { grid-template-columns: 1.8rem 1fr; gap: 0 0.9rem; padding: 1.2rem 1.2rem; }
-    ol.steps li::before { width: 1.8rem; height: 1.8rem; }
+  /* The last ask, set apart the way Space sets its own. */
+  .final {
+    margin-top: clamp(4rem, 10vw, 7rem);
+    padding: clamp(2.5rem, 7vw, 4.5rem) 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    text-align: center;
+    box-shadow: var(--lift);
   }
+  .final h2 { margin-inline: auto; }
+  .final p { color: var(--muted); max-width: 32rem; margin: 0 auto 1.8rem; }
 
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    padding-block: 3rem 2.5rem;
+    color: var(--faint);
+    font-size: 0.9rem;
+  }
+  footer nav { padding: 0; gap: 1.3rem; display: flex; flex-wrap: wrap; }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+
+  /* Things arrive as you scroll to them. Only once the script has said it
+     is running - without it, everything is simply there. */
+  .js .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .js .reveal.seen { opacity: 1; transform: none; }
+
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--sunk); padding: 0.1rem 0.35rem; border-radius: 5px; }
+
+  @media (max-width: 820px) {
+    .window .body { grid-template-columns: 1fr; }
+    .window .pane + .pane { border-left: none; border-top: 1px solid var(--win-line); }
+    .three { grid-template-columns: 1fr; }
+    .three > div, .three > div + div { padding: 1.5rem 0 0; border-left: none; }
+    .three > div + div { border-top: 1px solid var(--line); margin-top: 1.5rem; }
+    .split, ol.steps, .plans { grid-template-columns: 1fr; }
+    .compare .r { grid-template-columns: 1.2fr 1fr 1fr; padding: 0.85rem 1rem; font-size: 0.9rem; }
+  }
+  @media (max-width: 480px) {
+    nav .links a.quiet { display: none; }
+    .window .title { padding-right: 0; }
+    .window .pane { padding: 1.1rem 1rem; }
+    .row.d1 { margin-left: 0.6rem; }
+    .row.d2 { margin-left: 1.2rem; }
+  }
   @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; animation: none !important; }
+    * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+    .js .reveal { opacity: 1; transform: none; }
   }
 </style>
 </head>
 <body>
+<div class="shell">
+
+<nav>
+  <span class="wordmark">own<span>IT</span></span>
+  <div class="links">
+    <a class="quiet" href="#how">How it works</a>
+    <a class="quiet" href="/student">For students</a>
+    <a class="button primary small" href="/start">Try it</a>
+  </div>
+</nav>
+
 <main>
 
-<header>
-  <p class="wordmark">ownIT</p>
-  <h1>Your student isn't bad at maths. They're missing something underneath the
-  question.</h1>
-  <p class="lead">Most tutors already know this. They just don't have a system
-  that finds it fast.</p>
-
-  <p><a class="try" href="/start">Try it on a question now</a></p>
-  <p class="small">Free, no sign-up. Paste a question or photograph one, and it
-  works down to what is actually missing.</p>
+<header class="hero">
+  <span class="pill">Free &middot; No sign-up &middot; GCSE and A-level maths</span>
+  <h1>Your student isn&rsquo;t bad at maths. <span class="second">Something
+  underneath is missing.</span></h1>
+  <p class="lead">Send the question they&rsquo;re stuck on. ownIT asks a few short
+  questions, one layer down at a time, and finds the first thing that gave
+  way.</p>
+  <div class="buttons">
+    <a class="button primary" href="/start">Try it on a question</a>
+    <a class="button secondary" href="#how">See how it works</a>
+  </div>
 </header>
 
+<!-- A real run, drawn as the product rather than described. The route on
+     the left is the walk as it went; the card on the right is what the
+     student reads at the end, in the order the finding page now tells it. -->
+<div class="window reveal" role="img"
+     aria-label="A diagnostic run: the question is proof from first principles. Limits held, algebraic fractions held, expanding brackets gave way, negative numbers underneath it held. The finding is expanding brackets.">
+  <div class="bar">
+    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="title">Prove from first principles that the derivative of x&sup3; is 3x&sup2;</span>
+  </div>
+  <div class="body">
+    <div class="pane">
+      <p class="label">Going down, one layer at a time</p>
+      <div class="row asked"><span>Differentiation from first principles</span></div>
+      <div class="row d1"><span>What h&nbsp;&rarr;&nbsp;0 means</span><span class="mark ok">HELD</span></div>
+      <div class="row d1"><span>Algebraic fractions</span><span class="mark ok">HELD</span></div>
+      <div class="row d1 found"><span>Expanding brackets</span><span class="mark bad">HERE</span></div>
+      <div class="row d2"><span>Negative numbers</span><span class="mark ok">HELD</span></div>
+    </div>
+    <div class="pane finding">
+      <p class="label">We found something</p>
+      <p class="said">You got limits and algebraic fractions right.</p>
+      <p class="gap">Expanding brackets</p>
+      <!-- Verbatim from data/explanations.json, so the window shows what a
+           student is actually shown. If that entry changes, change this. -->
+      <p>Every single thing in the first bracket has to meet every single thing
+      in the second bracket &mdash; four little multiplications in total, then
+      tidy up.</p>
+      <p class="like"><b>Think of it like this</b>It is like every person on one
+      team shaking hands with every person on the other team &mdash; nobody gets
+      left out.</p>
+    </div>
+  </div>
+</div>
+<p class="caption">A real run against the real skill map. The mistake it lands on
+is the one AQA&rsquo;s examiners reported on that question in June 2024.</p>
+
 <section>
-  <h2>Why doing more past papers isn't working</h2>
-  <p>Every A-level question sits on top of other things. Differentiation sits on
-  indices. Indices sit on knowing what a power means. When a student gets a
-  question wrong, the mark scheme says they got <em>that topic</em> wrong
-  &mdash; so that's the topic they go back and revise.</p>
-  <p>But if the actual problem is two years further down, revising the topic
-  changes nothing. They do it again, it still doesn't stick, and they conclude
-  they're just bad at maths.</p>
-  <p>They're not. They can't see where it broke. Neither, from the outside, can
-  you.</p>
+  <div class="prose">
+    <p class="eyebrow">Why more past papers isn&rsquo;t working</p>
+    <h2>The question is almost never where the problem is</h2>
+    <p class="intro">Every question sits on top of other things. When a student
+    gets one wrong, the mark scheme blames that topic, so that&rsquo;s what they
+    revise. If the real problem is two years further down, revising changes
+    nothing &mdash; and they decide they&rsquo;re just bad at maths.</p>
+  </div>
+  <div class="three">
+    <div class="reveal">
+      <h3>Finds the first thing in the way</h3>
+      <p>Not a list of twelve weaknesses. One skill to start on, and why it&rsquo;s
+      that one rather than something lower down.</p>
+    </div>
+    <div class="reveal">
+      <h3>Explains it so it lands</h3>
+      <p>What it means in plain words first, then what it&rsquo;s like in real
+      life, then the maths, then the mistake they&rsquo;re probably making.</p>
+    </div>
+    <div class="reveal">
+      <h3>Never does their homework</h3>
+      <p>It never gives the answer to the question they sent. An answer gets
+      them through tonight; they&rsquo;re stuck again next week.</p>
+    </div>
+  </div>
 </section>
 
 <section>
   <p class="eyebrow">A real example</p>
   <h2>What examiners actually saw</h2>
-  <p>June 2024, AQA Paper 1, question 10. Prove from first principles that the
-  derivative of <span style="font-family: var(--mono)">x&sup3;</span> is
-  <span style="font-family: var(--mono)">3x&sup2;</span>. Here is what the
-  examiners reported students doing:</p>
-
-  <blockquote>
-    Quite a few students expanded (x&nbsp;+&nbsp;h)&sup3; as
-    (x&sup2;&nbsp;+&nbsp;xh)&nbsp;+&nbsp;(xh)&hellip; because students did not
-    collect like terms.
-    <cite>AQA examiner report, 7357/1, June 2024</cite>
-  </blockquote>
-
-  <p>Every one of those students lost the marks on a <em>differentiation</em>
-  question. But not one of them had a differentiation problem. They couldn't
-  expand a bracket &mdash; something they were taught at fourteen.</p>
-
-  <p>This is what ownIT does with that. It asks a few short questions, going
-  down one layer at a time:</p>
-
-  <div class="descent">
-    <div class="step"><span class="name">Prove from first principles&hellip;</span></div>
-    <div class="step d1"><span class="name">Limits &mdash; what h&nbsp;&rarr;&nbsp;0 means</span><span class="mark ok">FINE</span></div>
-    <div class="step d1"><span class="name">Algebraic fractions</span><span class="mark ok">FINE</span></div>
-    <div class="step d1"><span class="name">Expanding brackets</span><span class="mark bad">HERE</span></div>
-    <div class="step d2"><span class="name">Negative numbers</span><span class="mark ok">FINE</span></div>
-    <div class="rule">Four questions. The thing to fix is <b>expanding brackets</b>
-    &mdash; and everything underneath it is solid, so that's where to start, not
-    lower. Fix that one thing and the question they walked in with is back
-    within reach.</div>
+  <div class="split">
+    <div class="prose">
+      <p>June 2024, AQA Paper 1, question 10: prove from first principles that
+      the derivative of <span class="maths">x&sup3;</span> is
+      <span class="maths">3x&sup2;</span>.</p>
+      <p>Every student in that report lost the marks on a <em>differentiation</em>
+      question. Not one of them had a differentiation problem. They couldn&rsquo;t
+      expand a bracket &mdash; something they were taught at fourteen.</p>
+      <p>The window at the top of this page is ownIT finding exactly that, in
+      four questions. The examiners&rsquo; other complaint &mdash; using
+      <span class="maths">h&nbsp;=&nbsp;0</span> instead of the limit &mdash; it
+      finds in two, because that&rsquo;s a different break in a different
+      place.</p>
+    </div>
+    <blockquote class="reveal">
+      &ldquo;Quite a few students expanded (x&nbsp;+&nbsp;h)&sup3; as
+      (x&sup2;&nbsp;+&nbsp;xh)&nbsp;+&nbsp;(xh)&hellip; because students did not
+      collect like terms.&rdquo;
+      <cite>AQA examiner report, 7357/1, June 2024</cite>
+    </blockquote>
   </div>
-  <p class="caption">A real run of the diagnostic, against the real skill map.
-  The mistake it is answering with is the one AQA's examiners reported.</p>
-
-  <p>The second thing the examiners reported on that question was students
-  using <span style="font-family: var(--mono)">h&nbsp;=&nbsp;0</span> instead of
-  the limit. ownIT finds that one in two questions, because it's a different
-  break in a different place.</p>
 </section>
 
-<section>
+<section id="how">
   <p class="eyebrow">What your student sees</p>
   <h2>How it works</h2>
   <ol class="steps">
-    <li>
-      <div>
-        <h3>Send the question you're stuck on</h3>
-        <p>A photo of the page is best &mdash; typing maths out loses the powers
-        and the fractions. Tell it what you tried, if you tried something.</p>
-      </div>
+    <li class="reveal">
+      <h3>Send the question you&rsquo;re stuck on</h3>
+      <p>A photo of the page is best &mdash; typing maths out loses the powers
+      and the fractions.</p>
     </li>
-    <li>
-      <div>
-        <h3>Answer a few short questions</h3>
-        <p>Usually about six. Multiple choice, and "I don't know" is always an
-        option &mdash; it's more useful than a guess, and it isn't marked
-        against you.</p>
-      </div>
+    <li class="reveal">
+      <h3>Answer a few short questions</h3>
+      <p>Usually a handful. Multiple choice, and &ldquo;I don&rsquo;t know&rdquo;
+      is always an option &mdash; more useful than a guess, and never marked
+      against you.</p>
     </li>
-    <li>
-      <div>
-        <h3>Get the first thing to fix &mdash; and what to go and do</h3>
-        <p>Not a list of twelve weaknesses. One skill to start on, the reason
-        it's that one and not something lower, and a line telling them what to
-        practise &mdash; with an example and something to search. The first
-        thing in the way, and it says so when there may be more behind it.</p>
-      </div>
+    <li class="reveal">
+      <h3>Get the first thing to fix</h3>
+      <p>What it means, what it&rsquo;s like, one worked example, the usual
+      mistake, and a line telling them what to practise.</p>
     </li>
-    <li>
-      <div>
-        <h3>Climb back up to their own question</h3>
-        <p>Four questions that start where the gap is and build, one step at a
-        time, until the last one <em>is</em> the question they came in with
-        &mdash; word for word, with nothing of the working given away. It's
-        offered, not forced: they choose whether to take it.</p>
-      </div>
-    </li>
-    <li>
-      <div>
-        <h3>Come back and run it again</h3>
-        <p>After they've worked on it, the same question can be run from
-        scratch. Nothing is remembered, so if the gap has closed the walk goes
-        straight past it and finds whatever is behind it &mdash; which is the
-        only way to know the work landed.</p>
-      </div>
+    <li class="reveal">
+      <h3>Come back and run it again</h3>
+      <p>Same question, fresh questions. If the gap has closed it goes straight
+      past it and finds whatever is behind it &mdash; the only way to know the
+      work landed.</p>
     </li>
   </ol>
 </section>
 
 <section>
-  <p class="eyebrow">What you're left holding</p>
-  <h2>A lesson plan, not a verdict</h2>
-  <p>Knowing where the problem is only helps if you also know what it unblocks.
-  So it doesn't stop at the gap: it gives you the order to work through, because
-  each step is only reachable once the one before it holds.</p>
-
-  <p>Here is a second student on the same question &mdash; one further behind,
-  whose trouble with brackets has taken algebraic fractions down with it:</p>
-
-  <div class="descent">
-    <div class="step"><span class="name">Expanding brackets</span><span class="mark bad">START HERE</span></div>
-    <div class="step d1"><span class="name">1. Factorising a common factor</span></div>
-    <div class="step d1"><span class="name">2. Algebraic fractions</span></div>
-    <div class="step d1"><span class="name">3. Differentiation from first principles</span></div>
-    <div class="rule">The last line is the question they originally asked. You
-    can see at a glance how far away it is &mdash; which is also a fair estimate
-    of how many lessons this is. The student higher up the page needed only the
-    first line; same question, same gap, three lessons apart.</div>
+  <div class="prose">
+    <p class="eyebrow">The obvious question</p>
+    <h2>Couldn&rsquo;t you just ask a chatbot?</h2>
+    <p class="intro">You&rsquo;ll get something that looks a lot like this. The
+    difference is what happens to the answers. When a model writes a question,
+    it also decides which option is right &mdash; and nothing checks it.</p>
   </div>
-
-  <p>That is the same chain the questions came down, read back the other way.
-  Nothing about it is generated for the report; it is the route that was
-  actually walked.</p>
+  <div class="stat">
+    <div class="reveal"><b>55 of 531</b><span>of the first questions written had
+    the wrong answer marked correct. Not one of them looked wrong.</span></div>
+    <div class="reveal"><b>Every one</b><span>now solved blind by a second model
+    that never saw the stored answer. Where they disagreed, a third
+    decided.</span></div>
+  </div>
+  <div class="compare reveal">
+    <div class="r head"><span>&nbsp;</span><span>Prompting</span><span>ownIT</span></div>
+    <div class="r"><span>Who checks the answer key</span><span class="no">nobody</span><span class="yes">a different model</span></div>
+    <div class="r"><span>Same answer twice</span><span class="no">not reliably</span><span class="yes">a fixed map</span></div>
+    <div class="r"><span>Out of its depth</span><span class="no">answers anyway</span><span class="yes">says so</span></div>
+    <div class="r"><span>Corrected once</span><span class="no">forgets</span><span class="yes">stays fixed</span></div>
+  </div>
+  <p class="caption" style="text-align:left;margin-left:0">That&rsquo;s the worst
+  thing a diagnostic can get wrong, because it&rsquo;s invisible: a student answers
+  correctly, is recorded as having a gap, and a session goes on teaching something
+  they already knew.</p>
 </section>
 
 <section>
-  <p class="eyebrow">The obvious question</p>
-  <h2>Couldn't you just ask a chatbot?</h2>
-  <p>You can, and if you are good at prompting you will get something that
-  looks a lot like this. Plenty of tutors already do. The difference is not the
-  questions it asks &mdash; it is what happens to the answers.</p>
-
-  <p>When a model writes a diagnostic question, it also decides which option is
-  correct. Nothing checks it. We measured that on this project: of the first 531
-  questions written, <strong>55 had the wrong answer marked correct</strong>.
-  Four in ten of the integration ones. Not one of them looked wrong.</p>
-
-  <div class="descent">
-    <div class="step"><span class="name">Area between y = &radic;x and y = x/2</span><span class="mark bad">SAID 8/3</span></div>
-    <div class="step d1"><span class="name">actually</span><span class="mark ok">4/3</span></div>
-    <div class="step"><span class="name">u&#8322; = 8 and u&#8327; = 28. Find u&#8321; + d</span><span class="mark bad">SAID 12</span></div>
-    <div class="step d1"><span class="name">actually</span><span class="mark ok">8</span></div>
-    <div class="rule">The second one is worth two seconds of your time:
-    u&#8321;&nbsp;+&nbsp;d <em>is</em> u&#8322;, which the question gives you. Both were
-    sitting in the bank ready to be asked, until a second model was made to work
-    them out from scratch.</div>
+  <p class="eyebrow">Who it&rsquo;s for</p>
+  <h2>Simple: it&rsquo;s free</h2>
+  <div class="plans">
+    <div class="plan reveal">
+      <h3>Students and parents</h3>
+      <div class="price">Free</div>
+      <p class="per">No sign-up, no email</p>
+      <ul>
+        <li>Photo or typed question</li>
+        <li>The first thing in the way, explained plainly</li>
+        <li>What to practise, and how to check it worked</li>
+      </ul>
+      <a class="button primary" href="/start">Try it on a question</a>
+    </div>
+    <div class="plan reveal">
+      <h3>Tutors</h3>
+      <div class="price">Free</div>
+      <p class="per">With one extra question at the end</p>
+      <ul>
+        <li>Everything a student gets</li>
+        <li>The whole route it walked, and what held on the way</li>
+        <li>Say whether the diagnosis was right &mdash; it corrects the map</li>
+      </ul>
+      <a class="button secondary" href="/start?tutor=1">Try it as a tutor</a>
+    </div>
   </div>
-
-  <p>That is the worst thing a diagnostic can get wrong, because it is invisible.
-  A student answers <em>correctly</em>, is recorded as having a gap, and you
-  spend a session teaching something they already knew. The report looks
-  completely normal.</p>
-
-  <p>Every question here has been solved blind by a second model that was never
-  shown the stored answer. Where the two disagreed, a third decided.
-  <strong>77 were retired.</strong></p>
-
-  <p>The rest of the difference is the map. What differentiation rests on is
-  written down, not improvised fresh each time, so the same student gets the same
-  answer on Tuesday as on Friday &mdash; and when it gets something wrong, you
-  say so once and it stays corrected.</p>
-
-  <div class="compare">
-    <div class="row head"><span>&nbsp;</span><span>Prompting</span><span>ownIT</span></div>
-    <div class="row"><span>Who checks the answer key</span><span class="no">nobody</span><span class="yes">a different model</span></div>
-    <div class="row"><span>Same answer twice</span><span class="no">not reliably</span><span class="yes">fixed map</span></div>
-    <div class="row"><span>When it is out of its depth</span><span class="no">answers anyway</span><span class="yes">says so</span></div>
-    <div class="row"><span>Being wrong, corrected</span><span class="no">next prompt</span><span class="yes">stays fixed</span></div>
-  </div>
-
-  <p class="caption">Worth testing yourself: ask a chatbot for ten A-level
-  integration questions with answers, and mark them.</p>
 </section>
 
 <section>
-  <h2>It won't do their homework</h2>
-  <p>It never gives the student the answer to the question they sent. That's
-  deliberate, and it's the whole point &mdash; an answer gets them through
-  tonight, and they're stuck again next week on the same thing wearing a
-  different hat.</p>
-  <p>They can show the result to their teacher without it looking like they
-  cheated, because they didn't.</p>
-</section>
-
-<section id="join">
-  <p class="eyebrow">It's open</p>
-  <h2>Try it on a question now</h2>
-  <p class="small">I'm a maths and physics tutor. I built this because I keep
-  finding the same thing in lessons &mdash; the question a student is stuck on is
-  almost never where the problem is.</p>
-
-  <p>Bring a question one of your students is stuck on. A photo of the page
-  works best. It takes about six questions and costs nothing, and there's
-  nothing to sign up for.</p>
-
-  <p><a class="try" href="/start">Try it on a question now</a></p>
-
-  <p class="small">If you're a tutor, add <code>?tutor=1</code> to the address
-  and you'll be asked at the end whether the diagnosis was right &mdash; and
-  what the real gap was, if it wasn't. That answer is the only thing that can
-  correct the map underneath this, and it takes one tap.</p>
+  <p class="eyebrow">Common questions</p>
+  <h2>Before you try it</h2>
+  <div class="faq">
+    <details>
+      <summary>What does it cover?</summary>
+      <p>A-level Pure &mdash; differentiation, integration, logs, sequences,
+      quadratics, functions, indices and surds, binomial expansion, coordinate
+      geometry and polynomials. And the GCSE underneath it: linear equations,
+      simultaneous equations, inequalities, standard form, expanding and
+      factorising, ratio and proportion, and fractions, decimals and
+      percentages.</p>
+      <p>Not trigonometry, statistics or mechanics yet. If it can&rsquo;t place a
+      question it says so rather than guessing.</p>
+    </details>
+    <details>
+      <summary>Will it give my student the answer?</summary>
+      <p>No, deliberately. They can show the result to a teacher without it
+      looking like they cheated, because they didn&rsquo;t.</p>
+    </details>
+    <details>
+      <summary>Will it feel like a test?</summary>
+      <p>Nothing is marked or scored, and there&rsquo;s no count of how many are
+      left, because there isn&rsquo;t a fixed number &mdash; it stops as soon as
+      it knows. &ldquo;I don&rsquo;t know&rdquo; is always allowed.</p>
+    </details>
+    <details>
+      <summary>How long does it take?</summary>
+      <p>A few minutes. Most runs are a handful of questions; it keeps going
+      only while it still needs to.</p>
+    </details>
+    <details>
+      <summary>What if it gets it wrong?</summary>
+      <p>Tell me &mdash; there&rsquo;s a form just below. The map of what rests on
+      what is one tutor&rsquo;s theory, and someone saying &ldquo;no, it was
+      this instead&rdquo; is the only evidence from outside my own reasoning.</p>
+    </details>
+    <details>
+      <summary>Who made it?</summary>
+      <p>A maths and physics tutor, because the question a student is stuck on is
+      almost never where the problem is &mdash; and finding it by hand takes a
+      whole lesson.</p>
+    </details>
+  </div>
 </section>
 
 <section id="say">
-  <p class="eyebrow">The part I actually need</p>
-  <h2>Tell me where it's wrong</h2>
-  <p>This is one tutor's theory about how maths failure works, with a tool
-  attached. The theory is written down as a map of what rests on what &mdash;
-  296 links, and until last week not one of them had a reason recorded against
-  it. I can't check that map on my own. A tutor saying "no, it was this
-  instead" is the only evidence from outside my own reasoning.</p>
-  <p>So: if a diagnosis was wrong, if a topic you teach isn't covered, if a
-  question wouldn't place, or if something just reads badly &mdash; that is the
-  most useful thing you can send me. It goes straight to a page I read.</p>
+  <div class="prose">
+    <p class="eyebrow">The part I actually need</p>
+    <h2>Tell me where it&rsquo;s wrong</h2>
+    <p class="intro">A wrong diagnosis, a topic you teach that isn&rsquo;t
+    covered, a question that wouldn&rsquo;t place, or something that just reads
+    badly. It goes straight to a page I read.</p>
+  </div>
 
   <form id="comment-form">
     <label for="comment">What would make this worth using, or what puts you off?</label>
@@ -715,25 +837,55 @@
     <label for="contact">Your email, if you want an answer (optional)</label>
     <input type="email" id="contact" placeholder="you@example.com">
 
-    <button type="submit" id="send">Send</button>
+    <button type="submit" id="send" class="button primary">Send</button>
     <p class="said" id="comment-said" role="status" aria-live="polite"></p>
   </form>
 </section>
 
+<div class="final reveal" id="join">
+  <h2>Bring the question they&rsquo;re stuck on</h2>
+  <p>A photo of the page works best. It takes a few minutes, costs nothing, and
+  there&rsquo;s nothing to sign up for.</p>
+  <div class="buttons">
+    <a class="button primary" href="/start">Try it on a question</a>
+    <a class="button secondary" href="/student">I&rsquo;m a student</a>
+  </div>
+</div>
+
 </main>
 
 <footer>
-  <p>A-level Pure &mdash; differentiation, integration, logs, sequences,
-  quadratics, functions, indices and surds, binomial expansion, coordinate
-  geometry and polynomials. GCSE underneath it &mdash; linear equations,
-  expanding and factorising, ratio and proportion, and fractions, decimals and
-  percentages, which is where an A-level question often turns out to fail.
-  Trigonometry, statistics and mechanics aren't in yet. If it can't place a
-  question it says so rather than guessing.</p>
-  <p>Built by a tutor, in the open.</p>
+  <span>ownIT &middot; Built by a tutor, in the open.</span>
+  <nav>
+    <a href="/start">Try it</a>
+    <a href="/student">For students</a>
+    <a href="#how">How it works</a>
+    <a href="#say">Feedback</a>
+  </nav>
 </footer>
 
+</div>
+
 <script>
+// Say the script is running before anything is hidden, so a page whose
+// script fails shows everything rather than nothing.
+document.documentElement.classList.add('js');
+
+const reveal = document.querySelectorAll('.reveal');
+if ('IntersectionObserver' in window) {
+  const watching = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('seen');
+        watching.unobserve(entry.target);
+      }
+    });
+  }, {rootMargin: '0px 0px -8% 0px'});
+  reveal.forEach(el => watching.observe(el));
+} else {
+  reveal.forEach(el => el.classList.add('seen'));
+}
+
 // The waitlist form is gone - the tool is open, so the ask is "use it", not
 // "wait". The handler stays behind a guard rather than being deleted: the
 // endpoint still exists and still has people on it, and this is the only code
