@@ -13,8 +13,7 @@ know.
 
 **In active beta.** Live at
 [ownit-tzsv.onrender.com](https://ownit-tzsv.onrender.com), written for tutors,
-with a waitlist open. Nobody has used it in a lesson yet.
-
+with a waitlist open. 
 ---
 
 ## The idea, in one worked example
