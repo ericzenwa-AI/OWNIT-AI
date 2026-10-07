@@ -174,6 +174,19 @@
   }
   .hero .under { color: var(--faint); font-size: 0.9rem; margin-top: 1rem; }
 
+  /* The CodeHype badge. Given a reserved height so the page does not jump
+     when it arrives late, and kept well under the buttons so it reads as a
+     footnote to them rather than as a third thing to press. */
+  .badge { margin: 1.8rem 0 0; }
+  .badge img {
+    display: inline-block;
+    border: 0;
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    max-height: 65px;
+  }
+
   /* ---- The window -------------------------------------------------------
      The product, working, in the place a screenshot would go. Built from
      markup rather than an image so it stays sharp, costs nothing to load,
@@ -593,6 +606,17 @@
     <a class="button primary" href="/start">Try it on a question</a>
     <a class="button secondary" href="#how">See how it works</a>
   </div>
+  <!-- Somebody outside this project vouching for it, directly under the ask.
+       Lazy so it never delays the headline, and sized in the stylesheet so a
+       change at their end cannot shift this page's layout. -->
+  <p class="badge">
+    <a href="https://www.codehype.ai/product/ownit?utm_source=codehype_badge"
+       target="_blank" rel="noopener noreferrer">
+      <img src="https://www.codehype.ai/badges/ownit.svg?variant=find-us&amp;v=20"
+           alt="Featured on CodeHype" width="180" height="65"
+           loading="lazy" decoding="async">
+    </a>
+  </p>
 </header>
 
 <!-- A real run, drawn as the product rather than described. The route on
