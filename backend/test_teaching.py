@@ -1,0 +1,401 @@
+"""The lesson that runs after the diagnosis.
+
+The diagnostic was never the hard part. A student is told what they are
+missing, reads a correct paragraph about it, and is no better at it than
+before - particularly the student this exists for, who loses the thread in a
+minute. So after the diagnosis there is a lesson, and these tests are about
+the three things that make it a lesson rather than a chatbot with a prompt:
+
+  the server owns the stage, so a confident-sounding student cannot be hurried
+  to the end and the model cannot wander;
+  moving on takes evidence - two understood replies, not one right answer;
+  the student's own question is never worked for them, at any stage.
+
+And the one promise that outranks all of it: none of this may touch the
+diagnosis. A student who never opens the lesson has exactly the session they
+had before.
+"""
+
+import pytest
+from fastapi.testclient import TestClient
+
+import api
+import store
+import teach
+from questions import Distractor, MultipleChoiceQuestion
+from walk import Reading
+
+
+@pytest.fixture
+def db(tmp_path, monkeypatch):
+    monkeypatch.setattr(store, "DEFAULT_PATH", tmp_path / "teach.db")
+    connection = store.connect()
+    yield connection
+    connection.close()
+
+
+@pytest.fixture
+def client(db):
+    return TestClient(api.app)
+
+
+class _Move:
+    """A turn from a tutor that is not a model."""
+
+    def __init__(self, read="understood", say="here is the idea",
+                 ask="what do you get?", finished=False, why="they said so"):
+        self.read, self.say, self.ask = read, say, ask
+        self.finished, self.why = finished, why
+
+
+def _diagnosed(connection, question="Solve 3x + 2y = 12 and x - y = 1"):
+    """A finished walk, which is what a lesson starts from.
+
+    root_gaps is comma-separated, not JSON. Writing it the convenient way here
+    is what let the endpoint read it the wrong way and still pass every test -
+    the first real question put through it crashed.
+    """
+    session_id = store.open_walk(
+        connection, entry_skill_id="solve_simultaneous_elimination",
+        reading=Reading(), question=question)
+    connection.execute(
+        """UPDATE sessions SET finished = 1, root_gaps = ?, question = ?
+            WHERE id = ?""",
+        ("eliminate_by_adding_or_subtracting", question, session_id))
+    connection.commit()
+    return session_id
+
+
+def test_the_gap_is_read_the_way_the_walk_writes_it(db):
+    """Guards the fixture itself: if these two ever disagree again, the
+    endpoint breaks on real data while the tests stay green."""
+    from walk import Diagnosis, SkillResult
+
+    diagnosis = Diagnosis(entry_skill_id="solve_simultaneous_elimination",
+                          had_attempt=False)
+    diagnosis.root_gaps = ["eliminate_by_adding_or_subtracting"]
+    session_id = _diagnosed(db)
+    store.close_walk(db, session_id, diagnosis)
+
+    stored = db.execute(
+        "SELECT root_gaps FROM sessions WHERE id = ?", (session_id,)).fetchone()
+    assert [g for g in stored["root_gaps"].split(",") if g] == diagnosis.root_gaps
+
+
+# ---- the diagnosis is not touched ------------------------------------------
+
+
+def test_a_lesson_writes_nothing_to_the_walk(client, db, monkeypatch):
+    session_id = _diagnosed(db)
+    before = dict(db.execute(
+        "SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone())
+
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move())
+    client.post("/api/teach", json={"session_id": session_id, "said": ""})
+
+    after = dict(db.execute(
+        "SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone())
+    assert after == before
+    assert db.execute("SELECT COUNT(*) n FROM answers").fetchone()["n"] == 0
+
+
+def test_a_walk_that_has_not_finished_cannot_be_taught(client, db):
+    """Teaching a gap we have not found yet would be teaching a guess."""
+    session_id = store.open_walk(
+        connection=db, entry_skill_id="solve_linear", reading=Reading(), question="q")
+
+    response = client.post("/api/teach", json={"session_id": session_id, "said": ""})
+
+    assert response.status_code == 409
+
+
+# ---- the server owns the stage ---------------------------------------------
+
+
+def test_one_right_answer_is_not_enough_to_move_on():
+    """The whole complaint about the old report was that it moved on from one.
+    Two, and it is a counter rather than an instruction in a prompt."""
+    stage, carried = teach.advance("show", "understood", 0)
+    assert stage == "show", "still teaching"
+
+    stage, carried = teach.advance("show", "understood", carried)
+    assert stage == "try", "now it has seen it twice"
+    assert carried == 0, "and the evidence resets for the next stage"
+
+
+def test_a_muddled_answer_costs_ground_without_undoing_everything():
+    assert teach.advance("try", "muddled", 1) == ("try", 0)
+    assert teach.advance("try", "muddled", 0) == ("try", 0)
+
+
+def test_a_partly_right_answer_earns_nothing():
+    """A bare right number after a hint is not understanding."""
+    assert teach.advance("try", "partly", 0) == ("try", 0)
+
+
+def test_the_lesson_only_ever_moves_one_stage_at_a_time():
+    stage = "connect"
+    seen = [stage]
+    for _ in range(12):
+        stage, _ = teach.advance(stage, "understood", teach.TO_ADVANCE - 1)
+        seen.append(stage)
+    for before, after in zip(seen, seen[1:]):
+        gap = teach.STAGES.index(after) - teach.STAGES.index(before)
+        assert gap in (0, 1), f"jumped from {before} to {after}"
+    assert seen[-1] == "done", "and it does get there"
+
+
+def test_it_never_goes_backwards():
+    for stage in teach.STAGES:
+        for read in ("understood", "partly", "muddled", "no_answer", "first"):
+            went, _ = teach.advance(stage, read, 0)
+            assert teach.STAGES.index(went) >= teach.STAGES.index(stage)
+
+
+def test_the_model_cannot_choose_the_stage_itself(client, db, monkeypatch):
+    """It reports how the answer went. Where that leaves the lesson is ours."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(read="understood"))
+
+    first = client.post("/api/teach", json={"session_id": session_id, "said": ""}).json()
+    assert first["stage"] == "show", "connect is agreement, so one reply leaves it"
+
+    second = client.post(
+        "/api/teach", json={"session_id": session_id, "said": "yes that is it"}).json()
+    assert second["stage"] == "show", "but show takes two"
+
+
+# ---- it responds differently to right and wrong ----------------------------
+
+
+def test_the_same_question_answered_well_and_badly_goes_to_different_places(
+        client, db, monkeypatch):
+    """The point of the whole thing: what they say decides what happens next."""
+
+    def lesson_with(read):
+        session_id = _diagnosed(db)
+        monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(read=read))
+        client.post("/api/teach", json={"session_id": session_id, "said": ""})
+        client.post("/api/teach", json={"session_id": session_id, "said": "x = 4"})
+        return client.post(
+            "/api/teach", json={"session_id": session_id, "said": "x = 4"}).json()
+
+    understood = lesson_with("understood")
+    muddled = lesson_with("muddled")
+
+    assert understood["stage"] != muddled["stage"]
+    assert understood["stage"] == "try", "they showed it, so they move on"
+    assert muddled["stage"] == "show", "they did not, so it is taught again"
+
+
+def test_what_the_student_said_is_given_to_the_tutor(client, db, monkeypatch):
+    session_id = _diagnosed(db)
+    seen = {}
+
+    def capture(**kwargs):
+        seen.update(kwargs)
+        return _Move()
+
+    monkeypatch.setattr(teach, "next_move", capture)
+    client.post("/api/teach", json={"session_id": session_id, "said": ""})
+    client.post("/api/teach", json={"session_id": session_id, "said": "I added them"})
+
+    assert seen["said"] == "I added them"
+    assert seen["skill_id"] == "eliminate_by_adding_or_subtracting"
+    assert "3x + 2y = 12" in seen["question"], "their own question goes with it"
+    assert seen["transcript"], "and everything said so far"
+
+
+# ---- the student's own question is never worked for them -------------------
+
+
+def test_the_tutor_is_told_not_to_answer_their_question():
+    assert "never work their own question" in teach.SYSTEM.lower()
+    assert "never state" in teach.SYSTEM.lower()
+    assert "never work the whole question" in teach.THE_JOB["apply"].lower()
+
+
+def test_the_tutor_never_answers_its_own_question_either():
+    assert "never give the answer to a question you have just asked" in teach.SYSTEM.lower()
+
+
+def test_the_prompt_is_built_on_the_checked_explanation():
+    """Rather than inventing the maths again every turn. That text was written
+    once and confirmed by a model that did not write it."""
+    prompt = teach.build_prompt(
+        skill_id="eliminate_by_adding_or_subtracting",
+        question="Solve 3x + 2y = 12 and x - y = 1",
+        stage="show", transcript=[], said="")
+
+    assert "WHAT IS ALREADY WRITTEN ABOUT IT" in prompt
+    assert "WHAT USUALLY GOES WRONG" in prompt
+    assert "3x + 2y = 12" in prompt
+
+
+# ---- when it goes wrong ----------------------------------------------------
+
+
+def test_a_failed_turn_stores_nothing(client, db, monkeypatch):
+    """So pressing again picks up exactly where they were, rather than half a
+    turn further on with a gap in the conversation."""
+    session_id = _diagnosed(db)
+
+    def boom(**kwargs):
+        raise teach.CannotTeach("the tutor is down")
+
+    monkeypatch.setattr(teach, "next_move", boom)
+    response = client.post("/api/teach", json={"session_id": session_id, "said": "hi"})
+
+    assert response.status_code == 503
+    assert "again" in response.json()["detail"].lower()
+    assert store.lesson_so_far(db, session_id) == []
+
+
+def test_a_lesson_going_nowhere_stops_and_says_so(client, db, monkeypatch):
+    """Rather than going round for ever. Some things need a person."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move())
+    for position in range(teach.MAX_TURNS):
+        store.record_turn(db, session_id, stage="try", said="x",
+                          move=_Move(), understood=0)
+
+    got = client.post("/api/teach", json={"session_id": session_id, "said": "x"}).json()
+
+    assert got["finished"] is True
+    assert "tutor" in got["say"] or "teacher" in got["say"]
+
+
+def test_an_unknown_skill_is_refused_rather_than_improvised():
+    with pytest.raises(teach.CannotTeach):
+        teach.next_move(skill_id="not_a_skill", question="q", stage="show",
+                        transcript=[], said="")
+
+
+# ---- coming back to it -----------------------------------------------------
+
+
+def test_the_lesson_survives_the_tab_being_closed(client, db, monkeypatch):
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(say="step one"))
+    client.post("/api/teach", json={"session_id": session_id, "said": ""})
+    client.post("/api/teach", json={"session_id": session_id, "said": "got it"})
+
+    came_back = client.get(f"/api/teach/{session_id}").json()
+
+    assert len(came_back["turns"]) == 2
+    assert came_back["turns"][0]["say"] == "step one"
+    assert came_back["stage"]
+
+
+def test_the_judgement_of_their_answer_is_not_sent_to_them(client, db, monkeypatch):
+    """Same reason as everywhere else here: a label for how somebody is
+    thinking is for a teacher, not for the student mid-lesson."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move",
+                        lambda **kw: _Move(read="muddled", why="they added instead"))
+
+    got = client.post("/api/teach", json={"session_id": session_id, "said": "?"}).json()
+
+    assert "read" not in got and "why" not in got
+    assert "muddled" not in str(got)
+    kept = store.lesson_so_far(db, session_id)[-1]
+    assert kept["read"] == "muddled" and kept["why"] == "they added instead"
+
+
+# ---- the page --------------------------------------------------------------
+
+
+def _page():
+    import pathlib
+
+    return (pathlib.Path(__file__).resolve().parent.parent
+            / "web" / "index.html").read_text(encoding="utf-8")
+
+
+def test_the_finding_offers_the_lesson():
+    page = _page()
+    assert "Teach me this" in page
+    assert "function startLesson(" in page
+
+
+def test_their_question_stays_on_screen_through_it():
+    assert 'class="card pinned"' in _page()
+
+
+def test_the_lesson_owns_the_screen_while_it_runs():
+    assert "if (lesson) return;" in _page(), "draw() must stand aside"
+
+
+def test_there_is_a_way_out_and_a_way_to_say_you_are_stuck():
+    page = _page()
+    assert "Back to what we found" in page
+    assert "I am stuck" in page
+
+
+# ---- not asking the same thing over and over -------------------------------
+
+
+def _turns(stage, reads):
+    return [{"stage": stage, "read": read} for read in reads]
+
+
+def test_failing_twice_running_is_counted():
+    assert teach.stuck_for(_turns("show", ["muddled", "partly"]), "show") == 2
+    assert teach.stuck_for(_turns("show", ["muddled", "understood"]), "show") == 0, (
+        "getting it resets the count")
+    assert teach.stuck_for(_turns("try", ["muddled"]), "show") == 0, (
+        "a different stage is a different question")
+
+
+def test_after_two_failures_it_is_told_to_change_approach():
+    """The model does not notice it is repeating itself. Put a student in
+    front of it who answers something else and it will ask the same question
+    five times, which is the one thing a tutor must not do."""
+    patient = teach.build_prompt(
+        skill_id="substitute_expr", question="q", stage="show",
+        transcript=_turns("show", ["muddled"]), said="?")
+    assert "NOT GOT THIS" not in patient
+
+    changing = teach.build_prompt(
+        skill_id="substitute_expr", question="q", stage="show",
+        transcript=_turns("show", ["muddled", "muddled"]), said="?")
+    assert "NOT GOT THIS IN 2 TRIES" in changing
+    assert "Do not repeat your last question" in changing
+    assert "DIFFERENT and easier question" in changing
+
+
+def test_it_is_never_told_to_work_their_own_question_even_when_stuck():
+    """The one place that instruction would be dangerous is the stage that is
+    already looking at their question."""
+    changing = teach.build_prompt(
+        skill_id="substitute_expr", question="q", stage="apply",
+        transcript=_turns("apply", ["muddled", "muddled"]), said="?")
+
+    assert "never work any part of their own question" in changing
+    assert "Work this one step out for them" not in changing
+
+
+def test_the_tutor_cannot_declare_the_lesson_over_early(client, db, monkeypatch):
+    """Left to itself it finishes three turns in because one answer sounded
+    confident. A lesson ends on their own question or not at all."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move",
+                        lambda **kw: _Move(read="understood", finished=True))
+
+    first = client.post("/api/teach", json={"session_id": session_id, "said": ""}).json()
+
+    assert first["finished"] is False
+    assert first["stage"] == "show"
+
+
+def test_it_can_finish_once_it_is_on_their_own_question(client, db, monkeypatch):
+    session_id = _diagnosed(db)
+    store.record_turn(db, session_id, stage="apply", said="x",
+                      move=_Move(), understood=0)
+    monkeypatch.setattr(teach, "next_move",
+                        lambda **kw: _Move(read="understood", finished=True))
+
+    got = client.post("/api/teach", json={"session_id": session_id, "said": "x = 3"}).json()
+
+    assert got["finished"] is True
+    assert got["stage"] == "done"

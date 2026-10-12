@@ -150,6 +150,33 @@ CREATE TABLE IF NOT EXISTS event (
 CREATE INDEX IF NOT EXISTS event_when ON event (created_at);
 CREATE INDEX IF NOT EXISTS page_view_when ON page_view (created_at);
 
+-- The lesson that runs after the diagnosis, one exchange per row.
+--
+-- Kept for the same reason the walk's answers are kept rather than held in
+-- memory: a student can shut the tab in the middle and come back to where
+-- they were, and a lesson nobody can leave is a lesson nobody finishes.
+--
+-- `stage` is where the lesson had got to when this turn was written, and the
+-- server owns it - see teach.advance. `read` and `why` are the tutor's
+-- judgement of the reply and the words that justify it; neither is shown to
+-- the student.
+CREATE TABLE IF NOT EXISTS lesson_turn (
+    id          INTEGER PRIMARY KEY,
+    session_id  INTEGER NOT NULL REFERENCES sessions(id),
+    position    INTEGER NOT NULL,
+    created_at  TEXT    NOT NULL,
+    stage       TEXT    NOT NULL,
+    said        TEXT,
+    say         TEXT,
+    ask         TEXT,
+    read        TEXT,
+    why         TEXT,
+    understood  INTEGER NOT NULL DEFAULT 0,
+    finished    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS lesson_of ON lesson_turn (session_id, position);
+
 -- The random number that makes a visitor hash mean nothing tomorrow.
 --
 -- Counting people instead of page loads needs some way to tell one browser
@@ -1110,6 +1137,57 @@ def record_event(connection: sqlite3.Connection, name: str, *, page: str | None 
     )
     connection.commit()
     return True
+
+
+def lesson_so_far(connection: sqlite3.Connection, session_id: int) -> list:
+    """Every turn of this lesson, oldest first."""
+    return [dict(row) for row in connection.execute(
+        """SELECT position, stage, said, say, ask, read, why, understood, finished
+             FROM lesson_turn WHERE session_id = ? ORDER BY position""",
+        (session_id,))]
+
+
+def record_turn(connection: sqlite3.Connection, session_id: int, *, stage: str,
+                said: str | None, move, understood: int) -> int:
+    """Keep one exchange. Returns its position."""
+    row = connection.execute(
+        "SELECT COALESCE(MAX(position), 0) AS last FROM lesson_turn WHERE session_id = ?",
+        (session_id,)).fetchone()
+    position = row["last"] + 1
+
+    connection.execute(
+        """INSERT INTO lesson_turn (session_id, position, created_at, stage, said,
+                                    say, ask, read, why, understood, finished)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (session_id, position, _now(), stage, said or None,
+         getattr(move, "say", None), getattr(move, "ask", None),
+         getattr(move, "read", None), getattr(move, "why", None),
+         int(understood), int(bool(getattr(move, "finished", False)))))
+    connection.commit()
+    return position
+
+
+def lessons_seen(connection: sqlite3.Connection) -> dict:
+    """How the teaching is going, for the dashboard.
+
+    `reached_apply` is the number that matters: a lesson that got as far as
+    the student's own question is one that taught something, and one that
+    stalled in `show` is one that did not.
+    """
+    row = connection.execute(
+        """SELECT COUNT(DISTINCT session_id) AS lessons,
+                  COUNT(*)                   AS turns,
+                  SUM(finished)              AS finished
+             FROM lesson_turn""").fetchone()
+    reached = connection.execute(
+        """SELECT COUNT(DISTINCT session_id) AS n FROM lesson_turn
+            WHERE stage IN ('apply', 'done')""").fetchone()["n"]
+    return {
+        "lessons": row["lessons"] or 0,
+        "turns": row["turns"] or 0,
+        "finished": row["finished"] or 0,
+        "reached_apply": reached,
+    }
 
 
 def salt_for_today(connection: sqlite3.Connection) -> str:

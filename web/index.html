@@ -359,6 +359,38 @@
     border-left: 2px solid var(--broke);
   }
 
+  /* The lesson. A conversation, so the two voices have to be told apart at a
+     glance - but quietly: this is a tutor talking, not a chat app. */
+  .card.lesson textarea {
+    width: 100%;
+    margin-bottom: 0.4rem;
+    padding: 0.9rem 1rem;
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    resize: vertical;
+  }
+  .from-tutor { font-size: 1.05rem; line-height: 1.65; margin-bottom: 1.1rem; }
+  /* The one thing they have to do now, set apart from the explaining. */
+  .from-tutor .ask { margin: 0.6rem 0 0; font-weight: 600; }
+  .from-them {
+    margin: 0 0 1.1rem auto;
+    max-width: 85%;
+    padding: 0.6rem 0.9rem;
+    border-radius: 12px;
+    background: var(--sunk);
+    color: var(--muted);
+    white-space: pre-wrap;
+  }
+  /* Their own question, kept on screen through the whole lesson so the point
+     of it never drifts out of sight. */
+  .card.pinned { background: var(--sunk); box-shadow: none; }
+  .card.pinned .worked { margin-bottom: 0; }
+
   /* A picture of the gap. Inlined rather than an <img> so it inherits the
      page's colours - one drawing, both themes - and costs no second request.
      Sized by the card, never by itself. */
@@ -900,6 +932,7 @@ function newQuestion() {
 }
 
 function draw() {
+  if (lesson) return;
   if (state.message) return outOfScope();
   if (state.parts && !state.session_id) return chooseScreen();
   if (state.finished) return report();
@@ -1085,6 +1118,112 @@ function stepFor(id) {
   return null;
 }
 
+// ---- The lesson -----------------------------------------------------------
+//
+// What happens after the diagnosis. The walk says what is missing; this is
+// where somebody actually learns it, one exchange at a time.
+//
+// It owns the screen while it runs - draw() stands aside the way it does for
+// any other full-screen state - and it never touches the diagnosis. Closing
+// the tab loses nothing: every turn is on the server, and opening the lesson
+// again replays it.
+let lesson = null;
+
+async function startLesson() {
+  lesson = {turns: [], waiting: true, stage: null, finished: false};
+  drawLesson();
+
+  // Anything said earlier comes back first, so this is resuming rather than
+  // starting over for somebody who has been here before.
+  try {
+    const had = await get('/api/teach/' + state.session_id);
+    if (had.turns && had.turns.length) {
+      lesson.turns = had.turns;
+      lesson.stage = had.stage;
+      lesson.finished = had.finished;
+      lesson.waiting = false;
+      drawLesson();
+      return;
+    }
+  } catch (error) { /* nothing to resume, which is the normal case */ }
+
+  await sayToTutor('');
+}
+
+function leaveLesson() {
+  lesson = null;
+  draw();
+}
+
+async function sayToTutor(said) {
+  lesson.waiting = true;
+  if (said) lesson.turns.push({said: said, say: null, ask: null});
+  drawLesson();
+
+  try {
+    const got = await post('/api/teach', {
+      session_id: state.session_id, said: said});
+    lesson.turns.push({said: null, say: got.say, ask: got.ask});
+    lesson.stage = got.stage;
+    lesson.finished = got.finished;
+    lesson.trouble = null;
+  } catch (error) {
+    // Nothing was stored server-side, so trying again picks up exactly here.
+    lesson.trouble = 'That did not get through. Try again.';
+  }
+  lesson.waiting = false;
+  drawLesson();
+}
+
+function drawLesson() {
+  const asked = (state.report && state.report.question) || '';
+  const said = lesson.turns.map(turn => turn.say
+    ? '<div class="from-tutor">' + mathHtml(turn.say)
+      + (turn.ask ? '<p class="ask">' + mathHtml(turn.ask) + '</p>' : '')
+      + '</div>'
+    : '<div class="from-them">' + escape(turn.said || '') + '</div>'
+  ).join('');
+
+  screen.innerHTML = `
+    ${asked ? `<div class="card pinned">
+      <p class="label">Your question</p>
+      <p class="worked">${mathHtml(asked)}</p>
+    </div>` : ''}
+
+    <div class="card lesson">
+      ${said}
+      ${lesson.waiting ? '<p class="note">Thinking...</p>' : ''}
+      ${lesson.trouble ? `<p class="note warn">${escape(lesson.trouble)}</p>` : ''}
+
+      ${lesson.finished ? `
+        <p class="note">That is the thing that was in your way, and you just
+        used it on your own question.</p>`
+      : `
+        <textarea id="reply" rows="3" ${lesson.waiting ? 'disabled' : ''}
+          placeholder="Type what you get, or what you are thinking"></textarea>
+        <p>
+          <button id="send-reply" ${lesson.waiting ? 'disabled' : ''}>Send</button>
+          <button class="plain" id="stuck" ${lesson.waiting ? 'disabled' : ''}>I am stuck</button>
+        </p>`}
+
+      <p><button class="plain" onclick="leaveLesson()">Back to what we found</button></p>
+    </div>`;
+
+  const send = document.getElementById('send-reply');
+  if (send) {
+    const box = document.getElementById('reply');
+    send.onclick = () => {
+      const text = (box.value || '').trim();
+      if (text) sayToTutor(text);
+    };
+    box.onkeydown = event => {
+      if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send.onclick(); }
+    };
+    document.getElementById('stuck').onclick = () => sayToTutor("I am stuck");
+    box.focus();
+  }
+}
+
 function report() {
   const r = state.report;
   // Counted here rather than when the walk finishes, because this is the
@@ -1203,6 +1342,13 @@ function report() {
       ${named && named.practice
         ? `<p class="practice">${mathHtml(named.practice)}</p>` : ''}
       ${how}
+    </div>
+
+    <div class="card">
+      <p class="label">Rather than read about it</p>
+      <p>I can take you through it, a step at a time, and then back to your own
+      question. You do the working; I will not give you the answer to it.</p>
+      <p><button onclick="startLesson()">Teach me this</button></p>
     </div>
 
     ${why && !nothingBelow ? `<div class="card">

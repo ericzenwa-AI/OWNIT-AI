@@ -45,6 +45,7 @@ import practice
 import visuals
 import explain
 import store
+import teach
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
 from graph import A_LEVEL, GCSE, SKILLS, STAGES, entry_points
@@ -1241,6 +1242,114 @@ def _days_ago(days: int) -> str:
     from datetime import datetime, timedelta, timezone
 
     return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+
+class TeachRequest(BaseModel):
+    session_id: int
+    # Empty on the first turn, and whenever they press "I'm stuck" rather than
+    # typing something.
+    said: str = Field("", max_length=2_000)
+
+
+@app.post("/api/teach")
+def teach_turn(request: TeachRequest) -> dict:
+    """One exchange of the lesson that runs after a diagnosis.
+
+    The diagnostic is untouched by this: a lesson reads the finished session
+    and writes only to its own table, so a student who never opens it has
+    exactly the session they had before, and `eval.py` still measures the same
+    walk.
+
+    The stage lives here rather than in the model's reply. The model says how
+    the last answer went; teach.advance decides where that leaves the lesson,
+    which is what stops a confident-sounding student being hurried to the end
+    and stops one right answer counting as understanding.
+    """
+    connection = store.connect()
+    try:
+        session = connection.execute(
+            "SELECT id, question, plain_summary, root_gaps, entry_skill_id, finished"
+            "  FROM sessions WHERE id = ?", (request.session_id,)).fetchone()
+        if session is None:
+            raise HTTPException(404, "No such session.")
+        if not session["finished"]:
+            raise HTTPException(409, "That walk has not finished yet.")
+
+        # What to teach: the confirmed gap, or the deepest thing that gave way
+        # when the walk stopped early. Either way it is a skill we hold.
+        # Stored comma-separated, the same way everything else here reads it.
+        gaps = [g for g in (session["root_gaps"] or "").split(",") if g]
+        skill_id = next((g for g in gaps if g in SKILLS), None) or session["entry_skill_id"]
+
+        so_far = store.lesson_so_far(connection, request.session_id)
+        if len(so_far) >= teach.MAX_TURNS:
+            return {
+                "stage": "done", "finished": True, "say":
+                    "We have gone a long way round on this one. It is worth "
+                    "taking to a teacher or a tutor with the question in front "
+                    "of you - that is not a failure, some things need a person.",
+                "ask": "", "turns": len(so_far)}
+
+        last = so_far[-1] if so_far else None
+        stage = last["stage"] if last else "connect"
+        understood = last["understood"] if last else 0
+
+        try:
+            move = teach.next_move(
+                skill_id=skill_id,
+                question=session["question"] or session["plain_summary"] or "",
+                stage=stage,
+                transcript=so_far,
+                said=request.said)
+        except (teach.CannotTeach, APIError) as error:
+            log.warning("lesson turn failed: %s", error)
+            # Nothing is stored, so pressing again picks up exactly where they
+            # were rather than half a turn further on.
+            raise HTTPException(
+                503, "I lost my thread for a second there. Say that again?")
+
+        moved_to, carried = teach.advance(stage, move.read, understood)
+        # The model may only end a lesson from the stage that is already on
+        # the student's own question. Left to itself it will finish three
+        # turns in because an answer looked confident, which is the exact
+        # thing the staging exists to prevent.
+        if move.finished and teach.STAGES.index(stage) >= teach.STAGES.index("apply"):
+            moved_to = "done"
+
+        store.record_turn(
+            connection, request.session_id,
+            stage=moved_to, said=request.said, move=move, understood=carried)
+
+        return {
+            "stage": moved_to,
+            "say": move.say,
+            "ask": move.ask,
+            # The stage, and only the stage. Reporting the model's own claim
+            # here would walk straight past the guard above.
+            "finished": moved_to == "done",
+            "turns": len(so_far) + 1,
+        }
+    finally:
+        connection.close()
+
+
+@app.get("/api/teach/{session_id}")
+def teach_so_far(session_id: int) -> dict:
+    """The lesson as it stands, so closing the tab does not lose it."""
+    connection = store.connect()
+    try:
+        turns = store.lesson_so_far(connection, session_id)
+    finally:
+        connection.close()
+
+    return {
+        "turns": [
+            {"said": turn["said"], "say": turn["say"], "ask": turn["ask"]}
+            for turn in turns
+        ],
+        "stage": turns[-1]["stage"] if turns else None,
+        "finished": bool(turns and turns[-1]["finished"]),
+    }
 
 
 def _source_of(request: Request) -> str:
