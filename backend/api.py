@@ -1243,6 +1243,94 @@ def _days_ago(days: int) -> str:
     return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
 
+def _source_of(request: Request) -> str:
+    """Where this visit came from, in one short word.
+
+    A utm_source on the link wins, because that is the one we chose when we
+    sent it. Failing that, the site that linked here, reduced to its host - a
+    full referring URL can carry a search query or a private page title, and
+    none of that is any use for counting. Failing both, they typed it in or
+    followed something that sends no referrer, which is "direct".
+    """
+    tagged = (request.query_params.get("utm_source") or "").strip().lower()
+    if tagged:
+        return tagged[:40]
+
+    referrer = request.headers.get("referer") or ""
+    if referrer:
+        from urllib.parse import urlparse
+
+        host = (urlparse(referrer).hostname or "").lower().removeprefix("www.")
+        if host and host not in SELF_HOSTS:
+            return host[:40]
+        if host:
+            return "internal"
+    return "direct"
+
+
+# Our own hostnames, so a click from one page of the site to another is not
+# filed as traffic arriving from somewhere.
+SELF_HOSTS = {"ownitmaths.com", "ownit-tzsv.onrender.com", "localhost", "127.0.0.1"}
+
+
+def _visitor(request: Request, connection) -> str | None:
+    """A hash that says "this is the same browser as a minute ago", and expires.
+
+    Taken over the address, the browser string and a salt that is replaced
+    every day and never reused, so it can count people within a day and cannot
+    recognise anybody across days or be worked backwards into an address. No
+    cookie is set and no address is stored.
+    """
+    import hashlib
+
+    try:
+        salt = store.salt_for_today(connection)
+    except Exception:  # noqa: BLE001 - counting must never break a page
+        return None
+
+    address = request.headers.get("x-forwarded-for", "")
+    address = address.split(",")[0].strip() or (
+        request.client.host if request.client else "")
+    agent = request.headers.get("user-agent", "")
+    if not address and not agent:
+        return None
+    return hashlib.sha256(f"{salt}|{address}|{agent}".encode()).hexdigest()[:16]
+
+
+class EventRequest(BaseModel):
+    name: str = Field(max_length=40)
+    page: str | None = Field(None, max_length=120)
+    session_id: int | None = None
+    detail: str | None = Field(None, max_length=store.MAX_DETAIL)
+
+
+@app.post("/api/event")
+def event(request: Request, body: EventRequest) -> dict:
+    """One thing somebody pressed.
+
+    Open to anybody, so it is deliberately boring: the name has to be one of a
+    fixed list, everything else is length-capped, and nothing it records is
+    read by the app - only by the dashboard. An unknown name is accepted
+    politely and dropped, because a page left open through a deploy should not
+    start showing errors to a student.
+    """
+    try:
+        connection = store.connect()
+        try:
+            store.record_event(
+                connection, body.name,
+                page=body.page,
+                source=_source_of(request),
+                visitor=_visitor(request, connection),
+                session_id=body.session_id,
+                detail=body.detail)
+        finally:
+            connection.close()
+    except Exception as error:  # noqa: BLE001 - counting is never worth an error
+        log.warning("could not record an event: %s", error)
+    return {"ok": True}
+
+
 def _page(path: Path, request: Request):
     """Serve a page, and answer "still the same?" without re-sending it.
 
@@ -1262,7 +1350,10 @@ def _page(path: Path, request: Request):
     try:
         connection = store.connect()
         try:
-            store.record_page_view(connection, request.url.path)
+            store.record_page_view(
+                connection, request.url.path,
+                source=_source_of(request),
+                visitor=_visitor(request, connection))
         finally:
             connection.close()
     except Exception as error:  # noqa: BLE001 - counting must not break serving
@@ -1356,6 +1447,13 @@ def admin_numbers(request: Request, stage: str | None = None) -> str:
         week = store.how_it_is_going(connection, since=_days_ago(7), entry_skills=doors)
         gaps = store.gaps_by_topic(connection)
         dry = store.ran_dry(connection)
+        # Traffic is never split by stage: a page view happens long before
+        # anyone has told us which qualification they are on.
+        seen_all = store.visitors(connection)
+        seen_week = store.visitors(connection, days=7)
+        sources = store.by_source(connection, days=30)
+        pressed = store.clicks(connection, days=30)
+        daily = store.by_day(connection, days=14)
     finally:
         connection.close()
 
@@ -1363,6 +1461,37 @@ def admin_numbers(request: Request, stage: str | None = None) -> str:
         if not bottom:
             return "&mdash;"
         return f"{top / bottom:.0%}"
+
+    # One day per bar, oldest on the left, a single series per chart. Two
+    # measures of the same thing on one axis would need a legend and would
+    # invite reading one against the other; two small charts side by side say
+    # the same thing without the trap. The number is on the bar's title so a
+    # pointer gives the exact value without printing fourteen labels.
+    def bars(rows: list, key: str, title: str) -> str:
+        top = max([row[key] for row in rows] or [0])
+        if not top:
+            return (f'<h3>{title}</h3>'
+                    f'<p class="about"><em>Nothing yet.</em></p>')
+
+        width, height, gap = 24, 90, 6
+        marks = []
+        for i, row in enumerate(rows):
+            tall = round(height * row[key] / top)
+            # A day with something in it never draws as nothing: a 1px sliver
+            # is the difference between "one person" and "no one".
+            tall = max(tall, 2) if row[key] else 0
+            marks.append(
+                f'<rect x="{i * (width + gap)}" y="{height - tall}" '
+                f'width="{width}" height="{tall}" rx="4" fill="#0071E3">'
+                f'<title>{escape(row["day"])}: {row[key]}</title></rect>')
+
+        span = len(rows) * (width + gap) - gap
+        return f"""<h3>{title} <span class="about">peak {top}</span></h3>
+<svg viewBox="0 0 {span} {height}" width="100%" height="{height}"
+     role="img" aria-label="{title}, last {len(rows)} days, peak {top}">
+  {''.join(marks)}
+</svg>
+<p class="about">{escape(rows[0]['day'])} &rarr; {escape(rows[-1]['day'])}</p>"""
 
     def funnel(figures: dict) -> str:
         steps = [
@@ -1505,6 +1634,33 @@ four-option question a two-option one.</p>
  ' be split by stage.</p>' if now["funnel_is_everyone"] else ''}
 <p class="small">Last 7 days: {week['opened']} opened, {week['started']} started,
 {week['finished']} finished.</p>
+
+<h2>Who is arriving</h2>
+<p class="count">{seen_all['people']} people &middot; {seen_all['loads']} page loads
+&middot; {seen_week['people']} people in the last 7 days</p>
+<p class="about">A person here means one browser on one day. Somebody who comes
+back tomorrow is counted again, and visits recorded before this was built have
+no marker at all, so they count as loads and not as people.</p>
+
+{bars(daily, "people", "People a day")}
+{bars(daily, "started", "Walks started a day")}
+
+<h2>Where they came from</h2>
+<p class="about">The tag on the link we sent, or the site that linked here.
+Last 30 days.</p>
+<table>{"".join(
+    f'<tr><td>{escape(row["source"])}</td>'
+    f'<td class="n">{row["people"]} <span class="about">of {row["loads"]}</span></td></tr>'
+    for row in sources) or '<tr><td colspan="2"><em>Nothing recorded yet.</em></td></tr>'}</table>
+
+<h2>What people pressed</h2>
+<p class="about">Last 30 days. The gap between arriving and starting lives
+here: somebody who read the whole page and never pressed anything is invisible
+everywhere else.</p>
+<table>{"".join(
+    f'<tr><td>{escape(row["name"])}</td>'
+    f'<td class="n">{row["times"]} <span class="about">by {row["people"]}</span></td></tr>'
+    for row in pressed) or '<tr><td colspan="2"><em>Nothing pressed yet.</em></td></tr>'}</table>
 
 <h2>Where people stop</h2>
 {f'<table>{drop}</table>'}

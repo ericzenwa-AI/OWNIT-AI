@@ -481,7 +481,7 @@
   <p>Paste a question or take a photo of it. ownIT asks you a few short
   questions and works out what's underneath the one you're stuck on.</p>
 
-  <p><a class="try" href="/start">Find my gap</a></p>
+  <p><a class="try" href="/start" data-track="cta_start">Find my gap</a></p>
   <p class="small">Free. No sign-up. Nothing to download.</p>
 </header>
 
@@ -559,7 +559,7 @@
   <p><strong>Not trigonometry, statistics or mechanics yet.</strong> If it
   can't work out what your question is asking, it says so instead of guessing.</p>
 
-  <p><a class="try" href="/start">Find my gap</a></p>
+  <p><a class="try" href="/start" data-track="cta_start">Find my gap</a></p>
 </section>
 
 <section id="say">
@@ -590,10 +590,34 @@
 <footer>
   <p>Built by a maths and physics tutor, in the open. It's free while it's
   being tested.</p>
-  <p><a href="/">If you're a tutor or a parent, there's more detail here.</a></p>
+  <p><a href="/" data-track="cta_tutor">If you're a tutor or a parent, there's more detail here.</a></p>
 </footer>
 
 <script>
+// ---- Counting what gets pressed -------------------------------------------
+//
+// Same tracker as the front page. Fire and forget: sendBeacon survives the
+// page navigating away, and nothing here ever shows an error to a student.
+function track(name, detail) {
+  try {
+    const body = JSON.stringify({
+      name: name, page: location.pathname, detail: detail || null});
+    if (navigator.sendBeacon) {
+      const sent = navigator.sendBeacon(
+        '/api/event', new Blob([body], {type: 'application/json'}));
+      if (sent) return;
+    }
+    fetch('/api/event', {
+      method: 'POST', keepalive: true,
+      headers: {'Content-Type': 'application/json'}, body: body});
+  } catch (error) { /* counting is never worth an error */ }
+}
+
+document.addEventListener('click', event => {
+  const pressed = event.target.closest('[data-track]');
+  if (pressed) track(pressed.dataset.track, (pressed.textContent || '').trim().slice(0, 60));
+});
+
 const commentForm = document.getElementById('comment-form');
 const commentSaid = document.getElementById('comment-said');
 const send = document.getElementById('send');

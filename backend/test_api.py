@@ -1354,16 +1354,36 @@ def test_a_visit_is_counted_even_when_the_page_is_not_re_sent(client):
 
 
 def test_nothing_about_who_is_kept(client):
-    """Counts, not people. No address, no cookie, no identifier."""
-    client.get("/")
+    """No address, no cookie, and nothing that outlives the day.
+
+    This used to say "no identifier" and pin the columns to three. Counting
+    people rather than page loads needs some way to tell one browser from
+    another, so there is now a `visitor` column - but it holds a hash taken
+    over a salt that is replaced every day and never reused, so it can say
+    "these loads were one person this morning" and nothing else. The test
+    still exists to keep that narrow: the address must not be in the row, no
+    cookie may be set, and the column list must not quietly grow again.
+    """
+    response = client.get(
+        "/", headers={"x-forwarded-for": "203.0.113.44", "user-agent": "Firefox/1"})
+
+    assert not response.cookies, "a cookie would make this follow people about"
 
     connection = store.connect()
     try:
         columns = [r[1] for r in connection.execute("PRAGMA table_info(page_view)")]
+        row = connection.execute(
+            "SELECT * FROM page_view ORDER BY id DESC LIMIT 1").fetchone()
     finally:
         connection.close()
 
-    assert columns == ["id", "created_at", "page"]
+    assert columns == ["id", "created_at", "page", "source", "visitor"]
+
+    kept = str(dict(row))
+    assert "203.0.113.44" not in kept, "the address itself must never be stored"
+    assert "Firefox/1" not in kept, "nor the browser string"
+    assert len(row["visitor"]) == 16 and int(row["visitor"], 16) >= 0, (
+        "a short hash, not anything readable")
 
 
 def test_anyone_can_say_whether_it_helped(client):

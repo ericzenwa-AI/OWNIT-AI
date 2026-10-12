@@ -119,7 +119,49 @@ CREATE TABLE IF NOT EXISTS feedback (
 CREATE TABLE IF NOT EXISTS page_view (
     id         INTEGER PRIMARY KEY,
     created_at TEXT NOT NULL,
-    page       TEXT NOT NULL
+    page       TEXT NOT NULL,
+    -- Where they came from: a utm_source on the link, or the site that linked
+    -- here. "direct" when there is neither. This is what makes a round of
+    -- emails measurable rather than a guess.
+    source     TEXT,
+    -- Which visit belongs with which, WITHOUT knowing who anybody is. See
+    -- visitor_salt below: this is a hash that stops meaning anything at
+    -- midnight, so it can count people today and cannot follow them to
+    -- tomorrow.
+    visitor    TEXT
+);
+
+-- Something somebody did, rather than a page they loaded.
+--
+-- The funnel could already see pages and sessions. What it could not see is
+-- the space between them - somebody who read the whole front page and never
+-- pressed the button looks exactly like somebody who closed it immediately.
+CREATE TABLE IF NOT EXISTS event (
+    id         INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    page       TEXT,
+    source     TEXT,
+    visitor    TEXT,
+    session_id INTEGER,
+    detail     TEXT
+);
+
+CREATE INDEX IF NOT EXISTS event_when ON event (created_at);
+CREATE INDEX IF NOT EXISTS page_view_when ON page_view (created_at);
+
+-- The random number that makes a visitor hash mean nothing tomorrow.
+--
+-- Counting people instead of page loads needs some way to tell one browser
+-- from another, and the usual answers are a cookie or a stored IP address.
+-- Neither is kept here. Instead the hash is taken over the address, the
+-- browser string and a random value that is thrown away and replaced every
+-- day - so two visits in one day can be recognised as one person, and nobody,
+-- including us, can connect that to the same person a day later or to any
+-- real identity.
+CREATE TABLE IF NOT EXISTS visitor_salt (
+    day   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
 );
 
 -- Whether the person it was for thought it was any use.
@@ -276,6 +318,12 @@ LATER_COLUMNS = {
     "sessions": (
         ("reused_reading", "INTEGER NOT NULL DEFAULT 0"),
         ("plain_summary", "TEXT"),
+    ),
+    # Added once the funnel needed to know where a visit came from. Every row
+    # already in the table keeps its NULL and simply counts as unattributed.
+    "page_view": (
+        ("source", "TEXT"),
+        ("visitor", "TEXT"),
     ),
 }
 
@@ -1010,12 +1058,172 @@ def waitlist(connection: sqlite3.Connection) -> list:
     ).fetchall()
 
 
-def record_page_view(connection: sqlite3.Connection, page: str) -> None:
-    """Note that a page was opened. Nothing about who opened it."""
+def record_page_view(connection: sqlite3.Connection, page: str,
+                     source: str | None = None, visitor: str | None = None) -> None:
+    """Note that a page was opened, where from, and which visit it belongs with.
+
+    `visitor` is the day-scoped hash described on visitor_salt - enough to say
+    "these four page loads were one person this morning", and useless for
+    anything else. Both are optional, so a caller that does not have them still
+    records the visit.
+    """
     connection.execute(
-        "INSERT INTO page_view (created_at, page) VALUES (?, ?)", (_now(), page)
+        "INSERT INTO page_view (created_at, page, source, visitor) VALUES (?, ?, ?, ?)",
+        (_now(), page, source, visitor),
     )
     connection.commit()
+
+
+# What the pages are allowed to report. An allowlist rather than free text,
+# because this endpoint is open to anybody and an open one would become a way
+# to write whatever you liked into the database.
+EVENTS = (
+    "cta_start",        # pressed the button that opens the diagnostic
+    "cta_how",          # went to read how it works first
+    "cta_student",      # crossed from the tutor page to the student one
+    "cta_tutor",        # the other way, or opened it in tutor mode
+    "cta_badge",        # followed the CodeHype badge out
+    "question_typed",   # started typing a question rather than only reading
+    "photo_chosen",     # picked a photo of the question
+    "sent_question",    # pressed send
+    "report_seen",      # a diagnosis appeared on their screen
+    "step_opened",      # opened one step of the route back up
+    "precise_opened",   # opened the accurate wording under a plain one
+    "retake",           # ran the same question again
+    "another_question", # started a different question
+)
+
+MAX_DETAIL = 120
+
+
+def record_event(connection: sqlite3.Connection, name: str, *, page: str | None = None,
+                 source: str | None = None, visitor: str | None = None,
+                 session_id: int | None = None, detail: str | None = None) -> bool:
+    """Record one thing somebody did. False if the name is not one of ours."""
+    if name not in EVENTS:
+        return False
+    connection.execute(
+        """INSERT INTO event (created_at, name, page, source, visitor, session_id, detail)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (_now(), name, page, source, visitor, session_id,
+         (detail or "")[:MAX_DETAIL] or None),
+    )
+    connection.commit()
+    return True
+
+
+def salt_for_today(connection: sqlite3.Connection) -> str:
+    """The random value today's visitor hashes are taken over.
+
+    Made once a day and never regenerated for a day that already has one, so a
+    restart does not split one person into two. Yesterday's rows keep a salt
+    nobody will use again, which is the point.
+    """
+    import secrets
+
+    day = _now()[:10]
+    row = connection.execute(
+        "SELECT value FROM visitor_salt WHERE day = ?", (day,)).fetchone()
+    if row:
+        return row["value"]
+
+    value = secrets.token_hex(16)
+    connection.execute(
+        "INSERT OR IGNORE INTO visitor_salt (day, value) VALUES (?, ?)", (day, value))
+    connection.commit()
+    # Another worker may have won the race; read back whatever stuck.
+    return connection.execute(
+        "SELECT value FROM visitor_salt WHERE day = ?", (day,)).fetchone()["value"]
+
+
+def forget_old_salts(connection: sqlite3.Connection, keep_days: int = 3) -> None:
+    """Drop salts old enough that nothing will be hashed against them again."""
+    connection.execute(
+        "DELETE FROM visitor_salt WHERE day < date('now', ?)", (f"-{keep_days} days",))
+    connection.commit()
+
+
+# ---- Reading the numbers back ---------------------------------------------
+
+
+def _since(days: int | None) -> tuple[str, tuple]:
+    if days is None:
+        return "", ()
+    return " WHERE created_at >= datetime('now', ?)", (f"-{days} days",)
+
+
+def visitors(connection: sqlite3.Connection, days: int | None = None) -> dict:
+    """People and page loads. The gap between the two is repeat visits.
+
+    A visit with no visitor hash - anything recorded before this existed -
+    counts as a page load and not as a person, which understates people on old
+    data rather than inventing them.
+    """
+    where, args = _since(days)
+    row = connection.execute(
+        f"""SELECT COUNT(*) AS loads, COUNT(DISTINCT visitor) AS people
+              FROM page_view{where}""", args).fetchone()
+    return {"loads": row["loads"], "people": row["people"]}
+
+
+def by_source(connection: sqlite3.Connection, days: int | None = None,
+              limit: int = 12) -> list:
+    """Where visits came from, commonest first."""
+    where, args = _since(days)
+    return connection.execute(
+        f"""SELECT COALESCE(source, 'unknown') AS source,
+                   COUNT(*) AS loads,
+                   COUNT(DISTINCT visitor) AS people
+              FROM page_view{where}
+             GROUP BY COALESCE(source, 'unknown')
+             ORDER BY loads DESC LIMIT ?""", args + (limit,)).fetchall()
+
+
+def clicks(connection: sqlite3.Connection, days: int | None = None) -> list:
+    """What people pressed."""
+    where, args = _since(days)
+    return connection.execute(
+        f"""SELECT name, COUNT(*) AS times, COUNT(DISTINCT visitor) AS people
+              FROM event{where}
+             GROUP BY name ORDER BY times DESC""", args).fetchall()
+
+
+def by_day(connection: sqlite3.Connection, days: int = 14) -> list:
+    """Visits, people and walks started, one row per day, oldest first.
+
+    Days with nothing are filled in rather than skipped - a gap in a chart that
+    silently closes up reads as a quiet day rather than as no day at all.
+    """
+    from datetime import date, timedelta
+
+    views = {
+        row["day"]: row for row in connection.execute(
+            """SELECT substr(created_at, 1, 10) AS day,
+                      COUNT(*) AS loads, COUNT(DISTINCT visitor) AS people
+                 FROM page_view
+                WHERE created_at >= datetime('now', ?)
+                GROUP BY day""", (f"-{days} days",))
+    }
+    starts = {
+        row["day"]: row["n"] for row in connection.execute(
+            """SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n
+                 FROM sessions
+                WHERE created_at >= datetime('now', ?)
+                GROUP BY day""", (f"-{days} days",))
+    }
+
+    today = date.today()
+    out = []
+    for back in range(days - 1, -1, -1):
+        day = (today - timedelta(days=back)).isoformat()
+        row = views.get(day)
+        out.append({
+            "day": day,
+            "loads": row["loads"] if row else 0,
+            "people": row["people"] if row else 0,
+            "started": starts.get(day, 0),
+        })
+    return out
 
 
 def record_rating(connection: sqlite3.Connection, session_id: int, useful: bool) -> None:

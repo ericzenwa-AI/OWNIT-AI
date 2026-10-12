@@ -590,9 +590,9 @@
 <nav>
   <span class="wordmark">own<span>IT</span></span>
   <div class="links">
-    <a class="quiet" href="#how">How it works</a>
-    <a class="quiet" href="/student">For students</a>
-    <a class="button primary small" href="/start">Try it</a>
+    <a class="quiet" href="#how" data-track="cta_how">How it works</a>
+    <a class="quiet" href="/student" data-track="cta_student">For students</a>
+    <a class="button primary small" href="/start" data-track="cta_start">Try it</a>
   </div>
 </nav>
 
@@ -606,15 +606,15 @@
   questions, one layer down at a time, and finds the first thing that gave
   way.</p>
   <div class="buttons">
-    <a class="button primary" href="/start">Try it on a question</a>
-    <a class="button secondary" href="#how">See how it works</a>
+    <a class="button primary" href="/start" data-track="cta_start">Try it on a question</a>
+    <a class="button secondary" href="#how" data-track="cta_how">See how it works</a>
   </div>
   <!-- Somebody outside this project vouching for it, directly under the ask.
        Lazy so it never delays the headline, and sized in the stylesheet so a
        change at their end cannot shift this page's layout. -->
   <p class="badge">
     <a href="https://www.codehype.ai/product/ownit?utm_source=codehype_badge"
-       target="_blank" rel="noopener noreferrer">
+       target="_blank" rel="noopener noreferrer" data-track="cta_badge">
       <img src="https://www.codehype.ai/badges/ownit.svg?variant=find-us&amp;v=20"
            alt="Featured on CodeHype" width="180" height="65"
            loading="lazy" decoding="async">
@@ -782,7 +782,7 @@ is the one AQA&rsquo;s examiners reported on that question in June 2024.</p>
         <li>The first thing in the way, explained plainly</li>
         <li>What to practise, and how to check it worked</li>
       </ul>
-      <a class="button primary" href="/start">Try it on a question</a>
+      <a class="button primary" href="/start" data-track="cta_start">Try it on a question</a>
     </div>
     <div class="plan reveal">
       <h3>Tutors</h3>
@@ -793,7 +793,7 @@ is the one AQA&rsquo;s examiners reported on that question in June 2024.</p>
         <li>The whole route it walked, and what held on the way</li>
         <li>Say whether the diagnosis was right &mdash; it corrects the map</li>
       </ul>
-      <a class="button secondary" href="/start?tutor=1">Try it as a tutor</a>
+      <a class="button secondary" href="/start?tutor=1" data-track="cta_tutor">Try it as a tutor</a>
     </div>
   </div>
 </section>
@@ -874,8 +874,8 @@ is the one AQA&rsquo;s examiners reported on that question in June 2024.</p>
   <p>A photo of the page works best. It takes a few minutes, costs nothing, and
   there&rsquo;s nothing to sign up for.</p>
   <div class="buttons">
-    <a class="button primary" href="/start">Try it on a question</a>
-    <a class="button secondary" href="/student">I&rsquo;m a student</a>
+    <a class="button primary" href="/start" data-track="cta_start">Try it on a question</a>
+    <a class="button secondary" href="/student" data-track="cta_student">I&rsquo;m a student</a>
   </div>
 </div>
 
@@ -897,6 +897,34 @@ is the one AQA&rsquo;s examiners reported on that question in June 2024.</p>
 // Say the script is running before anything is hidden, so a page whose
 // script fails shows everything rather than nothing.
 document.documentElement.classList.add('js');
+
+// ---- Counting what gets pressed -------------------------------------------
+//
+// Anything with data-track reports itself when clicked. sendBeacon first,
+// because most of these clicks navigate away and a normal request gets
+// cancelled on the way out; fetch with keepalive is the fallback. Either way
+// it is fire and forget - nothing waits on it and nothing shows an error if
+// it fails, because a student's page is not the place to find out that
+// counting broke.
+function track(name, detail) {
+  try {
+    const body = JSON.stringify({
+      name: name, page: location.pathname, detail: detail || null});
+    if (navigator.sendBeacon) {
+      const sent = navigator.sendBeacon(
+        '/api/event', new Blob([body], {type: 'application/json'}));
+      if (sent) return;
+    }
+    fetch('/api/event', {
+      method: 'POST', keepalive: true,
+      headers: {'Content-Type': 'application/json'}, body: body});
+  } catch (error) { /* counting is never worth an error */ }
+}
+
+document.addEventListener('click', event => {
+  const pressed = event.target.closest('[data-track]');
+  if (pressed) track(pressed.dataset.track, (pressed.textContent || '').trim().slice(0, 60));
+});
 
 const reveal = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window) {

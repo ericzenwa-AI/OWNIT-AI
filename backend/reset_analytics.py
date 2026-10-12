@@ -38,6 +38,7 @@ NOISE = [
     "rating",
     "sessions",
     "page_view",
+    "event",
     "question_read",
     "live_generation",
 ]
