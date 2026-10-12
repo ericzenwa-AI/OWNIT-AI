@@ -36,6 +36,9 @@ NOISE = [
     "pending",
     "answers",
     "rating",
+    # Before sessions: a lesson belongs to one, and clearing the session first
+    # would leave its turns pointing at nothing.
+    "lesson_turn",
     "sessions",
     "page_view",
     "event",

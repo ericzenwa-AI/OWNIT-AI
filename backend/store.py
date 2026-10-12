@@ -171,6 +171,10 @@ CREATE TABLE IF NOT EXISTS lesson_turn (
     ask         TEXT,
     read        TEXT,
     why         TEXT,
+    -- The worked demonstration shown on this turn, as JSON, or NULL on the
+    -- turns that were only words. Kept so that coming back to a lesson shows
+    -- the same demonstration rather than a differently worded new one.
+    demo        TEXT,
     understood  INTEGER NOT NULL DEFAULT 0,
     finished    INTEGER NOT NULL DEFAULT 0
 );
@@ -351,6 +355,11 @@ LATER_COLUMNS = {
     "page_view": (
         ("source", "TEXT"),
         ("visitor", "TEXT"),
+    ),
+    # lesson_turn shipped before demonstrations existed, so the deployed table
+    # is already out there without this column.
+    "lesson_turn": (
+        ("demo", "TEXT"),
     ),
 }
 
@@ -1141,10 +1150,35 @@ def record_event(connection: sqlite3.Connection, name: str, *, page: str | None 
 
 def lesson_so_far(connection: sqlite3.Connection, session_id: int) -> list:
     """Every turn of this lesson, oldest first."""
-    return [dict(row) for row in connection.execute(
-        """SELECT position, stage, said, say, ask, read, why, understood, finished
+    import json
+
+    turns = []
+    for row in connection.execute(
+        """SELECT position, stage, said, say, ask, read, why, demo, understood,
+                  finished
              FROM lesson_turn WHERE session_id = ? ORDER BY position""",
-        (session_id,))]
+            (session_id,)):
+        turn = dict(row)
+        # A demonstration that will not parse is dropped rather than allowed
+        # to break the lesson it belongs to.
+        try:
+            turn["demo"] = json.loads(turn["demo"]) if turn["demo"] else []
+        except ValueError:
+            turn["demo"] = []
+        turns.append(turn)
+    return turns
+
+
+def _as_json(steps) -> str | None:
+    """A demonstration on its way to the database, or NULL when there is none."""
+    import json
+
+    if not steps:
+        return None
+    return json.dumps([
+        {"show": getattr(s, "show", ""), "changed": getattr(s, "changed", ""),
+         "note": getattr(s, "note", "")}
+        for s in steps])
 
 
 def record_turn(connection: sqlite3.Connection, session_id: int, *, stage: str,
@@ -1157,11 +1191,13 @@ def record_turn(connection: sqlite3.Connection, session_id: int, *, stage: str,
 
     connection.execute(
         """INSERT INTO lesson_turn (session_id, position, created_at, stage, said,
-                                    say, ask, read, why, understood, finished)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                    say, ask, read, why, demo, understood,
+                                    finished)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (session_id, position, _now(), stage, said or None,
          getattr(move, "say", None), getattr(move, "ask", None),
          getattr(move, "read", None), getattr(move, "why", None),
+         _as_json(getattr(move, "demo", None)),
          int(understood), int(bool(getattr(move, "finished", False)))))
     connection.commit()
     return position

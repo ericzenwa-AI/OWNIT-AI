@@ -66,10 +66,10 @@ THE_JOB = {
         "whether that matches what happened, so they say something back."
     ),
     "show": (
-        "Show the idea on ONE small example with easy numbers - not their "
-        "question. Walk the step that matters, and stop at the moment where "
-        "the decision is made. Ask them what happens next, so the first thing "
-        "they do is the thing they got wrong."
+        "SHOW it. Fill in `demo` with the transformation line by line on ONE "
+        "small example - not their question - and stop one step short, so the "
+        "line they have to produce is the step they got wrong. Keep `say` to "
+        "a sentence: the demonstration is doing the explaining."
     ),
     "try": (
         "Give them one short thing to do themselves, close to the example you "
@@ -101,6 +101,22 @@ MAX_TURNS = 40
 RECENT = 12
 
 
+class DemoStep(BaseModel):
+    """One line of a worked demonstration, as it stands at that moment."""
+
+    show: str = Field(
+        description="The WHOLE expression as it now reads, not just the bit "
+                    "that moved. Plain ASCII maths, short.")
+    changed: str = Field(
+        default="",
+        description="The part of `show` that is new this step, copied from it "
+                    "exactly. Empty on the first line.")
+    note: str = Field(
+        default="",
+        description="One short line: what changed and why. Not a sentence "
+                    "about the whole method.")
+
+
 class Move(BaseModel):
     """One turn of the lesson."""
 
@@ -120,17 +136,88 @@ class Move(BaseModel):
         description="The ONE thing you want them to do or answer now, as a "
                     "question. Never more than one. Empty only when the lesson "
                     "is finished.")
+    # The showing half. A lesson that only talks is the explanation we already
+    # had, in instalments.
+    demo: list[DemoStep] = Field(
+        default_factory=list,
+        description="A small worked transformation, one line per step, when "
+                    "showing beats telling. Empty when there is nothing to "
+                    "show - most turns.")
     finished: bool = Field(
         default=False,
         description="True only when they have applied the skill to their own "
                     "question themselves.")
 
 
+# A demonstration is a few lines, not a worked solution. More than this and it
+# is the thing we took out: a wall handed to somebody who stopped reading.
+MAX_DEMO = 5
+MAX_LINE = 70
+MAX_NOTE = 140
+
+
+def unusable_demo(steps: list) -> str | None:
+    """Why these steps must not be shown, or None if they are fine.
+
+    Dropped rather than fatal: the turn still has words, and a lesson that
+    fails because a picture was malformed is worse than one without a picture.
+
+    The project's rule about generated pictures is that they do not ship -
+    four rendering faults reached real students in a fortnight, and a wrong
+    diagram is worse than a wrong answer key because nobody re-reads it. This
+    is the reason a demonstration here is TEXT, rendered by the same maths
+    pipeline as everything else on the page, rather than drawn markup: the
+    only new thing being generated is which line comes next.
+    """
+    if not steps:
+        return None
+    if len(steps) < 2:
+        return "one line is not a demonstration"
+    if len(steps) > MAX_DEMO:
+        return f"{len(steps)} steps is a worked solution, not a demonstration"
+
+    for n, step in enumerate(steps, start=1):
+        show = (getattr(step, "show", "") or "").strip()
+        changed = (getattr(step, "changed", "") or "").strip()
+        note = (getattr(step, "note", "") or "").strip()
+
+        if not show:
+            return f"step {n} shows nothing"
+        if len(show) > MAX_LINE:
+            return f"step {n} is {len(show)} characters, too long to follow"
+        if len(note) > MAX_NOTE:
+            return f"step {n}'s note is {len(note)} characters"
+        for text, what in ((show, "line"), (changed, "highlight"), (note, "note")):
+            if any(ord(c) > 127 for c in text):
+                return f"step {n}'s {what} is not plain ASCII"
+        # The highlight is how a student sees WHAT changed. One that is not
+        # actually in the line would underline nothing, or the wrong thing.
+        if changed and changed not in show:
+            return f"step {n} highlights '{changed[:20]}', which is not in the line"
+    return None
+
+
+def tidy_demo(steps: list) -> list:
+    """Drop highlights that mark nothing.
+
+    A step whose "what changed" is the entire line - which is what the first
+    line of a demonstration usually comes back as - is pointing at everything,
+    which is the same as pointing at nothing, and puts a chip on screen that
+    only repeats the line above it.
+    """
+    for step in steps:
+        changed = (getattr(step, "changed", "") or "").strip()
+        if changed and changed == (getattr(step, "show", "") or "").strip():
+            step.changed = ""
+    return steps
+
+
 class CannotTeach(RuntimeError):
     """The lesson cannot continue. Never silent, never fatal to the session."""
 
 
-def advance(stage: str, read: str, understood_here: int) -> tuple[str, int]:
+def advance(stage: str, read: str, understood_here: int,
+            replied: bool = True) -> tuple[str, int]:
     """Where the lesson goes next. The server decides this, not the model.
 
     Forwards one stage at a time and only on evidence; back never - repeating
@@ -146,8 +233,13 @@ def advance(stage: str, read: str, understood_here: int) -> tuple[str, int]:
     # anything - so any reply at all leaves it. Requiring understanding here
     # would strand the confused student in the one stage that teaches nothing,
     # which is the opposite of who this is for.
+    #
+    # And it turns on whether they actually said something, which is a fact we
+    # hold, rather than on the model's reading of it. Asked to judge "yes,
+    # that is the bit" it kept answering "first", and the lesson sat on the
+    # opening stage for three turns agreeing with itself.
     if stage == "connect":
-        return ("show", 0) if read not in ("first", "no_answer") else ("connect", 0)
+        return ("show", 0) if replied else ("connect", 0)
 
     if read == "understood":
         understood_here += 1
@@ -254,6 +346,17 @@ SYSTEM = (
     "You never give the answer to a question you have just asked them. If "
     "they are stuck, make it smaller, or ask a different way, or show the "
     "same thing on easier numbers - then ask again.\n"
+    "\n"
+    "SHOWING BEATS TELLING. When a thing is easier to watch than to read, put "
+    "it in `demo`: one line per step, each line the WHOLE expression as it "
+    "then reads, with `changed` copied exactly from the part that is new and "
+    "`note` saying in a few words what moved and why. Two to five lines. For "
+    "'why is sqrt(x) the same as x^(1/2)' that is: sqrt(x) * sqrt(x) = x, "
+    "then x^(1/2) * x^(1/2) = x^1, then the line that makes them equal.\n"
+    "Stop the demonstration one step short of the end whenever you can, so "
+    "the next line is theirs to write. Leave `demo` empty on turns that are "
+    "just a question or a nudge, which is most of them.\n"
+    "Never demonstrate on their own question - that is working it for them.\n"
     "\n"
     "EVERY TURN ENDS WITH ONE THING FOR THEM TO DO. One. Not two, not a "
     "question with a list of parts.\n"

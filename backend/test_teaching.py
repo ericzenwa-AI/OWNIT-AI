@@ -43,9 +43,11 @@ class _Move:
     """A turn from a tutor that is not a model."""
 
     def __init__(self, read="understood", say="here is the idea",
-                 ask="what do you get?", finished=False, why="they said so"):
+                 ask="what do you get?", finished=False, why="they said so",
+                 demo=None):
         self.read, self.say, self.ask = read, say, ask
         self.finished, self.why = finished, why
+        self.demo = demo or []
 
 
 def _diagnosed(connection, question="Solve 3x + 2y = 12 and x - y = 1"):
@@ -157,11 +159,16 @@ def test_the_model_cannot_choose_the_stage_itself(client, db, monkeypatch):
     session_id = _diagnosed(db)
     monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(read="understood"))
 
-    first = client.post("/api/teach", json={"session_id": session_id, "said": ""}).json()
+    opening = client.post(
+        "/api/teach", json={"session_id": session_id, "said": ""}).json()
+    assert opening["stage"] == "connect", "nothing said yet"
+
+    first = client.post(
+        "/api/teach", json={"session_id": session_id, "said": "yes that is it"}).json()
     assert first["stage"] == "show", "connect is agreement, so one reply leaves it"
 
     second = client.post(
-        "/api/teach", json={"session_id": session_id, "said": "yes that is it"}).json()
+        "/api/teach", json={"session_id": session_id, "said": "x = 4"}).json()
     assert second["stage"] == "show", "but show takes two"
 
 
@@ -176,7 +183,8 @@ def test_the_same_question_answered_well_and_badly_goes_to_different_places(
         session_id = _diagnosed(db)
         monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(read=read))
         client.post("/api/teach", json={"session_id": session_id, "said": ""})
-        client.post("/api/teach", json={"session_id": session_id, "said": "x = 4"})
+        for _ in range(2):
+            client.post("/api/teach", json={"session_id": session_id, "said": "x = 4"})
         return client.post(
             "/api/teach", json={"session_id": session_id, "said": "x = 4"}).json()
 
@@ -382,10 +390,11 @@ def test_the_tutor_cannot_declare_the_lesson_over_early(client, db, monkeypatch)
     monkeypatch.setattr(teach, "next_move",
                         lambda **kw: _Move(read="understood", finished=True))
 
-    first = client.post("/api/teach", json={"session_id": session_id, "said": ""}).json()
+    first = client.post(
+        "/api/teach", json={"session_id": session_id, "said": "I think I get it"}).json()
 
     assert first["finished"] is False
-    assert first["stage"] == "show"
+    assert first["stage"] == "show", "the earliest it can possibly be"
 
 
 def test_it_can_finish_once_it_is_on_their_own_question(client, db, monkeypatch):
@@ -399,3 +408,142 @@ def test_it_can_finish_once_it_is_on_their_own_question(client, db, monkeypatch)
 
     assert got["finished"] is True
     assert got["stage"] == "done"
+
+
+# ---- showing, not just telling ---------------------------------------------
+
+
+class _Step:
+    def __init__(self, show, changed="", note=""):
+        self.show, self.changed, self.note = show, changed, note
+
+    def model_dump(self):
+        return {"show": self.show, "changed": self.changed, "note": self.note}
+
+
+def test_a_good_demonstration_passes():
+    assert teach.unusable_demo([
+        _Step("sqrt(x) * sqrt(x) = x"),
+        _Step("x^(1/2) * x^(1/2) = x^1", changed="x^(1/2)",
+              note="adding the powers gives 1"),
+    ]) is None
+
+
+def test_no_demonstration_at_all_is_fine():
+    """Most turns are a question or a nudge, and should not force a picture."""
+    assert teach.unusable_demo([]) is None
+
+
+def test_one_line_is_not_a_demonstration():
+    assert "not a demonstration" in teach.unusable_demo([_Step("x = 2")])
+
+
+def test_a_demonstration_that_is_really_a_worked_solution_is_refused():
+    many = [_Step(f"line {n}") for n in range(teach.MAX_DEMO + 1)]
+    assert "worked solution" in teach.unusable_demo(many)
+
+
+def test_a_highlight_that_is_not_in_the_line_is_refused():
+    """It is how they see WHAT changed. One that is not there underlines
+    nothing, or worse, the wrong thing."""
+    why = teach.unusable_demo([
+        _Step("x^(1/2)"), _Step("sqrt(x)", changed="x^(1/3)")])
+
+    assert "not in the line" in why
+
+
+def test_a_line_too_long_to_follow_is_refused():
+    assert "too long" in teach.unusable_demo([
+        _Step("x = 1"), _Step("y = " + "1 + " * 40)])
+
+
+def test_non_ascii_in_a_demonstration_is_refused():
+    """Stray Unicode is one of the four rendering faults that reached real
+    students, and it came in exactly this way."""
+    assert "ASCII" in teach.unusable_demo([_Step("x = 1"), _Step("x → 2")])
+
+
+def test_a_broken_demonstration_is_dropped_and_the_turn_survives(
+        client, db, monkeypatch):
+    """A lesson that dies because a picture was malformed is worse than one
+    without a picture."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(
+        say="still worth saying", demo=[_Step("only one line")]))
+
+    got = client.post("/api/teach", json={"session_id": session_id, "said": ""}).json()
+
+    assert got["demo"] == []
+    assert got["say"] == "still worth saying"
+
+
+def test_a_demonstration_reaches_the_student_and_is_kept(client, db, monkeypatch):
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(demo=[
+        _Step("sqrt(x) * sqrt(x) = x"),
+        _Step("x^(1/2) * x^(1/2) = x", changed="x^(1/2)", note="same thing"),
+    ]))
+
+    got = client.post("/api/teach", json={"session_id": session_id, "said": ""}).json()
+    assert len(got["demo"]) == 2
+    assert got["demo"][1]["changed"] == "x^(1/2)"
+
+    # And it comes back the same when they return to it, rather than being
+    # reworded into a different demonstration.
+    again = client.get(f"/api/teach/{session_id}").json()
+    assert again["turns"][0]["demo"][0]["show"] == "sqrt(x) * sqrt(x) = x"
+
+
+def test_the_tutor_is_told_to_show_and_to_stop_one_step_short():
+    assert "SHOWING BEATS TELLING" in teach.SYSTEM
+    assert "one step short" in teach.SYSTEM
+    assert "Never demonstrate on their own question" in teach.SYSTEM
+    assert "`demo`" in teach.THE_JOB["show"]
+
+
+def test_the_page_uncovers_a_demonstration_a_step_at_a_time():
+    page = _page()
+    assert "function demoHtml(" in page
+    assert "Show the next step" in page
+    assert "data-more" in page
+    assert 'class="demo-step' in page
+
+
+def test_a_resumed_lesson_does_not_make_them_click_through_it_again():
+    assert "shown: (turn.demo || []).length" in _page()
+
+
+def test_leaving_the_opening_stage_turns_on_whether_they_replied(client, db,
+                                                                 monkeypatch):
+    """Not on the model's reading of the reply. Asked to judge "yes, that is
+    the bit" it kept answering "first", and the lesson sat on the opening
+    stage agreeing with itself for three turns."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(read="first"))
+
+    opening = client.post(
+        "/api/teach", json={"session_id": session_id, "said": ""}).json()
+    assert opening["stage"] == "connect", "nothing said yet"
+
+    answered = client.post(
+        "/api/teach", json={"session_id": session_id, "said": "yes that is the bit"}).json()
+    assert answered["stage"] == "show", "they replied, so the teaching starts"
+
+
+def test_silence_does_not_move_the_lesson_on():
+    assert teach.advance("connect", "understood", 0, replied=False) == ("connect", 0)
+
+
+def test_a_highlight_covering_the_whole_line_marks_nothing(client, db, monkeypatch):
+    """Which is what the first line of a demonstration usually comes back as:
+    a chip on screen repeating the line directly above it."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move(demo=[
+        _Step("sqrt(x^5)", changed="sqrt(x^5)"),
+        _Step("x^(5/2)", changed="5/2", note="the root becomes a half power"),
+    ]))
+
+    got = client.post("/api/teach", json={"session_id": session_id, "said": ""}).json()
+
+    assert got["demo"][0]["changed"] == "", "nothing is new on the first line"
+    assert got["demo"][1]["changed"] == "5/2", "but a real change still shows"

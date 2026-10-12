@@ -386,6 +386,31 @@
     color: var(--muted);
     white-space: pre-wrap;
   }
+  /* A demonstration. Each line is the expression as it then stands, and the
+     newest one is lit so the eye goes to what just happened rather than
+     having to diff two lines of algebra. */
+  .demo { margin: 0.9rem 0 1.1rem; }
+  .demo-step {
+    padding: 0.55rem 0.9rem;
+    border-left: 2px solid var(--line);
+    opacity: 0.55;
+    transition: opacity 0.25s ease, border-color 0.25s ease;
+  }
+  .demo-step.now { opacity: 1; border-left-color: var(--accent); }
+  .demo-line { font-family: var(--mono); font-size: 1.05rem; }
+  .demo-note { margin: 0.3rem 0 0; font-size: 0.92rem; color: var(--muted); }
+  /* What is new on this line, said in maths rather than described. */
+  .demo-new {
+    font-family: var(--mono);
+    background: var(--sunk);
+    border-radius: 6px;
+    padding: 0.05rem 0.35rem;
+    color: var(--ink);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .demo-step { transition: none; }
+  }
+
   /* Their own question, kept on screen through the whole lesson so the point
      of it never drifts out of sight. */
   .card.pinned { background: var(--sunk); box-shadow: none; }
@@ -1138,7 +1163,10 @@ async function startLesson() {
   try {
     const had = await get('/api/teach/' + state.session_id);
     if (had.turns && had.turns.length) {
-      lesson.turns = had.turns;
+      // Coming back to a lesson shows the demonstrations complete: making
+      // somebody re-click through what they already watched is a toy.
+      lesson.turns = had.turns.map(turn => Object.assign({}, turn,
+        {shown: (turn.demo || []).length}));
       lesson.stage = had.stage;
       lesson.finished = had.finished;
       lesson.waiting = false;
@@ -1163,7 +1191,11 @@ async function sayToTutor(said) {
   try {
     const got = await post('/api/teach', {
       session_id: state.session_id, said: said});
-    lesson.turns.push({said: null, say: got.say, ask: got.ask});
+    // The first line of a demonstration is on screen straight away; the rest
+    // are uncovered by them, which is what makes it something they watch
+    // rather than a block that appears.
+    lesson.turns.push({said: null, say: got.say, ask: got.ask,
+                       demo: got.demo || [], shown: (got.demo || []).length ? 1 : 0});
     lesson.stage = got.stage;
     lesson.finished = got.finished;
     lesson.trouble = null;
@@ -1175,10 +1207,41 @@ async function sayToTutor(said) {
   drawLesson();
 }
 
+// A worked demonstration, uncovered one line at a time.
+//
+// Not a drawing. The page already renders maths properly and that pipeline is
+// the one thing here that has been through four rounds of rendering bugs, so
+// a demonstration is lines of maths put through it - what is new is the
+// staging: one step at a time, the newest line lit up, and a word on what
+// moved. A student watches it happen instead of reading that it happened.
+function demoHtml(demo, shown, index) {
+  if (!demo || !demo.length) return '';
+
+  const lines = demo.slice(0, shown).map((step, n) => {
+    const now = n === shown - 1;
+    return '<div class="demo-step' + (now ? ' now' : '') + '">'
+      + '<div class="demo-line">' + mathHtml(step.show) + '</div>'
+      + (now && step.note
+          ? '<p class="demo-note">' + mathHtml(step.note)
+            + (step.changed
+                ? ' <span class="demo-new">' + mathHtml(step.changed) + '</span>'
+                : '')
+            + '</p>'
+          : '')
+      + '</div>';
+  }).join('');
+
+  const more = shown < demo.length
+    ? '<p><button class="plain" data-more="' + index + '">Show the next step</button></p>'
+    : '';
+  return '<div class="demo">' + lines + more + '</div>';
+}
+
 function drawLesson() {
   const asked = (state.report && state.report.question) || '';
-  const said = lesson.turns.map(turn => turn.say
+  const said = lesson.turns.map((turn, index) => turn.say
     ? '<div class="from-tutor">' + mathHtml(turn.say)
+      + demoHtml(turn.demo, turn.shown || 0, index)
       + (turn.ask ? '<p class="ask">' + mathHtml(turn.ask) + '</p>' : '')
       + '</div>'
     : '<div class="from-them">' + escape(turn.said || '') + '</div>'
@@ -1208,6 +1271,14 @@ function drawLesson() {
 
       <p><button class="plain" onclick="leaveLesson()">Back to what we found</button></p>
     </div>`;
+
+  screen.querySelectorAll('[data-more]').forEach(button => {
+    button.onclick = () => {
+      const turn = lesson.turns[Number(button.dataset.more)];
+      turn.shown = (turn.shown || 0) + 1;
+      drawLesson();
+    };
+  });
 
   const send = document.getElementById('send-reply');
   if (send) {

@@ -109,3 +109,13 @@ def test_showing_deletes_nothing(connection, capsys):
     rows = connection.execute("SELECT COUNT(*) AS n FROM sessions").fetchone()["n"]
     assert rows == 1
     assert "Nothing was deleted" in capsys.readouterr().out
+
+
+def test_a_lesson_goes_with_its_session(connection):
+    """Lessons are counting, not something somebody typed to be kept - and
+    clearing sessions without them would leave turns pointing at nothing."""
+    import reset_analytics
+
+    assert "lesson_turn" in reset_analytics.NOISE
+    assert reset_analytics.NOISE.index("lesson_turn") < \
+        reset_analytics.NOISE.index("sessions"), "children before parents"

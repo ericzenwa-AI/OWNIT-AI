@@ -1308,7 +1308,18 @@ def teach_turn(request: TeachRequest) -> dict:
             raise HTTPException(
                 503, "I lost my thread for a second there. Say that again?")
 
-        moved_to, carried = teach.advance(stage, move.read, understood)
+        # A demonstration that is malformed is dropped, not fatal: the turn
+        # still has its words, and a lesson that dies because a picture was
+        # wrong is worse than one without a picture.
+        broken = teach.unusable_demo(move.demo)
+        if broken:
+            log.warning("dropped a demonstration: %s", broken)
+            move.demo = []
+        else:
+            teach.tidy_demo(move.demo)
+
+        moved_to, carried = teach.advance(
+            stage, move.read, understood, replied=bool(request.said.strip()))
         # The model may only end a lesson from the stage that is already on
         # the student's own question. Left to itself it will finish three
         # turns in because an answer looked confident, which is the exact
@@ -1324,6 +1335,7 @@ def teach_turn(request: TeachRequest) -> dict:
             "stage": moved_to,
             "say": move.say,
             "ask": move.ask,
+            "demo": [step.model_dump() for step in move.demo],
             # The stage, and only the stage. Reporting the model's own claim
             # here would walk straight past the guard above.
             "finished": moved_to == "done",
@@ -1344,7 +1356,8 @@ def teach_so_far(session_id: int) -> dict:
 
     return {
         "turns": [
-            {"said": turn["said"], "say": turn["say"], "ask": turn["ask"]}
+            {"said": turn["said"], "say": turn["say"], "ask": turn["ask"],
+             "demo": turn["demo"]}
             for turn in turns
         ],
         "stage": turns[-1]["stage"] if turns else None,
