@@ -12,7 +12,7 @@ because asking "what don't you understand?" only works on people who already
 know.
 
 **In active beta.** Live at
-[ownit-tzsv.onrender.com](https://ownit-tzsv.onrender.com), written for tutors,
+[ownitmaths.com](https://ownitmaths.com), written for tutors,
 with a waitlist open. 
 ---
 
