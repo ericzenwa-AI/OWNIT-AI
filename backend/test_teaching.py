@@ -320,10 +320,17 @@ def _page():
             / "web" / "index.html").read_text(encoding="utf-8")
 
 
-def test_the_finding_offers_the_lesson():
+def test_the_finding_offers_the_lesson_before_the_reading():
+    """It was below the explanation, the worked example, the usual mistake and
+    the practice line - four things to scroll past before being offered the
+    one that actually teaches."""
     page = _page()
-    assert "Teach me this" in page
+    assert "Take me through it" in page
     assert "function startLesson(" in page
+
+    report = page[page.index("function report()"):page.index("function usefulCard(")]
+    assert report.index("startLesson()") < report.index("explanation.plain")
+    assert report.index("startLesson()") < report.index("named.practice")
 
 
 def test_their_question_stays_on_screen_through_it():

@@ -305,6 +305,12 @@
   .held-up { color: var(--muted); margin-bottom: 1.1rem; }
   .held-up strong { color: var(--ink); }
 
+  /* The way out of the finding, and the point of the whole page: the button
+     sits above the explanation rather than below everything. */
+  .teach { display: flex; flex-wrap: wrap; gap: 0.6rem 0.9rem; align-items: center;
+           margin: 0 0 1.4rem; }
+  .teach .note { flex: 1 1 14rem; }
+
   /* The line the page exists for: what the thing actually means, with no
      maths in it. Larger than body text because on this screen it IS the body
      text - everything under it is detail for somebody who wants detail. */
@@ -1385,6 +1391,15 @@ function report() {
            Told the other way round, which is how it read before, the first
            sentence a struggling student meets is the one written for somebody
            who already knows. -->
+      <!-- The offer comes before the reading, not after it. A student who
+           has just been told what they are missing wants to be taken through
+           it; the explanation underneath is for whoever would rather read. -->
+      <p class="teach">
+        <button onclick="startLesson()">Take me through it</button>
+        <span class="note">A step at a time, then back to your own question.
+        You do the working.</span>
+      </p>
+
       ${named && named.explanation && named.explanation.plain
         ? `<p class="plain-said">${mathHtml(named.explanation.plain)}</p>` : ''}
       ${named && named.explanation && named.explanation.like
@@ -1415,12 +1430,6 @@ function report() {
       ${how}
     </div>
 
-    <div class="card">
-      <p class="label">Rather than read about it</p>
-      <p>I can take you through it, a step at a time, and then back to your own
-      question. You do the working; I will not give you the answer to it.</p>
-      <p><button onclick="startLesson()">Teach me this</button></p>
-    </div>
 
     ${why && !nothingBelow ? `<div class="card">
       <p class="label">Why we stopped here</p>
