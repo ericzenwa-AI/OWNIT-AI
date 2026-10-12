@@ -1072,6 +1072,10 @@ def how_it_is_going(
 
     landing = one(f"SELECT COUNT(*) n FROM page_view{where or ' WHERE 1=1'} AND page = ?", ("/",))
     opened = one(f"SELECT COUNT(*) n FROM page_view{where or ' WHERE 1=1'} AND page = ?", ("/start",))
+    # The student door. Counted since it was built, but never shown, so traffic
+    # sent straight to it looked like nobody had come at all.
+    student = one(
+        f"SELECT COUNT(*) n FROM page_view{where or ' WHERE 1=1'} AND page = ?", ("/student",))
     read = one(f"SELECT COUNT(*) n FROM question_read{where}")
     placed = one(f"SELECT COUNT(*) n FROM question_read{where or ' WHERE 1=1'} AND placed = 1")
     started = connection.execute(
@@ -1111,6 +1115,7 @@ def how_it_is_going(
 
     return {
         "landing": landing,
+        "student": student,
         "opened": opened,
         "read": read,
         "placed": placed,

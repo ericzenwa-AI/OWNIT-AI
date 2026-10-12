@@ -1367,6 +1367,7 @@ def admin_numbers(request: Request, stage: str | None = None) -> str:
     def funnel(figures: dict) -> str:
         steps = [
             ("Opened the front page", figures["landing"]),
+            ("Opened the student page", figures.get("student", 0)),
             ("Opened the diagnostic", figures["opened"]),
             ("Sent a question", figures["read"]),
             ("&hellip; which we could place", figures["placed"]),
