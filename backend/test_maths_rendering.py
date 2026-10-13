@@ -410,3 +410,15 @@ def test_double_quotes_are_peeled_too(js):
     assert written
     assert not written[0].startswith('"')
     assert "x^{2}" in written[0]
+
+
+def test_a_decimal_power_stays_in_the_exponent(js):
+    """x^1.75 braced only the 1, leaving a loose .75 beside it - which reads
+    as x to the first, times nought point seven five."""
+    assert "x^{1.75}" in latex_in(render(js, "Evaluate x^1.75"))[0]
+
+
+def test_a_power_at_the_end_of_a_sentence_keeps_its_full_stop(js):
+    """The digits after the point are only swallowed when they are there."""
+    latex = latex_in(render(js, "Simplify x^2."))[0]
+    assert "x^{2}" in latex and "x^{2.}" not in latex

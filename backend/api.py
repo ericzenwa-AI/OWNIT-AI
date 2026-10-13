@@ -1345,6 +1345,105 @@ def teach_turn(request: TeachRequest) -> dict:
         connection.close()
 
 
+class CheckAnswer(BaseModel):
+    session_id: int
+    label: str = Field(max_length=4)
+
+
+@app.get("/api/check/{session_id}")
+def check_question(session_id: int) -> dict:
+    """One question on the gap, unaided, after the lesson.
+
+    Being taught a thing and being able to do it are different, and the lesson
+    cannot tell them apart: by the end it has hinted, halved the numbers and
+    walked beside them. So this comes out of the same checked bank the
+    diagnostic uses, with nothing attached to it - and never a question this
+    session has already been asked, which would measure whether they remember
+    an answer.
+    """
+    connection = store.connect()
+    try:
+        session = connection.execute(
+            "SELECT root_gaps, entry_skill_id, finished FROM sessions WHERE id = ?",
+            (session_id,)).fetchone()
+        if session is None:
+            raise HTTPException(404, "No such session.")
+        if not session["finished"]:
+            raise HTTPException(409, "That walk has not finished yet.")
+
+        gaps = [g for g in (session["root_gaps"] or "").split(",") if g]
+        skill_id = next((g for g in gaps if g in SKILLS), None) or session["entry_skill_id"]
+
+        fresh = store.unasked_for(connection, skill_id, session_id)
+        if fresh:
+            import json as _json
+            from questions import Distractor, MultipleChoiceQuestion
+
+            row = secrets.choice(fresh[: max(3, len(fresh) // 2)])
+            question = MultipleChoiceQuestion(
+                question=row["question"],
+                correct_option=row["correct_option"],
+                distractors=[Distractor(**d) for d in _json.loads(row["distractors"])])
+            banked_id = row["id"]
+        else:
+            # Nothing unseen on the shelf. Rather than ask them something they
+            # have already answered, say so and let the lesson end cleanly.
+            return {"available": False}
+
+        options = [
+            {"label": label, "text": text, "mistake": mistake,
+             "correct": text == question.correct_option}
+            for label, (text, mistake) in zip("ABCD", shuffled_options(question))
+        ]
+        store.set_check(connection, session_id, skill_id=skill_id,
+                        question=question.question, options=options,
+                        banked_id=banked_id)
+
+        return {
+            "available": True,
+            "skill": SKILLS[skill_id].name,
+            "question": question.question,
+            # Which one is right, and why each wrong one is wrong, stay here.
+            "options": [{"label": o["label"], "text": o["text"]} for o in options],
+        }
+    finally:
+        connection.close()
+
+
+@app.post("/api/check")
+def check_answer(answer: CheckAnswer) -> dict:
+    """Mark the unaided question, against what was actually shown."""
+    connection = store.connect()
+    try:
+        shown = store.get_check(connection, answer.session_id)
+        if shown is None:
+            raise HTTPException(404, "There is no question waiting.")
+
+        picked = next((o for o in shown["options"] if o["label"] == answer.label), None)
+        if picked is None:
+            raise HTTPException(400, "That is not one of the options.")
+
+        right = bool(picked.get("correct"))
+        if shown["banked_id"]:
+            store.mark_asked(connection, shown["banked_id"], right)
+        store.record_event(
+            connection, "check_passed" if right else "check_failed",
+            page="/start", session_id=answer.session_id, detail=shown["skill_id"])
+        store.clear_check(connection, answer.session_id)
+
+        return {
+            "correct": right,
+            # On a miss they get the named misconception behind the option
+            # they picked, which is the one thing a bare "wrong" cannot do.
+            "say": ("That is it - and you did that one on your own."
+                    if right else
+                    (picked.get("mistake")
+                     or "Not that one. Worth another look at the step above.")),
+        }
+    finally:
+        connection.close()
+
+
 @app.get("/api/teach/{session_id}")
 def teach_so_far(session_id: int) -> dict:
     """The lesson as it stands, so closing the tab does not lose it."""

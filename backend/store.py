@@ -181,6 +181,24 @@ CREATE TABLE IF NOT EXISTS lesson_turn (
 
 CREATE INDEX IF NOT EXISTS lesson_of ON lesson_turn (session_id, position);
 
+-- The one question put to them at the end of a lesson, on their own.
+--
+-- Being taught something and being able to do it are different, and the
+-- lesson cannot tell them apart by itself: by the end the tutor has hinted,
+-- halved the numbers and walked beside them. So the last thing is a question
+-- out of the same checked bank the diagnostic uses, with no help attached.
+--
+-- One row per session, replaced if they ask for another, and the options are
+-- kept because the answer has to be scored against exactly what was shown.
+CREATE TABLE IF NOT EXISTS check_question (
+    session_id INTEGER PRIMARY KEY REFERENCES sessions(id),
+    created_at TEXT    NOT NULL,
+    skill_id   TEXT    NOT NULL,
+    banked_id  INTEGER,
+    question   TEXT    NOT NULL,
+    options    TEXT    NOT NULL
+);
+
 -- The random number that makes a visitor hash mean nothing tomorrow.
 --
 -- Counting people instead of page loads needs some way to tell one browser
@@ -1127,6 +1145,10 @@ EVENTS = (
     "precise_opened",   # opened the accurate wording under a plain one
     "retake",           # ran the same question again
     "another_question", # started a different question
+    # Written by the server rather than the page: whether the one question
+    # put to them at the end of a lesson, unaided, went in.
+    "check_passed",
+    "check_failed",
 )
 
 MAX_DETAIL = 120
@@ -1224,6 +1246,61 @@ def lessons_seen(connection: sqlite3.Connection) -> dict:
         "finished": row["finished"] or 0,
         "reached_apply": reached,
     }
+
+
+def set_check(connection: sqlite3.Connection, session_id: int, *, skill_id: str,
+              question: str, options: list, banked_id: int | None) -> None:
+    """Put one unaided question in front of them, and remember what it was."""
+    import json
+
+    connection.execute(
+        """INSERT INTO check_question
+                (session_id, created_at, skill_id, banked_id, question, options)
+                VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(session_id) DO UPDATE SET
+                created_at = excluded.created_at, skill_id = excluded.skill_id,
+                banked_id = excluded.banked_id, question = excluded.question,
+                options = excluded.options""",
+        (session_id, _now(), skill_id, banked_id, question, json.dumps(options)))
+    connection.commit()
+
+
+def get_check(connection: sqlite3.Connection, session_id: int) -> dict | None:
+    """The question they were shown, or None if they have not been given one."""
+    import json
+
+    row = connection.execute(
+        "SELECT * FROM check_question WHERE session_id = ?", (session_id,)).fetchone()
+    if row is None:
+        return None
+    got = dict(row)
+    try:
+        got["options"] = json.loads(got["options"])
+    except ValueError:
+        return None
+    return got
+
+
+def clear_check(connection: sqlite3.Connection, session_id: int) -> None:
+    connection.execute(
+        "DELETE FROM check_question WHERE session_id = ?", (session_id,))
+    connection.commit()
+
+
+def unasked_for(connection: sqlite3.Connection, skill_id: str,
+                session_id: int) -> list:
+    """Banked questions on this skill that this session has not already seen.
+
+    Checking somebody with the question they were diagnosed on tells you they
+    remember an answer, which is the one thing it must not measure.
+    """
+    return connection.execute(
+        """SELECT id, question, correct_option, distractors
+             FROM question_bank
+            WHERE skill_id = ? AND retired = 0
+              AND question NOT IN (SELECT question FROM answers WHERE session_id = ?)
+            ORDER BY times_asked ASC""",
+        (skill_id, session_id)).fetchall()
 
 
 def salt_for_today(connection: sqlite3.Connection) -> str:

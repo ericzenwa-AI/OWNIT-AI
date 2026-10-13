@@ -334,7 +334,18 @@ def test_the_finding_offers_the_lesson_before_the_reading():
 
 
 def test_their_question_stays_on_screen_through_it():
-    assert 'class="card pinned"' in _page()
+    """And it is the same pinned panel the diagnostic uses, not a second one
+    that looks nearly the same - it is the one thing on screen that should not
+    move between the two halves of a session."""
+    page = _page()
+    assert "function askedCard(" in page
+
+    lesson = page[page.index("function drawLesson("):page.index("function report(")]
+    assert "askedCard()" in lesson
+
+    opened = page.index("function question() {")
+    asking = page[opened:page.index(chr(10) + "function ", opened + 10)]
+    assert "askedCard()" in asking
 
 
 def test_the_lesson_owns_the_screen_while_it_runs():
@@ -554,3 +565,107 @@ def test_a_highlight_covering_the_whole_line_marks_nothing(client, db, monkeypat
 
     assert got["demo"][0]["changed"] == "", "nothing is new on the first line"
     assert got["demo"][1]["changed"] == "5/2", "but a real change still shows"
+
+
+# ---- the unaided question at the end ---------------------------------------
+
+
+def _banked(connection, skill_id, question, correct="2"):
+    store.bank_question(connection, skill_id, MultipleChoiceQuestion(
+        question=question, correct_option=correct,
+        distractors=[Distractor(option="9", mistake="added instead"),
+                     Distractor(option="7", mistake="dropped a sign"),
+                     Distractor(option="0", mistake="stopped too early")]))
+    connection.commit()
+
+
+def test_the_check_never_reuses_a_question_they_were_diagnosed_on(client, db):
+    """That would measure whether they remember an answer, which is the one
+    thing it must not measure."""
+    session_id = _diagnosed(db)
+    seen = "Which sign eliminates x?"
+    _banked(db, "eliminate_by_adding_or_subtracting", seen)
+    _banked(db, "eliminate_by_adding_or_subtracting", "A fresh one")
+    db.execute(
+        """INSERT INTO answers (session_id, position, skill_id, question, chosen,
+               outcome) VALUES (?, 1, ?, ?, 'A', 'wrong')""",
+        (session_id, "eliminate_by_adding_or_subtracting", seen))
+    db.commit()
+
+    got = client.get(f"/api/check/{session_id}").json()
+
+    assert got["available"] is True
+    assert got["question"] == "A fresh one"
+
+
+def test_the_page_is_never_told_which_option_is_right(client, db):
+    session_id = _diagnosed(db)
+    _banked(db, "eliminate_by_adding_or_subtracting", "Only one here")
+
+    got = client.get(f"/api/check/{session_id}").json()
+
+    assert set(got["options"][0]) == {"label", "text"}
+    assert "correct" not in str(got["options"])
+    assert "mistake" not in str(got)
+
+
+def test_it_is_marked_against_what_was_actually_shown(client, db):
+    session_id = _diagnosed(db)
+    _banked(db, "eliminate_by_adding_or_subtracting", "Only one here", correct="2")
+    shown = client.get(f"/api/check/{session_id}").json()
+    right = next(o["label"] for o in shown["options"] if o["text"] == "2")
+
+    got = client.post("/api/check",
+                      json={"session_id": session_id, "label": right}).json()
+
+    assert got["correct"] is True
+    assert "on your own" in got["say"]
+
+
+def test_a_miss_is_told_what_they_did_rather_than_just_wrong(client, db):
+    session_id = _diagnosed(db)
+    _banked(db, "eliminate_by_adding_or_subtracting", "Only one here", correct="2")
+    shown = client.get(f"/api/check/{session_id}").json()
+    wrong = next(o["label"] for o in shown["options"] if o["text"] == "9")
+
+    got = client.post("/api/check",
+                      json={"session_id": session_id, "label": wrong}).json()
+
+    assert got["correct"] is False
+    assert got["say"] == "added instead", "the named misconception, not 'wrong'"
+
+
+def test_how_the_check_went_is_recorded(client, db):
+    """So the dashboard can answer the only question that matters about the
+    teaching: does anybody come out of it able to do the thing."""
+    session_id = _diagnosed(db)
+    _banked(db, "eliminate_by_adding_or_subtracting", "Only one here", correct="2")
+    shown = client.get(f"/api/check/{session_id}").json()
+    right = next(o["label"] for o in shown["options"] if o["text"] == "2")
+    client.post("/api/check", json={"session_id": session_id, "label": right})
+
+    names = [row["name"] for row in store.clicks(db)]
+    assert "check_passed" in names
+
+
+def test_nothing_unseen_on_the_shelf_is_said_plainly(client, db):
+    """Rather than asking them something they have already answered."""
+    session_id = _diagnosed(db)
+
+    got = client.get(f"/api/check/{session_id}").json()
+
+    assert got == {"available": False}
+
+
+def test_a_check_cannot_be_marked_before_one_is_given(client, db):
+    session_id = _diagnosed(db)
+    response = client.post("/api/check", json={"session_id": session_id, "label": "A"})
+    assert response.status_code == 404
+
+
+def test_the_lesson_offers_it_only_once_it_has_finished():
+    page = _page()
+    lesson = page[page.index("function drawLesson("):page.index("function report(")]
+    assert "Try one on your own" in lesson
+    assert "lesson.finished ?" in lesson
+    assert lesson.index("lesson.finished ?") < lesson.index("Try one on your own")

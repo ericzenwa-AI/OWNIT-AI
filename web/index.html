@@ -13,9 +13,13 @@
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
       crossorigin="anonymous">
+<!-- Deferred, so it runs after the page's own inline script. Anything drawn
+     before it arrives falls back to plain text and would stay that way, so
+     the page is asked to draw itself once more when it lands. -->
 <script defer
         src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
-        crossorigin="anonymous"></script>
+        crossorigin="anonymous"
+        onload="window.typesetAgain && window.typesetAgain()"></script>
 <style>
   /* ------------------------------------------------------------------
      The same two colour systems as the landing page, and the same rule
@@ -29,57 +33,50 @@
      appears on a verdict, and a verdict colour never appears on a
      control.
      ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------
+     The tutoring workspace: one dark surface, not a light page with a dark
+     mode bolted on.
+
+     It is deliberately a single look rather than following the system. This
+     is the screen a student sits inside for ten minutes being taught, and a
+     room with the lights set once reads as a place; a page that is cream on
+     one phone and ink on another reads as a document. The two public pages
+     keep their own light design - they are something you read and leave.
+
+     Violet carries anything the student can act on. Blue carries the
+     machinery talking - stages, demonstrations, progress. Green and rust
+     still mean exactly what they mean everywhere else in this product: a
+     skill that held, and the place it broke. Those two are never spent on
+     decoration.
+
+     Contrast measured against the --bg below, not guessed: ink 17.1:1,
+     muted 8.9:1, faint 5.3:1, violet 5.4:1, and near-black on violet 7.0:1
+     for button text.
+     ------------------------------------------------------------------ */
   :root {
-    --bg:      #FAFAFB;
-    --card:    #FFFFFF;
-    --sunk:    #F4F5F7;
-    --ink:     #0E1013;
-    --muted:   #464C5A;
-    --faint:   #666C7A;
-    --line:    #E9EAEE;
-    --accent:  #4F46E5;
-    --on-accent: #FFFFFF;
+    --bg:      #0A0C14;
+    --card:    #121626;
+    --sunk:    #0E1220;
+    --ink:     #EDEFF8;
+    --muted:   #A7AECA;
+    --faint:   #7B83A4;
+    --line:    #222941;
+    --accent:  #8B7CFF;
+    --accent-2:#4EA8FF;
+    --on-accent: #0A0C14;
 
-    --held:    #2F5D50;
-    --broke:   #8C3B2E;
+    --held:    #5FD3A6;
+    --broke:   #FF8F6E;
 
-    --lift: 0 1px 2px rgba(14, 16, 19, 0.04),
-            0 8px 24px -6px rgba(14, 16, 19, 0.08);
+    /* On a dark ground a shadow does nothing; depth comes from the surface
+       lifting and from a one-pixel edge catching the light. */
+    --lift: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+            0 18px 40px -24px rgba(0, 0, 0, 0.8);
+    --glow: 0 0 0 1px rgba(139, 124, 255, 0.35),
+            0 10px 30px -12px rgba(139, 124, 255, 0.35);
 
     --sans: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
     --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg:     #0A0B0E;
-      --card:   #131519;
-      --sunk:   #0F1114;
-      --ink:    #F1F2F5;
-      --muted:  #A2A8B4;
-      --faint:  #6F7583;
-      --line:   #23262D;
-      --accent: #8B84F5;
-      --on-accent: #0A0B0E;
-      --held:   #7FB9A5;
-      --broke:  #E08A72;
-      --lift: none;
-    }
-  }
-
-  :root[data-theme="dark"] {
-    --bg:     #0A0B0E;
-    --card:   #131519;
-    --sunk:   #0F1114;
-    --ink:    #F1F2F5;
-    --muted:  #A2A8B4;
-    --faint:  #6F7583;
-    --line:   #23262D;
-    --accent: #8B84F5;
-    --on-accent: #0A0B0E;
-    --held:   #7FB9A5;
-    --broke:  #E08A72;
-    --lift: none;
   }
 
   * { box-sizing: border-box; }
@@ -208,11 +205,36 @@
     transform: none;
     filter: none;
   }
+  button.option:focus-visible {
+    outline: none;
+    box-shadow: var(--glow);
+    border-color: var(--accent);
+  }
+  /* While an answer is in flight: the one pressed stays lit, the rest go
+     quiet. Without it a tap looks like nothing happened on a slow phone. */
+  button.option:disabled { opacity: 0.4; }
+  button.option.chosen:disabled {
+    opacity: 1;
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, var(--card));
+  }
   button.option .letter {
-    color: var(--faint);
-    font-weight: 600;
-    font-size: 0.85rem;
+    display: inline-grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
     margin-right: 0.8rem;
+    border-radius: 7px;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.82rem;
+    vertical-align: middle;
+  }
+  button.option:hover:not(:disabled) .letter {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 
   /* ---- the blocks ---- */
@@ -224,6 +246,70 @@
     padding: 2rem 1.75rem;
     margin: 1.25rem 0;
     box-shadow: var(--lift);
+  }
+
+  /* The unaided question at the end of a lesson, set inside the lesson card
+     so it reads as part of it rather than as a new screen. */
+  .card-inset {
+    margin: 1rem 0 0;
+    padding: 1.1rem 1.2rem;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .card-inset .question { font-size: 1.05rem; margin-bottom: 0.9rem; }
+  .verdict { margin-top: 1rem; padding-left: 0.9rem; border-left: 2px solid var(--line); }
+  .verdict.right { border-left-color: var(--held); }
+  .verdict.right p { color: var(--held); }
+  .verdict.wrong { border-left-color: var(--broke); }
+
+  /* Their own question, held at the top of the workspace the whole way
+     through - the diagnostic as well as the lesson. Answering five questions
+     that are not yours, with yours nowhere on screen, is the moment this
+     stops feeling like help with your homework. */
+  .asked-card {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin: 0 0 1.25rem;
+    padding: 0.9rem 1.1rem;
+    background: color-mix(in srgb, var(--sunk) 86%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .asked-card .skill { margin-bottom: 0.35rem; color: var(--accent-2); }
+  .asked-card .asked-text {
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--ink);
+    max-height: 4.5rem;
+    overflow: auto;
+  }
+
+  /* One line tying this question to the last answer. The walk has always
+     been adaptive; it just never said so, which is what made it read as a
+     fixed questionnaire. */
+  .because {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  .because b { color: var(--held); font-weight: 600; }
+  .because i { color: var(--broke); font-style: normal; font-weight: 600; }
+
+  /* Something is happening. */
+  .waiting { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); }
+  .waiting::before {
+    content: "";
+    width: 0.6rem; height: 0.6rem;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .waiting::before { animation: none; opacity: 0.8; }
   }
 
   /* Small, spaced and quiet: a card says what it is before it says
@@ -416,11 +502,6 @@
   @media (prefers-reduced-motion: reduce) {
     .demo-step { transition: none; }
   }
-
-  /* Their own question, kept on screen through the whole lesson so the point
-     of it never drifts out of sight. */
-  .card.pinned { background: var(--sunk); box-shadow: none; }
-  .card.pinned .worked { margin-bottom: 0; }
 
   /* A picture of the gap. Inlined rather than an <img> so it inherits the
      page's colours - one drawing, both themes - and costs no second request.
@@ -861,7 +942,19 @@ function wireParts() {
 }
 
 async function answer(label) {
-  document.querySelectorAll('button.option').forEach(b => b.disabled = true);
+  // The one they pressed stays lit and the rest go quiet, with a line saying
+  // something is happening. On a slow phone the old version looked like the
+  // tap had missed.
+  document.querySelectorAll('button.option').forEach(b => {
+    b.disabled = true;
+    if (b.querySelector('.letter')?.textContent === label) b.classList.add('chosen');
+  });
+  const options = document.getElementById('options');
+  if (options) {
+    options.insertAdjacentHTML('afterend',
+      '<p class="waiting" role="status">Working out what to ask next</p>');
+  }
+
   try {
     state = await post('/api/answer', {
       session_id: state.session_id,
@@ -962,6 +1055,15 @@ function newQuestion() {
   askScreen();
 }
 
+// Called once if KaTeX finishes loading after the first screen was drawn.
+// Without it a resumed session can sit there in plain ASCII for good.
+window.typesetAgain = function () {
+  try {
+    if (lesson) return drawLesson();
+    if (state && Object.keys(state).length) draw();
+  } catch (error) { /* never worth breaking the page over */ }
+};
+
 function draw() {
   if (lesson) return;
   if (state.message) return outOfScope();
@@ -1018,10 +1120,45 @@ function descent() {
   </div>`;
 }
 
+// What they came in with, kept at the top of the workspace for the whole
+// session. `matched` is the model's one-line reading of their question, which
+// is what we have when the question arrived as a photo and the image is gone.
+function askedCard() {
+  const asked = (state.report && state.report.question)
+    || state.question || state.matched || '';
+  if (!asked) return '';
+  return `<div class="asked-card">
+    <div class="skill">Your question</div>
+    <div class="asked-text">${mathHtml(asked)}</div>
+  </div>`;
+}
+
+// Why this question and not another one. Read off the answers we already
+// have, so it is simply true - the walk goes down into whatever gave way and
+// sideways when something holds, and saying which just stops it reading as a
+// fixed list.
+function because() {
+  const so_far = state.so_far || [];
+  if (!so_far.length) return '';
+
+  const last = so_far[so_far.length - 1];
+  const name = escape(last.skill_name || 'that');
+  if (last.dont_know) {
+    return `<p class="because">You weren't sure about <i>${name}</i> &mdash;
+      looking at what sits under it.</p>`;
+  }
+  if (last.held) {
+    return `<p class="because"><b>${name}</b> held, so that isn't it.
+      Trying something else at the same level.</p>`;
+  }
+  return `<p class="because"><i>${name}</i> gave way &mdash; going one step
+    underneath it.</p>`;
+}
+
 function question() {
   const q = state.asking;
   screen.innerHTML = `
-    ${state.matched ? `<p class="note">Looking at: ${escape(state.matched)}</p>` : ''}
+    ${askedCard()}
     ${partsBar()}
     <div class="card">
       <!-- Says why this is being asked without naming the chain. The chain is
@@ -1036,6 +1173,7 @@ function question() {
       <div class="skill">${state.asked_so_far
         ? 'Something your question rests on'
         : 'Before your question &mdash; something underneath it'}</div>
+      ${because()}
       <div class="question">${mathHtml(q.question)}</div>
       <div id="options"></div>
     </div>
@@ -1243,8 +1381,59 @@ function demoHtml(demo, shown, index) {
   return '<div class="demo">' + lines + more + '</div>';
 }
 
+// The last thing: one question on the gap with no help attached.
+//
+// By the end of a lesson the tutor has hinted, shrunk the numbers and walked
+// beside them, so "they have got it" is not something the lesson can honestly
+// judge about itself. This is a question off the same checked shelf the
+// diagnostic uses, one they have not already been asked, marked by the
+// server - the page is never told which option is right.
+function checkHtml() {
+  const check = lesson.check;
+  if (check === null) {
+    return '<p class="note">Nothing new left on the shelf for this one.</p>';
+  }
+  if (check.loading) return '<p class="waiting">Finding one</p>';
+  if (check.verdict) {
+    return `<div class="verdict ${check.verdict.correct ? 'right' : 'wrong'}">
+      <p>${mathHtml(check.verdict.say)}</p>
+      ${check.verdict.correct ? '' :
+        '<p><button class="plain" id="check-me">Try another one</button></p>'}
+    </div>`;
+  }
+  const options = check.options.map(o =>
+    `<button class="option" data-check="${o.label}">
+       <span class="letter">${o.label}</span>${mathHtml(o.text)}</button>`).join('');
+  return `<div class="card-inset">
+    <p class="label">On your own &mdash; ${escape(check.skill)}</p>
+    <div class="question">${mathHtml(check.question)}</div>
+    ${options}
+  </div>`;
+}
+
+async function askForCheck() {
+  lesson.check = {loading: true};
+  drawLesson();
+  try {
+    const got = await get('/api/check/' + state.session_id);
+    lesson.check = got.available ? got : null;
+  } catch (error) {
+    lesson.check = null;
+  }
+  drawLesson();
+}
+
+async function answerCheck(label) {
+  try {
+    lesson.check.verdict = await post('/api/check', {
+      session_id: state.session_id, label: label});
+  } catch (error) {
+    lesson.check.verdict = {correct: false, say: 'That did not get through.'};
+  }
+  drawLesson();
+}
+
 function drawLesson() {
-  const asked = (state.report && state.report.question) || '';
   const said = lesson.turns.map((turn, index) => turn.say
     ? '<div class="from-tutor">' + mathHtml(turn.say)
       + demoHtml(turn.demo, turn.shown || 0, index)
@@ -1253,11 +1442,11 @@ function drawLesson() {
     : '<div class="from-them">' + escape(turn.said || '') + '</div>'
   ).join('');
 
+  // The same pinned question as the diagnostic, rather than a second one
+  // that looks nearly the same - it is the one thing on screen that should
+  // not move between the two halves of the session.
   screen.innerHTML = `
-    ${asked ? `<div class="card pinned">
-      <p class="label">Your question</p>
-      <p class="worked">${mathHtml(asked)}</p>
-    </div>` : ''}
+    ${askedCard()}
 
     <div class="card lesson">
       ${said}
@@ -1266,7 +1455,10 @@ function drawLesson() {
 
       ${lesson.finished ? `
         <p class="note">That is the thing that was in your way, and you just
-        used it on your own question.</p>`
+        used it on your own question.</p>
+        ${lesson.check === undefined
+          ? `<p><button id="check-me">Try one on your own</button></p>`
+          : checkHtml()}`
       : `
         <textarea id="reply" rows="3" ${lesson.waiting ? 'disabled' : ''}
           placeholder="Type what you get, or what you are thinking"></textarea>
@@ -1277,6 +1469,16 @@ function drawLesson() {
 
       <p><button class="plain" onclick="leaveLesson()">Back to what we found</button></p>
     </div>`;
+
+  const askCheck = document.getElementById('check-me');
+  if (askCheck) askCheck.onclick = askForCheck;
+  screen.querySelectorAll('[data-check]').forEach(button => {
+    button.onclick = () => {
+      screen.querySelectorAll('[data-check]').forEach(b => b.disabled = true);
+      button.classList.add('chosen');
+      answerCheck(button.dataset.check);
+    };
+  });
 
   screen.querySelectorAll('[data-more]').forEach(button => {
     button.onclick = () => {
@@ -1750,9 +1952,13 @@ function toLatex(run) {
   // the coefficient a student was being asked about arrived as raw source.
   // Anything genuinely multi-character goes in brackets: x^(2n), not x^2n.
   out = out.replace(/\^\s*\(([^()]*)\)/g, '^{$1}');
-  out = out.replace(/\^\s*(-?\d+|-?[A-Za-z])/g, '^{$1}');
+  // A decimal counts as one number: x^1.75 was braced as x^{1} with a loose
+  // .75 after it, which reads as x to the first times nought point seven
+  // five. The digits after the point are only swallowed when they are there,
+  // so a power at the end of a sentence - "simplify x^2." - keeps its stop.
+  out = out.replace(/\^\s*(-?\d+(?:\.\d+)?|-?[A-Za-z])/g, '^{$1}');
   out = out.replace(/_\s*\(([^()]*)\)/g, '_{$1}');
-  out = out.replace(/_\s*(-?\d+|-?[A-Za-z])/g, '_{$1}');
+  out = out.replace(/_\s*(-?\d+(?:\.\d+)?|-?[A-Za-z])/g, '_{$1}');
   // A bare underscore left after those two is not a subscript - it is a
   // blank, which is how the gap in "3 + 4 = _ + 5" is written, and that
   // is exactly the question that exposes what a student thinks the equals
