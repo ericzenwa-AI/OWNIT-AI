@@ -41,6 +41,7 @@ from pydantic import BaseModel, Field
 
 import bank
 import notify
+import paywall
 import practice
 import visuals
 import explain
@@ -123,6 +124,7 @@ WEB = Path(__file__).resolve().parent.parent / "web"
 PAGE = WEB / "index.html"
 LANDING = WEB / "landing.html"
 STUDENT_PAGE = WEB / "student.html"
+PARENT_PAGE = WEB / "parent.html"
 
 # Every start is a call to the best model, so every start costs money, and the
 # page is public with no sign-in. Without a ceiling, one script - or one class
@@ -614,6 +616,11 @@ def _advance(session_id: int) -> StateOut:
 
         if current.finished:
             store.close_walk(connection, session_id, current.diagnosis)
+            # Counted here rather than from the page: a finished walk is a
+            # fact the server holds, and the free-diagnosis count is the
+            # denominator of the whole paid test.
+            store.record_event(connection, "free_diagnosis_completed",
+                               page="/start", session_id=session_id)
             return StateOut(
                 session_id=session_id,
                 finished=True,
@@ -1242,6 +1249,50 @@ def _days_ago(days: int) -> str:
     from datetime import datetime, timedelta, timezone
 
     return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+
+class UnlockRequest(BaseModel):
+    code: str = Field(max_length=40)
+
+
+@app.get("/api/unlock")
+def unlock_terms() -> dict:
+    """What the pay button should say and where it should go.
+
+    The link lives in the environment, so it can be changed without a deploy
+    and nothing here knows which payment company is on the other end of it.
+    An empty one is a normal state - the page then says payment is not open
+    rather than sending somebody to a broken link.
+    """
+    link = paywall.payment_link()
+    return {"price": paywall.PRICE, "link": link, "open": bool(link),
+            "days": paywall.DAYS}
+
+
+@app.post("/api/unlock")
+def unlock(request: UnlockRequest) -> dict:
+    """Check a code somebody has typed in.
+
+    Deliberately plain: a code is right or it is not, and a wrong one says so
+    without hinting at what a right one looks like. Accepting it is counted,
+    because "did anybody actually come back and use the thing they paid for"
+    is one of the two numbers this test exists to produce.
+    """
+    code = paywall.tidy(request.code)
+    connection = store.connect()
+    try:
+        found = store.find_code(connection, code) if code else None
+        if found is None:
+            return {"ok": False, "why": "That code is not one of ours."}
+        if paywall.has_expired(found["expires_at"]):
+            return {"ok": False, "why": "That code has run out."}
+
+        store.used_code(connection, code)
+        store.record_event(connection, "code_redeemed", page="/start",
+                           detail=code)
+        return {"ok": True, "until": found["expires_at"]}
+    finally:
+        connection.close()
 
 
 class TeachRequest(BaseModel):
@@ -1909,6 +1960,30 @@ everywhere else.</p>
 def diagnostic(request: Request):
     """The diagnostic itself."""
     return _page(PAGE, request)
+
+
+@app.get("/parent")
+def parent_page(request: Request):
+    """Written for the adult being asked to pay, not for the student.
+
+    A separate page rather than a section of the student one: a parent
+    arriving from a message their child sent has no idea what this is, and
+    needs the plain version - what it does, why it helps, what it costs.
+    """
+    try:
+        connection = store.connect()
+        try:
+            store.record_event(
+                connection, "parent_page_opened", page="/parent",
+                source=_source_of(request), visitor=_visitor(request, connection))
+        finally:
+            connection.close()
+    except Exception as error:  # noqa: BLE001 - counting never breaks a page
+        log.warning("could not count a parent visit: %s", error)
+
+    if not PARENT_PAGE.exists():
+        return _page(LANDING, request)
+    return _page(PARENT_PAGE, request)
 
 
 @app.get("/student")
