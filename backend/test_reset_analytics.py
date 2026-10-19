@@ -119,3 +119,47 @@ def test_a_lesson_goes_with_its_session(connection):
     assert "lesson_turn" in reset_analytics.NOISE
     assert reset_analytics.NOISE.index("lesson_turn") < \
         reset_analytics.NOISE.index("sessions"), "children before parents"
+
+
+def test_bank_counters_can_be_zeroed_without_losing_a_question(connection):
+    """They live on the protected table, so without this they are the one set
+    of numbers that survives a fresh start."""
+    import reset_analytics
+    from questions import Distractor, MultipleChoiceQuestion
+
+    store.bank_question(connection, "place_value", MultipleChoiceQuestion(
+        question="what is the 4 worth in 0.47?", correct_option="four tenths",
+        distractors=[Distractor(option="four", mistake="a"),
+                     Distractor(option="forty", mistake="b"),
+                     Distractor(option="four hundredths", mistake="c")]))
+    banked = connection.execute("SELECT id FROM question_bank").fetchone()["id"]
+    store.mark_asked(connection, banked, True)
+    store.mark_asked(connection, banked, False)
+    connection.commit()
+
+    reset_analytics.main(["--clear", "--and-bank-stats"])
+
+    row = connection.execute(
+        "SELECT times_asked, times_correct FROM question_bank").fetchone()
+    assert row["times_asked"] == 0 and row["times_correct"] == 0
+    assert connection.execute(
+        "SELECT COUNT(*) n FROM question_bank").fetchone()["n"] == 1, "kept"
+
+
+def test_the_counters_are_left_alone_unless_asked(connection):
+    import reset_analytics
+    from questions import Distractor, MultipleChoiceQuestion
+
+    store.bank_question(connection, "place_value", MultipleChoiceQuestion(
+        question="q", correct_option="a",
+        distractors=[Distractor(option="b", mistake="x"),
+                     Distractor(option="c", mistake="y"),
+                     Distractor(option="d", mistake="z")]))
+    banked = connection.execute("SELECT id FROM question_bank").fetchone()["id"]
+    store.mark_asked(connection, banked, True)
+    connection.commit()
+
+    reset_analytics.main(["--clear"])
+
+    assert connection.execute(
+        "SELECT times_asked FROM question_bank").fetchone()["times_asked"] == 1

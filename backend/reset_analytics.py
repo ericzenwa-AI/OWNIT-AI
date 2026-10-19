@@ -21,6 +21,12 @@ would ask first.
     python backend/reset_analytics.py              # what is there
     python backend/reset_analytics.py --clear      # clear the testing noise
     python backend/reset_analytics.py --clear --and-feedback
+    python backend/reset_analytics.py --clear --and-bank-stats
+
+--and-bank-stats puts every question's asked/correct counters back to zero
+without deleting a single question. Those counters live on question_bank,
+which cannot be emptied from here, so without this flag they are the one set
+of numbers that survives a fresh start.
 """
 
 from __future__ import annotations
@@ -102,6 +108,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="also clear comments, tutor verdicts and unplaced questions",
     )
+    parser.add_argument(
+        "--and-bank-stats",
+        action="store_true",
+        help="also zero how often each banked question has been asked",
+    )
     args = parser.parse_args(argv)
 
     connection = store.connect()
@@ -114,6 +125,20 @@ def main(argv: list[str] | None = None) -> int:
 
         tables = NOISE + (SAID if args.and_feedback else [])
         removed = clear(connection, tables)
+
+        if args.and_bank_stats:
+            # The questions themselves are never deleted - they cost money to
+            # write and are committed to the repository. Only the counters
+            # are put back to zero, because they live on the protected table
+            # and would otherwise be the one set of numbers that survived a
+            # "start from zero".
+            counters = connection.execute(
+                "SELECT COUNT(*) AS n FROM question_bank WHERE times_asked > 0"
+            ).fetchone()["n"]
+            connection.execute(
+                "UPDATE question_bank SET times_asked = 0, times_correct = 0")
+            connection.commit()
+            removed["question_bank counters (questions kept)"] = counters
 
         print("Cleared:")
         for table, n in removed.items():
