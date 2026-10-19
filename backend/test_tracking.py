@@ -332,3 +332,40 @@ def test_the_dashboard_shows_no_personal_data(client, db, monkeypatch):
 
     assert "203.0.113.7" not in page
     assert "Firefox" not in page
+
+
+# ---- crawlers are not people -----------------------------------------------
+
+
+@pytest.mark.parametrize("agent", [
+    "curl/8.4.0",
+    "Googlebot/2.1 (+http://www.google.com/bot.html)",
+    "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)",
+    "python-requests/2.31.0",
+    "Mozilla/5.0 (X11; Linux x86_64) HeadlessChrome/120",
+    "",
+])
+def test_a_crawler_is_not_counted_as_a_visit(client, db, agent):
+    """The site is linked from a directory, so it is indexed, scraped and
+    monitored around the clock, and every deploy check from a terminal
+    counted as somebody new. The browser string is matched and thrown away -
+    it is never stored - so this has to happen at the moment of counting."""
+    # Explicitly, even when empty: left out, the test client supplies its
+    # own browser string and the empty case would never be exercised.
+    client.get("/", headers={"user-agent": agent})
+
+    assert store.visitors(db)["loads"] == 0
+
+
+def test_a_real_browser_still_counts(client, db):
+    client.get("/", headers={
+        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+                      "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
+                      "Mobile/15E148 Safari/604.1"})
+
+    assert store.visitors(db)["people"] == 1
+
+
+def test_turning_a_crawler_away_still_serves_the_page(client):
+    """Counting is never allowed to decide whether somebody sees the site."""
+    assert client.get("/", headers={"user-agent": "Googlebot/2.1"}).status_code == 200

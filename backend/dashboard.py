@@ -32,22 +32,27 @@ from __future__ import annotations
 
 from html import escape
 
-# The surface this is drawn on, matching the tutoring workspace rather than
-# being a second look. Contrast against --bg: ink 16.8:1, muted 8.6:1,
-# faint 5.1:1, violet 5.4:1.
+# Light, because this is a page somebody reads in daylight with a spreadsheet
+# open next to it - not the workspace a student sits inside. The tutoring
+# screens stay dark; these are different jobs and they are allowed to look
+# different.
+#
+# Contrast measured against --bg rather than guessed: ink 15.9:1, muted
+# 8.0:1, faint 5.2:1, violet 7.0:1, blue 6.4:1, held 5.0:1, broke 5.6:1 - so
+# every colour here carries text or a label safely.
 STYLE = """
   :root {
-    --bg:      #0A0C14;
-    --card:    #121626;
-    --sunk:    #0E1220;
-    --ink:     #EDEFF8;
-    --muted:   #A7AECA;
-    --faint:   #7B83A4;
-    --line:    #222941;
-    --violet:  #8B7CFF;
-    --blue:    #4EA8FF;
-    --held:    #5FD3A6;
-    --broke:   #FF8F6E;
+    --bg:      #F7F8FB;
+    --card:    #FFFFFF;
+    --sunk:    #EEF0F6;
+    --ink:     #12151F;
+    --muted:   #4A4F63;
+    --faint:   #6B7186;
+    --line:    #E4E7EF;
+    --violet:  #5B4BE1;
+    --blue:    #0B63CE;
+    --held:    #0E7A58;
+    --broke:   #B23A20;
     --sans: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
     --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   }
@@ -74,7 +79,7 @@ STYLE = """
     padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.85rem;
     border: 1px solid var(--line); text-decoration: none; color: var(--muted);
   }
-  .filters b { background: var(--violet); color: #0A0C14; border-color: var(--violet); }
+  .filters b { background: var(--violet); color: #FFFFFF; border-color: var(--violet); }
 
   .tiles {
     display: grid; gap: 0.8rem; margin-top: 1.4rem;
@@ -178,7 +183,7 @@ def bars(rows, *, colour="", note=None) -> str:
     return f'<div class="bars">{"".join(out)}</div>'
 
 
-def columns(days, key, *, colour="#8B7CFF", label="") -> str:
+def columns(days, key, *, colour="#5B4BE1", label="") -> str:
     """A day per column, oldest left. Empty days are drawn, not skipped."""
     top = max([row[key] for row in days] or [0])
     if not top:

@@ -1495,6 +1495,42 @@ def _source_of(request: Request) -> str:
 SELF_HOSTS = {"ownitmaths.com", "ownit-tzsv.onrender.com", "localhost", "127.0.0.1"}
 
 
+# Things that fetch pages and are not people.
+#
+# Matched on the browser string and then thrown away - the string itself is
+# never stored, so this has to happen at the moment of counting or not at
+# all. Without it the visitor count is mostly crawlers: the site is linked
+# from a directory, so it is indexed, scraped and monitored around the clock,
+# and every deploy check from a terminal counted as somebody new.
+#
+# Substrings, lower-cased. Deliberately blunt: counting a person as a bot
+# loses one row, counting a bot as a person makes the only number on the page
+# a lie.
+NOT_A_PERSON = (
+    "bot", "crawl", "spider", "slurp", "scrap", "monitor", "uptime", "ping",
+    "curl", "wget", "python-requests", "httpx", "okhttp", "java/", "go-http",
+    "headless", "lighthouse", "pagespeed", "preview", "facebookexternalhit",
+    "whatsapp", "telegram", "discord", "embedly", "feed", "validator",
+    "scanner", "semrush", "ahrefs", "dataprovider", "screaming frog",
+)
+
+
+def is_a_person(agent: str) -> bool:
+    """Whether a browser string looks like somebody rather than something.
+
+    An empty one counts as something: every real browser sends one, and a
+    request without it is a script.
+    """
+    agent = (agent or "").strip().lower()
+    if not agent:
+        return False
+    return not any(mark in agent for mark in NOT_A_PERSON)
+
+
+class _NotAPerson(Exception):
+    """Raised to skip counting. Never leaves this module."""
+
+
 def _visitor(request: Request, connection) -> str | None:
     """A hash that says "this is the same browser as a minute ago", and expires.
 
@@ -1570,6 +1606,11 @@ def _page(path: Path, request: Request):
     # Counted whether the file is sent or not: a 304 still means somebody is
     # looking at the page, they just already had it.
     try:
+        # A crawler is not a visit. Counted before anything is written, so
+        # nothing about the request is stored either way.
+        if not is_a_person(request.headers.get("user-agent", "")):
+            raise _NotAPerson
+
         connection = store.connect()
         try:
             store.record_page_view(
@@ -1578,6 +1619,8 @@ def _page(path: Path, request: Request):
                 visitor=_visitor(request, connection))
         finally:
             connection.close()
+    except _NotAPerson:
+        pass
     except Exception as error:  # noqa: BLE001 - counting must not break serving
         log.warning("could not count a visit: %s", error)
 
@@ -1783,7 +1826,7 @@ def admin_numbers(request: Request, stage: str | None = None,
     <div>
       <h2>Findings a day</h2>
       <p class="about">Walks that reached a gap. The number to watch.</p>
-      <div class="panel">{dashboard.columns(daily, "finished", colour="#5FD3A6",
+      <div class="panel">{dashboard.columns(daily, "finished", colour="#0E7A58",
                                             label="Findings a day")}</div>
     </div>
   </div>
