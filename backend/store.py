@@ -199,27 +199,6 @@ CREATE TABLE IF NOT EXISTS check_question (
     options    TEXT    NOT NULL
 );
 
--- Codes handed out by hand after somebody pays.
---
--- There is no payment integration: a parent pays through a link, and the
--- code is made afterwards with make_code.py off their receipt. So this table
--- is the whole of the paid side, and the only place in this product holding
--- anybody's email besides the waitlist.
---
--- The email is the PARENT'S, typed in by hand. No student email is ever
--- collected anywhere, and a code is not tied to a person or a device - it
--- works wherever it is typed, until its day passes. `times_used` is kept so
--- a code being passed around a class is visible rather than silent.
-CREATE TABLE IF NOT EXISTS access_code (
-    code         TEXT PRIMARY KEY,
-    created_at   TEXT NOT NULL,
-    expires_at   TEXT NOT NULL,
-    parent_email TEXT,
-    note         TEXT,
-    times_used   INTEGER NOT NULL DEFAULT 0,
-    last_used_at TEXT
-);
-
 -- The random number that makes a visitor hash mean nothing tomorrow.
 --
 -- Counting people instead of page loads needs some way to tell one browser
@@ -1170,15 +1149,6 @@ EVENTS = (
     # put to them at the end of a lesson, unaided, went in.
     "check_passed",
     "check_failed",
-    # The paid test. Four of these come from the page and two from the server,
-    # which is why they live here with everything else rather than in a table
-    # of their own - one place to count from.
-    "free_diagnosis_completed",
-    "paywall_shown",
-    "payment_link_clicked",
-    "ask_parent_clicked",
-    "parent_page_opened",
-    "code_redeemed",
 )
 
 MAX_DETAIL = 120
@@ -1331,36 +1301,6 @@ def unasked_for(connection: sqlite3.Connection, skill_id: str,
               AND question NOT IN (SELECT question FROM answers WHERE session_id = ?)
             ORDER BY times_asked ASC""",
         (skill_id, session_id)).fetchall()
-
-
-def add_code(connection: sqlite3.Connection, code: str, *, expires_at: str,
-             parent_email: str | None = None, note: str | None = None) -> None:
-    """Write a code somebody has paid for."""
-    connection.execute(
-        """INSERT INTO access_code (code, created_at, expires_at, parent_email, note)
-                VALUES (?, ?, ?, ?, ?)""",
-        (code, _now(), expires_at, parent_email, note))
-    connection.commit()
-
-
-def find_code(connection: sqlite3.Connection, code: str) -> dict | None:
-    row = connection.execute(
-        "SELECT * FROM access_code WHERE code = ?", (code,)).fetchone()
-    return dict(row) if row else None
-
-
-def used_code(connection: sqlite3.Connection, code: str) -> None:
-    """Note that a code was accepted. Counting, not rationing."""
-    connection.execute(
-        """UPDATE access_code SET times_used = times_used + 1, last_used_at = ?
-            WHERE code = ?""", (_now(), code))
-    connection.commit()
-
-
-def codes(connection: sqlite3.Connection) -> list:
-    """Every code, newest first. For the admin script, not for a page."""
-    return [dict(row) for row in connection.execute(
-        "SELECT * FROM access_code ORDER BY created_at DESC")]
 
 
 def salt_for_today(connection: sqlite3.Connection) -> str:

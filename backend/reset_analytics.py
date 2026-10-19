@@ -53,10 +53,7 @@ SAID = ["feedback", "comments", "unplaced"]
 # Not deletable from here at any flag. If you genuinely want these gone, do it
 # deliberately somewhere else - this file is run in a hurry, on production, by
 # someone who wants a clean funnel.
-#
-# access_code is here because somebody paid for each row in it. Clearing the
-# numbers must never be able to take away access that has been bought.
-NEVER = {"waitlist", "question_bank", "access_code"}
+NEVER = {"waitlist", "question_bank"}
 
 
 def counts(connection, tables) -> dict[str, int]:
