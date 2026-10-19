@@ -157,7 +157,8 @@ def test_every_day_in_the_range_is_there_even_when_empty(db):
 
     assert len(days) == 14
     assert days[0]["day"] < days[-1]["day"], "oldest first"
-    assert all(set(row) == {"day", "loads", "people", "started"} for row in days)
+    assert all(set(row) == {"day", "loads", "people", "started", "finished"}
+               for row in days), "finished was added for the dashboard"
 
 
 def test_the_student_page_is_counted_separately(client, db):
@@ -222,9 +223,9 @@ def test_the_dashboard_renders_with_nothing_in_it(client, db, monkeypatch):
     response = client.get("/admin/numbers", auth=("ownit", "secret"))
 
     assert response.status_code == 200
-    assert "Who is arriving" in response.text
+    assert "From arriving to being taught" in response.text
     assert "Where they came from" in response.text
-    assert "What people pressed" in response.text
+    assert "What they pressed" in response.text
 
 
 def test_the_dashboard_draws_the_days_once_there_are_some(client, db, monkeypatch):
@@ -234,3 +235,100 @@ def test_the_dashboard_draws_the_days_once_there_are_some(client, db, monkeypatc
     text = client.get("/admin/numbers", auth=("ownit", "secret")).text
 
     assert "<svg" in text and "People a day" in text
+
+
+# ---- the dashboard ---------------------------------------------------------
+
+
+def _numbers(client, monkeypatch, **params):
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "secret")
+    query = "&".join(f"{k}={v}" for k, v in params.items())
+    return client.get(f"/admin/numbers{'?' + query if query else ''}",
+                      auth=("admin", "secret"))
+
+
+def test_the_dashboard_needs_the_password(client, monkeypatch):
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "secret")
+
+    assert client.get("/admin/numbers").status_code == 401
+    assert client.get("/admin/numbers", auth=("a", "wrong")).status_code == 401
+
+
+def test_it_renders_on_a_database_with_nothing_in_it(client, db, monkeypatch):
+    """Which is exactly when a dashboard built around having data falls over."""
+    page = _numbers(client, monkeypatch)
+
+    assert page.status_code == 200
+    for panel in ("From arriving to being taught", "People a day",
+                  "Where they came from", "What they pressed",
+                  "What it keeps finding"):
+        assert panel in page.text
+
+
+def test_the_number_that_matters_is_the_headline(client, db, monkeypatch):
+    """How many of the people who arrive actually reach a finding."""
+    assert "reached a finding" in _numbers(client, monkeypatch).text
+
+
+def test_each_funnel_step_is_shown_against_the_one_above():
+    import dashboard
+
+    drawn = dashboard.funnel([("Top", 10, ""), ("Next", 5, ""), ("Last", 1, "")])
+
+    assert "50% of the step above" in drawn
+    assert "20% of the step above" in drawn
+
+
+def test_a_share_of_nothing_is_not_printed_as_a_percentage():
+    """A row showing zero with "20% of all" under it reads as a
+    contradiction, and that is what the old fallback produced."""
+    import dashboard
+
+    drawn = dashboard.funnel([("Top", 0, ""), ("Next", 5, "")])
+
+    assert "nobody reached the step above" in drawn
+    assert "of the step above" not in drawn.replace(
+        "nobody reached the step above", ""), "no percentage of nothing"
+
+
+def test_more_than_the_step_above_is_said_rather_than_shown_as_140_percent():
+    import dashboard
+
+    drawn = dashboard.funnel([("Top", 10, ""), ("Next", 14, "")])
+
+    assert "more than the step above" in drawn
+
+
+def test_a_bar_with_a_real_number_is_never_invisible():
+    """One person and nobody have to look different."""
+    import dashboard
+
+    drawn = dashboard.bars([("big", 500, ""), ("one", 1, "")])
+
+    assert "width:0%" not in drawn and "width:0.0%" not in drawn
+
+
+def test_bars_are_block_elements_so_they_actually_draw():
+    """They were spans, which are inline - the height and the width did
+    nothing and every bar rendered as an empty track."""
+    import dashboard
+
+    assert ".bar .fill { display: block;" in dashboard.STYLE
+    assert ".bar .track { display: block;" in dashboard.STYLE
+
+
+def test_the_time_filter_works(client, db, monkeypatch):
+    for days in (7, 30):
+        assert _numbers(client, monkeypatch, days=days).status_code == 200
+    assert "7 days" in _numbers(client, monkeypatch).text
+
+
+def test_the_dashboard_shows_no_personal_data(client, db, monkeypatch):
+    """It is counts. A visitor hash or an address appearing on it would mean
+    the page had started holding something about somebody."""
+    client.get("/", headers={"user-agent": "Firefox", "x-forwarded-for": "203.0.113.7"})
+
+    page = _numbers(client, monkeypatch).text
+
+    assert "203.0.113.7" not in page
+    assert "Firefox" not in page

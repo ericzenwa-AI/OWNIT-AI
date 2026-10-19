@@ -1609,7 +1609,10 @@ def test_the_numbers_can_be_narrowed_to_one_qualification(client, monkeypatch):
     def started(query=""):
         page = client.get(f"/admin/numbers{query}", auth=("me", "letmein")).text
         import re
-        return int(re.search(r'<div class="big">(\d+)</div><div class="k">walks started', page).group(1))
+        # The tile's markup changed when the page was redrawn; what it is
+        # testing - that the filter narrows the count - did not.
+        return int(re.search(
+            r'<div class="n">(\d+)</div><div class="k">walks started', page).group(1))
 
     assert started() == 3
     assert started("?stage=gcse") == 2

@@ -1396,8 +1396,10 @@ def by_day(connection: sqlite3.Connection, days: int = 14) -> list:
                 GROUP BY day""", (f"-{days} days",))
     }
     starts = {
-        row["day"]: row["n"] for row in connection.execute(
-            """SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n
+        row["day"]: row for row in connection.execute(
+            """SELECT substr(created_at, 1, 10) AS day,
+                      COUNT(*) AS n,
+                      SUM(finished) AS done
                  FROM sessions
                 WHERE created_at >= datetime('now', ?)
                 GROUP BY day""", (f"-{days} days",))
@@ -1408,13 +1410,41 @@ def by_day(connection: sqlite3.Connection, days: int = 14) -> list:
     for back in range(days - 1, -1, -1):
         day = (today - timedelta(days=back)).isoformat()
         row = views.get(day)
+        began = starts.get(day)
         out.append({
             "day": day,
             "loads": row["loads"] if row else 0,
             "people": row["people"] if row else 0,
-            "started": starts.get(day, 0),
+            "started": began["n"] if began else 0,
+            # The number the whole dashboard is built round: walks that
+            # actually reached a finding.
+            "finished": (began["done"] or 0) if began else 0,
         })
     return out
+
+
+def gaps_found(connection: sqlite3.Connection, days: int | None = None,
+               limit: int = 10) -> list:
+    """Which skills the walk actually lands on, commonest first.
+
+    Read off finished sessions rather than from the graph, so it says what
+    students are really missing instead of what the map thinks they might be.
+    root_gaps is comma-separated and can hold more than one, so the splitting
+    happens here rather than in SQL.
+    """
+    from collections import Counter
+
+    where, args = ("", ())
+    if days is not None:
+        where, args = (" AND created_at >= datetime('now', ?)", (f"-{days} days",))
+
+    counted: Counter = Counter()
+    for row in connection.execute(
+            f"SELECT root_gaps FROM sessions WHERE finished = 1{where}", args):
+        for gap in (row["root_gaps"] or "").split(","):
+            if gap:
+                counted[gap] += 1
+    return counted.most_common(limit)
 
 
 def record_rating(connection: sqlite3.Connection, session_id: int, useful: bool) -> None:

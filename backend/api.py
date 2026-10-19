@@ -40,6 +40,7 @@ from fastapi.responses import (
 from pydantic import BaseModel, Field
 
 import bank
+import dashboard
 import notify
 import practice
 import visuals
@@ -1646,263 +1647,223 @@ def admin_email(request: Request) -> str:
 
 
 @app.get("/admin/numbers", response_class=HTMLResponse)
-def admin_numbers(request: Request, stage: str | None = None) -> str:
-    """How it is going, in counts rather than rates.
+def admin_numbers(request: Request, stage: str | None = None,
+                  days: int | None = None) -> str:
+    """How it is going, drawn rather than tabulated.
 
-    At twenty users a percentage is a way of not saying "two people", and two
-    people is the useful fact. The rates that are shown are the two that stay
-    meaningful small: how many who started got to the end, and how many said it
-    helped.
+    Counts, not rates, wherever the numbers are small: at twenty users a
+    percentage is a way of not saying "two people". The rates that are shown
+    are the ones that stay meaningful small - what each step of the funnel
+    kept from the step above it.
     """
     _admin_ok(request)
 
-    # Which qualification a session belongs to is decided by where it started,
-    # so the filter is a set of doorways read off the graph rather than anything
-    # stored - it stays right if a doorway ever changes stage.
     stage = stage if stage in STAGES else None
+    if days not in (7, 30):
+        days = None
     doors = {s.id for s in entry_points() if s.stage == stage} if stage else None
+    since = _days_ago(days) if days else None
 
     connection = store.connect()
     try:
-        now = store.how_it_is_going(connection, entry_skills=doors)
-        week = store.how_it_is_going(connection, since=_days_ago(7), entry_skills=doors)
-        gaps = store.gaps_by_topic(connection)
-        dry = store.ran_dry(connection)
-        # Traffic is never split by stage: a page view happens long before
-        # anyone has told us which qualification they are on.
-        seen_all = store.visitors(connection)
-        seen_week = store.visitors(connection, days=7)
-        sources = store.by_source(connection, days=30)
-        pressed = store.clicks(connection, days=30)
-        daily = store.by_day(connection, days=14)
-    finally:
-        connection.close()
-
-    def rate(top: int, bottom: int) -> str:
-        if not bottom:
-            return "&mdash;"
-        return f"{top / bottom:.0%}"
-
-    # One day per bar, oldest on the left, a single series per chart. Two
-    # measures of the same thing on one axis would need a legend and would
-    # invite reading one against the other; two small charts side by side say
-    # the same thing without the trap. The number is on the bar's title so a
-    # pointer gives the exact value without printing fourteen labels.
-    def bars(rows: list, key: str, title: str) -> str:
-        top = max([row[key] for row in rows] or [0])
-        if not top:
-            return (f'<h3>{title}</h3>'
-                    f'<p class="about"><em>Nothing yet.</em></p>')
-
-        width, height, gap = 24, 90, 6
-        marks = []
-        for i, row in enumerate(rows):
-            tall = round(height * row[key] / top)
-            # A day with something in it never draws as nothing: a 1px sliver
-            # is the difference between "one person" and "no one".
-            tall = max(tall, 2) if row[key] else 0
-            marks.append(
-                f'<rect x="{i * (width + gap)}" y="{height - tall}" '
-                f'width="{width}" height="{tall}" rx="4" fill="#0071E3">'
-                f'<title>{escape(row["day"])}: {row[key]}</title></rect>')
-
-        span = len(rows) * (width + gap) - gap
-        return f"""<h3>{title} <span class="about">peak {top}</span></h3>
-<svg viewBox="0 0 {span} {height}" width="100%" height="{height}"
-     role="img" aria-label="{title}, last {len(rows)} days, peak {top}">
-  {''.join(marks)}
-</svg>
-<p class="about">{escape(rows[0]['day'])} &rarr; {escape(rows[-1]['day'])}</p>"""
-
-    def funnel(figures: dict) -> str:
-        steps = [
-            ("Opened the front page", figures["landing"]),
-            ("Opened the student page", figures.get("student", 0)),
-            ("Opened the diagnostic", figures["opened"]),
-            ("Sent a question", figures["read"]),
-            ("&hellip; which we could place", figures["placed"]),
-            ("Started a walk", figures["started"]),
-            ("Got to a diagnosis", figures["finished"]),
-        ]
-        rows = "".join(
-            f'<tr><td>{label}</td><td class="n">{count}</td></tr>' for label, count in steps
-        )
-        return f"<table>{rows}</table>"
-
-    # What ordinary answering has said about the questions themselves. All of
-    # this has been recorded since the tables were written and read by nobody.
-    connection = store.connect()
-    try:
+        now = store.how_it_is_going(connection, since=since, entry_skills=doors)
+        seen = store.visitors(connection, days=days)
+        daily = store.by_day(connection, days=days or 30)
+        sources = store.by_source(connection, days=days)
+        pressed = store.clicks(connection, days=days)
+        gaps = store.gaps_found(connection, days=days)
+        unplaced = store.gaps_by_topic(connection)
+        lessons = store.lessons_seen(connection)
         evidence = store.bank_evidence(connection)
-        seen = store.misconceptions_seen(connection)
+        dry = store.ran_dry(connection)
+        store_misconceptions = store.misconceptions_seen(connection)
     finally:
         connection.close()
 
-    def _bank_section() -> str:
-        if not evidence["judged"]:
-            return (
-                '<h2>What the questions are doing</h2>'
-                f'<p class="count">Nothing has been answered '
-                f'{evidence["min_asked"]} times yet, so there is nothing to '
-                'judge. Every answer counts towards this without anybody being '
-                'asked anything.</p>')
+    finished, started = now["finished"], now["started"]
 
-        dull = [q for q in evidence["questions"]
-                if q["pass_rate"] > 0.95 or q["pass_rate"] < 0.05]
-        dead = [q for q in evidence["questions"] if q["dead_options"]]
-        fast = [q for q in evidence["questions"]
-                if q["median_seconds"] is not None and q["median_seconds"] < 5]
+    # ---- the headline ----------------------------------------------------
+    tiles = "".join([
+        dashboard.tile(seen["people"], "people", kind="lead"),
+        dashboard.tile(now["read"], "questions sent"),
+        dashboard.tile(started, "walks started"),
+        dashboard.tile(finished, "reached a finding", of=started, kind="good"),
+        dashboard.tile(dashboard.rate(finished, started), "of walks got there"),
+        dashboard.tile(lessons["lessons"], "opened a lesson"),
+        dashboard.tile(now["useful"], "said it helped",
+                       of=now["useful"] + now["not_useful"]),
+    ])
 
-        def rows(items, say):
-            return "".join(
-                f'<tr><td>{escape(SKILLS[q["skill_id"]].name)}'
-                f'<div class="about">{escape(q["question"][:80])}</div></td>'
-                f'<td class="n">{escape(say(q))}</td></tr>' for q in items
-            ) or '<tr><td colspan="2"><em>None.</em></td></tr>'
+    # ---- the funnel ------------------------------------------------------
+    walk = dashboard.funnel([
+        ("Opened a page", seen["loads"], "page loads, not people"),
+        ("Opened the diagnostic", now["opened"], ""),
+        ("Sent a question", now["read"], ""),
+        ("...which we could place", now["placed"], ""),
+        ("Started a walk", started, ""),
+        ("Reached a finding", finished, ""),
+        ("Opened a lesson", lessons["lessons"], ""),
+        ("Got to their own question", lessons["reached_apply"], ""),
+    ])
 
-        told = "".join(
-            f'<tr><td>{escape(row["misconception"][:90])}'
-            f'<div class="about">{escape(SKILLS[row["skill_id"]].name)}</div></td>'
-            f'<td class="n">{row["times"]}</td></tr>' for row in seen
-        ) or '<tr><td colspan="2"><em>Nobody has got one wrong yet.</em></td></tr>'
+    stopped = dashboard.bars(
+        [(f"Answered {q} question{'s' if q != 1 else ''}", n, "")
+         for q, n in now["reached"]],
+        note="Nobody has answered anything yet.")
 
-        return f"""
-<h2>What the questions are doing</h2>
-<p class="count">{evidence["judged"]} answered at least {evidence["min_asked"]}
-times &middot; {evidence["waiting"]} still waiting</p>
+    found = dashboard.bars(
+        [(SKILLS[g].name if g in SKILLS else g, n, "") for g, n in gaps],
+        colour="blue", note="No findings yet.")
 
-<h3>Not discriminating</h3>
-<p class="about">Everybody right, or nobody. Either way it is six questions of a
-student's time spent learning nothing about them.</p>
-<table>{rows(dull, lambda q: f'{q["correct"]}/{q["asked"]}')}</table>
+    # Sorted by what is actually drawn. The query ranks by page loads, and
+    # the bars show people, so the two disagreed and the chart came out with
+    # a shorter bar above a longer one - which reads as broken.
+    where_from = dashboard.bars(
+        sorted([(row["source"], row["people"], f"of {row['loads']} loads")
+                for row in sources], key=lambda r: -r[1]),
+        note="Nothing recorded yet.")
 
-<h3>Options nobody ever picks</h3>
-<p class="about">Every wrong option claims to be a mistake a real student makes.
-This is the only place that claim is tested. Two dead options make a
-four-option question a two-option one.</p>
-<table>{rows(dead, lambda q: ", ".join(q["dead_options"]))}</table>
+    clicked = dashboard.bars(
+        [(row["name"].replace("_", " "), row["times"], f"by {row['people']}")
+         for row in pressed],
+        colour="blue", note="Nothing pressed yet.")
 
-<h3>Answered too fast to have been worked out</h3>
-<p class="about">Guessing is invisible in a pass rate and obvious on a clock.</p>
-<table>{rows(fast, lambda q: f'{q["median_seconds"]:.0f}s')}</table>
+    turned_away = dashboard.bars(
+        [(topic, n, "") for topic, n in unplaced[:8]],
+        colour="bad", note="Nothing has been turned away.")
 
-<h3>Mistakes students actually made</h3>
-<p class="about">Not what the generator claimed they would make. What they did.</p>
-<table>{told}</table>
-"""
+    judged = evidence["questions"]
+    dull = dashboard.bars(
+        [(SKILLS[q["skill_id"]].name if q["skill_id"] in SKILLS else q["skill_id"],
+          q["asked"], f'{q["correct"]}/{q["asked"]} right')
+         for q in judged if q["pass_rate"] > 0.95 or q["pass_rate"] < 0.05][:6],
+        colour="bad", note="Every question is telling us something.")
 
-    drop = "".join(
-        f'<tr><td>Answered {q} question{"s" if q != 1 else ""}</td>'
-        f'<td class="n">{n}</td></tr>'
-        for q, n in now["reached"]
-    ) or '<tr><td colspan="2"><em>Nobody has answered anything yet.</em></td></tr>'
+    dead = dashboard.bars(
+        [(SKILLS[q["skill_id"]].name if q["skill_id"] in SKILLS else q["skill_id"],
+          len(q["dead_options"]), "never picked: " + ", ".join(q["dead_options"]))
+         for q in judged if q["dead_options"]][:6],
+        colour="bad", note="Every option has been picked by somebody.")
 
-    unplaced = "".join(
-        f'<tr><td>{escape(topic)}</td><td class="n">{count}</td></tr>'
-        for topic, count in gaps[:10]
-    ) or '<tr><td colspan="2"><em>Nothing has been turned away.</em></td></tr>'
+    fast = dashboard.bars(
+        [(SKILLS[q["skill_id"]].name if q["skill_id"] in SKILLS else q["skill_id"],
+          round(q["median_seconds"]), "seconds, median")
+         for q in judged
+         if q["median_seconds"] is not None and q["median_seconds"] < 5][:6],
+        colour="bad", note="Nobody is answering suspiciously fast.")
+
+    told = dashboard.bars(
+        [(row["misconception"][:46], row["times"], "")
+         for row in store_misconceptions][:6],
+        colour="blue", note="Nobody has got one wrong yet.")
 
     thin = "".join(
-        f'<tr><td>{escape(row["skill_id"])}</td><td class="n">{row["times"]}</td></tr>'
-        for row in dry[:10]
-    ) or '<tr><td colspan="2"><em>The shelf has held.</em></td></tr>'
+        f'<tr><td>{escape(row["skill_id"])}</td>'
+        f'<td class="n">{row["times"]}</td></tr>' for row in dry[:8]
+    ) or '<tr><td colspan="2" class="empty">The shelf has held.</td></tr>'
 
-    return f"""<!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>Numbers</title>
-<style>
-  body {{ font: 15px/1.6 ui-monospace, Consolas, monospace; max-width: 44rem;
-         margin: 2rem auto; padding: 0 1rem; background: #fff; color: #111; }}
-  h1 {{ font-size: 1.1rem; }}
-  h2 {{ font-size: 0.95rem; margin: 2rem 0 0.5rem; }}
-  table {{ width: 100%; border-collapse: collapse; margin-bottom: 0.5rem; }}
-  td {{ padding: 0.35rem 0.5rem; border-bottom: 1px solid #eee; }}
-  td.n {{ text-align: right; font-variant-numeric: tabular-nums; width: 6rem; }}
-  .big {{ font-size: 1.6rem; }}
-  .side {{ display: flex; gap: 2.5rem; flex-wrap: wrap; margin: 0.5rem 0 1rem; }}
-  .side div {{ min-width: 8rem; }}
-  .k {{ color: #777; font-size: 0.8rem; }}
-  .warn {{ color: #8C3B2E; }}
-  .ok {{ color: #2F6B4F; }}
-  a {{ color: #2C4A7C; }}
-  .small {{ color: #777; font-size: 0.85rem; }}
-</style>
-<h1>Numbers</h1>
-<p class="small">
-  {'<b>Everything</b>' if not stage else '<a href="/admin/numbers">Everything</a>'}
-  &middot;
-  {'<b>GCSE</b>' if stage == GCSE else '<a href="/admin/numbers?stage=gcse">GCSE</a>'}
-  &middot;
-  {'<b>A-level</b>' if stage == A_LEVEL else '<a href="/admin/numbers?stage=a-level">A-level</a>'}
-  &middot; <a href="/admin/feedback">What people said &rarr;</a>
-</p>
+    window = {7: "last 7 days", 30: "last 30 days"}.get(days, "all time")
+    body = f"""
+  <div class="tiles">{tiles}</div>
 
-<div class="side">
-  <div><div class="big">{now['started']}</div><div class="k">walks started</div></div>
-  <div><div class="big ok">{rate(now['finished'], now['started'])}</div>
-       <div class="k">of those got to a diagnosis</div></div>
-  <div><div class="big">{now['useful']}<span class="k"> / {now['useful'] + now['not_useful']}</span></div>
-       <div class="k">said it helped</div></div>
-  <div><div class="big">{now['waiting']}</div><div class="k">on the waitlist</div></div>
-</div>
+  <h2>From arriving to being taught</h2>
+  <p class="about">Each step as a share of the one above it, so the place
+  people leave is the row where the share collapses. {escape(window.capitalize())}.
+  {'<b>The first four rows are everyone.</b> A page view and a question being read '
+   'both happen before there is a session to belong to, so they cannot be split '
+   'by stage.' if now["funnel_is_everyone"] else ''}</p>
+  <div class="panel">{walk}</div>
 
-<h2>The funnel</h2>
-{funnel(now)}
-{'<p class="small warn">The first three are everyone. A page view and a question'
- ' being read both happen before there is a session to belong to, so they cannot'
- ' be split by stage.</p>' if now["funnel_is_everyone"] else ''}
-<p class="small">Last 7 days: {week['opened']} opened, {week['started']} started,
-{week['finished']} finished.</p>
+  <div class="row2">
+    <div>
+      <h2>People a day</h2>
+      <p class="about">One browser on one day counts once.</p>
+      <div class="panel">{dashboard.columns(daily, "people", label="People a day")}</div>
+    </div>
+    <div>
+      <h2>Findings a day</h2>
+      <p class="about">Walks that reached a gap. The number to watch.</p>
+      <div class="panel">{dashboard.columns(daily, "finished", colour="#5FD3A6",
+                                            label="Findings a day")}</div>
+    </div>
+  </div>
 
-<h2>Who is arriving</h2>
-<p class="count">{seen_all['people']} people &middot; {seen_all['loads']} page loads
-&middot; {seen_week['people']} people in the last 7 days</p>
-<p class="about">A person here means one browser on one day. Somebody who comes
-back tomorrow is counted again, and visits recorded before this was built have
-no marker at all, so they count as loads and not as people.</p>
+  <div class="row2">
+    <div>
+      <h2>Where they came from</h2>
+      <p class="about">The tag on a link we sent, or the site that linked here.</p>
+      <div class="panel">{where_from}</div>
+    </div>
+    <div>
+      <h2>What they pressed</h2>
+      <p class="about">The space between arriving and starting lives here.</p>
+      <div class="panel">{clicked}</div>
+    </div>
+  </div>
 
-{bars(daily, "people", "People a day")}
-{bars(daily, "started", "Walks started a day")}
+  <div class="row2">
+    <div>
+      <h2>Where people stop</h2>
+      <p class="about">How many walks got at least this far.</p>
+      <div class="panel">{stopped}</div>
+    </div>
+    <div>
+      <h2>What it keeps finding</h2>
+      <p class="about">The gaps real students actually land on.</p>
+      <div class="panel">{found}</div>
+    </div>
+  </div>
 
-<h2>Where they came from</h2>
-<p class="about">The tag on the link we sent, or the site that linked here.
-Last 30 days.</p>
-<table>{"".join(
-    f'<tr><td>{escape(row["source"])}</td>'
-    f'<td class="n">{row["people"]} <span class="about">of {row["loads"]}</span></td></tr>'
-    for row in sources) or '<tr><td colspan="2"><em>Nothing recorded yet.</em></td></tr>'}</table>
+  <h2>Questions we could not place</h2>
+  <p class="about">Each one is a topic somebody wanted and we turned away.
+  This is the coverage backlog, ordered by how often it is asked for.</p>
+  <div class="panel">{turned_away}</div>
 
-<h2>What people pressed</h2>
-<p class="about">Last 30 days. The gap between arriving and starting lives
-here: somebody who read the whole page and never pressed anything is invisible
-everywhere else.</p>
-<table>{"".join(
-    f'<tr><td>{escape(row["name"])}</td>'
-    f'<td class="n">{row["times"]} <span class="about">by {row["people"]}</span></td></tr>'
-    for row in pressed) or '<tr><td colspan="2"><em>Nothing pressed yet.</em></td></tr>'}</table>
+  <h2>What the questions are doing</h2>
+  <p class="about">{
+    f"Nothing has been answered {evidence['min_asked']} times yet, so there is "
+    "nothing to judge. Every answer counts towards this without anybody being "
+    "asked anything."
+    if not evidence["judged"] else
+    f"{evidence['judged']} questions have been answered at least "
+    f"{evidence['min_asked']} times; {evidence['waiting']} are still waiting "
+    "for enough answers. A question everybody gets right, or nobody does, is "
+    "six questions of a student's time spent learning nothing about them."
+  }</p>
+  <div class="row2">
+    <div class="panel">
+      <p class="about"><b>Not discriminating</b> &mdash; everybody right, or
+      nobody.</p>
+      {dull}
+    </div>
+    <div class="panel">
+      <p class="about"><b>Options nobody ever picks</b> &mdash; every wrong
+      option claims to be a mistake a real student makes. This is the only
+      place that claim is tested.</p>
+      {dead}
+    </div>
+  </div>
+  <div class="row2">
+    <div class="panel">
+      <p class="about"><b>Answered too fast to have been worked out</b> &mdash;
+      guessing is invisible in a pass rate and obvious on a clock.</p>
+      {fast}
+    </div>
+    <div class="panel">
+      <p class="about"><b>Mistakes students actually made</b> &mdash; not what
+      the generator claimed they would.</p>
+      {told}
+    </div>
+  </div>
 
-<h2>Where people stop</h2>
-{f'<table>{drop}</table>'}
-<p class="small">Average {now['seconds_per_answer'] or '&mdash;'} seconds per answer.</p>
-
-<h2>Did it help?</h2>
-<table>
-  <tr><td>Said it helped</td><td class="n ok">{now['useful']}</td></tr>
-  <tr><td>Said it did not</td><td class="n warn">{now['not_useful']}</td></tr>
-  <tr><td>Tutor called the diagnosis right</td><td class="n ok">{now['right']}</td></tr>
-  <tr><td>Tutor called it wrong</td><td class="n warn">{now['wrong']}</td></tr>
-</table>
-
-<h2>Questions we could not place</h2>
-{f'<table>{unplaced}</table>'}
-<p class="small">This is the build list, written by the people who wanted it.</p>
-
-<h2>Skills that cost a live question</h2>
-{f'<table>{thin}</table>'}
-{_bank_section()}
+  <h2>Skills that cost a live question</h2>
+  <p class="about">The shelf was empty, so a model had to write one. Each is a
+  skill to bank.</p>
+  <div class="panel"><table>{thin}</table></div>
 """
+
+    return dashboard.page(title="ownIT numbers", body=body, days=days,
+                          stage=stage, stages=list(STAGES))
 
 
 @app.get("/start")
