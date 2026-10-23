@@ -1620,3 +1620,313 @@ nodes:
     note: >-
       The assembly step. The multiplication and the index law can both be right
       and the answer still wrong, and this is the only node that catches it.
+
+  # ---- Statistics -----------------------------------------------------------
+  #
+  # The text-only half, and only that half. A list of numbers and a small
+  # frequency table need no picture; histograms, pie charts, cumulative
+  # frequency curves and scatter graphs cannot be asked without one, and this
+  # project does not ship generated diagrams. So this covers what WASSCE and
+  # GCSE both ask in words, and stops where the figures start.
+  #
+  # THE ASSEMBLY STEPS. Three of them, and all three are where real students
+  # lose the marks rather than in the arithmetic:
+  #   - the median of an unordered list, taken without ordering it first;
+  #   - the mean of a frequency table, taken as the mean of the values while
+  #     the frequencies sit there ignored;
+  #   - working backwards from a mean, which needs the total and nothing in
+  #     "find the mean" teaches you to go the other way.
+
+  - id: mean_of_a_list
+    name: Mean of a list of numbers
+    level: 4
+    topic: statistics
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Find the mean of a short list of numbers, including one with a decimal
+      or a negative in it.
+    needs: [what_an_average_is, fractions_arith, bidmas]
+
+  - id: median_of_a_list
+    name: Median of a list of numbers
+    level: 4
+    topic: statistics
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Find the median of a list given out of order, with an even number of
+      values at least once so the middle two have to be averaged.
+    needs: [what_an_average_is, order_a_list, fractions_arith]
+
+  - id: mode_and_range
+    name: Mode and range
+    level: 4
+    topic: statistics
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Give the mode and the range of a list, including a list with two modes
+      or none.
+    needs: [what_an_average_is, order_a_list, negatives]
+
+  - id: find_missing_value_from_mean
+    name: Working backwards from a mean
+    level: 4
+    topic: statistics
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Given the mean of a set and all but one of its values, find the one
+      that is missing.
+    needs: [mean_of_a_list, total_from_mean_and_count, solve_linear]
+
+  - id: mean_from_frequency_table
+    name: Mean from a frequency table
+    level: 4
+    topic: statistics
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Find the mean from an ungrouped frequency table, where the frequencies
+      are not all the same.
+    needs: [read_a_frequency_table, multiply_by_frequency, fractions_arith]
+
+  - id: modal_and_median_class
+    name: Modal and median class
+    level: 4
+    topic: statistics
+    stage: gcse
+    kind: procedure
+    probe: >-
+      From a grouped frequency table, give the modal class and say which
+      class the median falls in.
+    needs: [read_a_frequency_table, order_a_list, what_an_average_is]
+
+  - id: choose_the_average
+    name: Which average to use
+    level: 4
+    topic: statistics
+    stage: gcse
+    kind: concept
+    probe: >-
+      Say which of the mean, median or mode describes a particular set best,
+      and why - typically a set with one value far from the rest.
+    needs: [what_an_average_is, mean_of_a_list, median_of_a_list]
+
+  - id: what_an_average_is
+    name: What an average is for
+    level: 5
+    kind: concept
+    probe: >-
+      Say what an average is doing: one number standing in for a whole set,
+      so two sets can be compared without listing everything.
+    needs: [fraction_meaning]
+    note: >-
+      Separated from working one out deliberately. A student can compute a
+      mean perfectly and still not know what it is for, which is exactly the
+      student who cannot answer "which average is better here".
+
+  - id: order_a_list
+    name: Putting a list in order
+    level: 5
+    kind: procedure
+    probe: >-
+      Put a short list in order of size, including decimals and negatives
+      mixed together.
+    needs: [place_value, negatives, order_fdp]
+    note: >-
+      The assembly step for the median. The arithmetic of "take the middle
+      one" is nothing; taking the middle of the list as written, before
+      ordering it, is the mistake, and nothing in finding a middle teaches
+      you to sort first.
+
+  - id: total_from_mean_and_count
+    name: Getting the total back out of a mean
+    level: 5
+    kind: concept
+    probe: >-
+      Given a mean and how many values there were, say what the total of
+      those values must have been, and why.
+    needs: [what_an_average_is, inverse_operations]
+    note: >-
+      The assembly step for every backwards question. "Add them up and
+      divide" is a one-way instruction, and a student who only holds it has
+      nothing to run in reverse.
+
+  - id: read_a_frequency_table
+    name: Reading a frequency table
+    level: 5
+    kind: concept
+    probe: >-
+      Say what each column of a frequency table means - which number is the
+      value and which is how many times it happened.
+    needs: [place_value]
+    note: >-
+      Read the wrong way round, a frequency table turns into a list of
+      values, and every statistic drawn from it is wrong in the same quiet
+      way.
+
+  - id: multiply_by_frequency
+    name: Weighing each value by how often it happened
+    level: 5
+    kind: procedure
+    probe: >-
+      Given a frequency table, work out the total of all the values - each
+      value multiplied by its frequency, added up. Must not require finding
+      the mean afterwards.
+    needs: [read_a_frequency_table, multiply_terms, bidmas]
+    note: >-
+      The assembly step for the frequency-table mean, and the commonest
+      error in the topic: the mean of the values is taken while the
+      frequencies sit in the next column doing nothing.
+
+  # ---- Probability ----------------------------------------------------------
+  #
+  # Again the half that needs no picture: outcomes you can count and events
+  # described in words. Tree diagrams and Venn diagrams are how the rest of
+  # this topic is examined and neither can be asked in text, so they are not
+  # here.
+  #
+  # THE ASSEMBLY STEPS. Deciding whether to add or multiply, and noticing
+  # that the second pick comes from a smaller bag. Both sit above the
+  # arithmetic, and both are where the marks go.
+
+  - id: probability_of_an_event
+    name: Probability of a single event
+    level: 4
+    topic: probability
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Find the probability of one event from equally likely outcomes, and
+      give it as a fraction in its simplest form.
+    needs: [what_probability_means, count_the_outcomes, fractions_arith]
+
+  - id: complement_probability
+    name: The probability of it not happening
+    level: 4
+    topic: probability
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Given the probability of an event, find the probability that it does
+      not happen.
+    needs: [what_probability_means, everything_adds_to_one, add_subtract_fractions]
+
+  - id: expected_number
+    name: How many times to expect it
+    level: 4
+    topic: probability
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Given a probability and a number of trials, work out how many times
+      the event is expected to happen.
+    needs: [probability_of_an_event, multiply_divide_fractions, convert_fdp]
+
+  - id: probability_from_data
+    name: Probability from a table of results
+    level: 4
+    topic: probability
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Work out a probability from a frequency table of what actually
+      happened, rather than from equally likely outcomes.
+    needs: [what_probability_means, read_a_frequency_table, fractions_arith]
+
+  - id: either_event
+    name: One thing or another
+    level: 4
+    topic: probability
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Find the probability of one event or another when the two cannot both
+      happen.
+    needs: [probability_of_an_event, add_or_multiply, add_subtract_fractions]
+
+  - id: both_events_independent
+    name: Two things that do not affect each other
+    level: 4
+    topic: probability
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Find the probability of two independent events both happening - two
+      coins, two dice, or two picks where the first is put back.
+    needs: [probability_of_an_event, add_or_multiply, multiply_divide_fractions]
+
+  - id: without_replacement
+    name: When the first pick changes the second
+    level: 4
+    topic: probability
+    stage: gcse
+    kind: procedure
+    probe: >-
+      Find the probability of two picks from the same bag when the first is
+      not put back.
+    needs: [both_events_independent, the_bag_gets_smaller, multiply_divide_fractions]
+
+  - id: what_probability_means
+    name: What a probability is
+    level: 5
+    kind: concept
+    probe: >-
+      Say what a probability of 0, of 1, and of a half each mean, and why a
+      probability can never be more than 1.
+    needs: [fraction_meaning]
+
+  - id: everything_adds_to_one
+    name: All the chances add up to one
+    level: 5
+    kind: fact
+    probe: >-
+      Say why the probabilities of all the possible outcomes add up to 1,
+      and use it on a short list where one probability is missing.
+    needs: [what_probability_means, add_subtract_fractions]
+
+  - id: count_the_outcomes
+    name: Counting how many ways
+    level: 5
+    kind: procedure
+    probe: >-
+      Given a situation in words, say how many outcomes there are altogether
+      and how many of them count as the event. Must not require working the
+      probability out.
+    needs: [what_probability_means]
+    note: >-
+      The assembly step for every probability question. The division is
+      trivial; getting the two numbers right is the whole task, and a
+      student who counts "three red" against "three other colours" rather
+      than against the whole bag has done the maths perfectly and answered
+      the wrong question.
+
+  - id: add_or_multiply
+    name: Deciding whether to add or multiply
+    level: 5
+    kind: concept
+    probe: >-
+      Given two events described in words, say whether their probabilities
+      should be added or multiplied, and why.
+    needs: [what_probability_means]
+    note: >-
+      The other assembly step, and the one that decides the mark. Nothing in
+      knowing either rule tells you which one the question is asking for;
+      "and" multiplies and "or" adds is a sentence students repeat without
+      being able to apply, because the words in the question are rarely
+      "and" or "or".
+
+  - id: the_bag_gets_smaller
+    name: The second pick comes from what is left
+    level: 5
+    kind: concept
+    probe: >-
+      Say what changes about the second probability when the first thing
+      picked is not put back - both the top and the bottom of the fraction.
+    needs: [what_probability_means, fraction_meaning]
+    note: >-
+      Students remember to take one off the bottom and forget the top, or
+      the other way round. Which one changes depends on what was picked
+      first, and that is the bit nothing else here teaches.

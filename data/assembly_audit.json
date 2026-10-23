@@ -3,7 +3,7 @@
   "_how_it_was_made": "Found by a tutor watching a student on 2026-09-02: a subtraction question traced correctly to what a fraction is and back up, and the student still could not do it, because nothing tested combining the numerators over the shared denominator. A lexical rule - probe contains 'then' or 'and simplify' - was tried first and rejected: it flags 5 of 70 doorways and misses the founding case entirely, because 'Add or subtract two fractions with different denominators' promises nothing and hides everything. So every doorway was judged semantically in one pass, on claude-opus-5, 2026-09-02.",
   "_what_it_is_not": "Not a list of nodes to add. Twenty-four entries is a third of the graph and adding them unexamined would be a larger unvalidated expansion than the one this exists to correct. It is a backlog, ordered by whatever outside evidence turns up. Two have been acted on: combine_over_common_denominator, from the tutor session, and set_derivative_zero, from Cambridge 9709 March 2025 P1 Q2(b).",
   "_calibration": "add_subtract_fractions is the anchor: its act provably has a child, because a tutor found the gap on 2026-09-02 and combine_over_common_denominator was added for it. A run that calls it unmodelled is not trusted and writes nothing. expand_brackets was the second anchor until 2026-09-18, when re-judging showed the original verdict had named only the collecting half of its probe and never judged the multiplication - so it was never evidence the judge gets that doorway right. An anchor has to be checkable without trusting the run it checks.",
-  "judged_on": "2026-09-02, 2026-09-18",
+  "judged_on": "2026-09-02, 2026-09-18, 2026-10-23",
   "verdicts": {
     "add_subtract_fractions": {
       "act": "Combine numerators over the shared denominator",
@@ -59,6 +59,18 @@
       "missing": "",
       "evidence": []
     },
+    "both_events_independent": {
+      "act": "Multiply the two separate probabilities together for a joint event",
+      "modelled": true,
+      "missing": "",
+      "evidence": []
+    },
+    "choose_the_average": {
+      "act": "Compare what the mean and the median do to the same set and pick the one that represents it better",
+      "modelled": false,
+      "missing": "Nothing in the graph tests the effect of an extreme value on each average: that one value far from the rest drags the mean but leaves the median where it is, and that the mode only means anything when a value genuinely repeats. A node would have to present a set with an outlier (or an outlier added to a known set) and ask what happens to each average, with no 'which is best' judgement attached. A student who holds what_an_average_is, mean_of_a_list and median_of_a_list can compute both numbers correctly and still recommend the mean for a salary list containing one huge salary, because nothing ever made the sensitivity of each statistic an object of study.",
+      "evidence": []
+    },
     "classify_stationary": {
       "act": "Evaluate the second derivative and conclude max or min",
       "modelled": true,
@@ -69,6 +81,12 @@
       "act": "Order numbers in standard form by comparing powers first and mantissas only as a tie-break",
       "modelled": false,
       "missing": "A node would have to test the comparison rule itself: that between two numbers in standard form the one with the larger index is larger regardless of the front number, and that the mantissas decide only when the indices are equal (with negative indices ordered as negatives). A student who knows standard_form_meaning, power_of_ten and negatives can still place 3.1x10^4 above 2.9x10^5 by reading the leading digits, or reverse the order of 5x10^-3 and 2x10^-6 by treating -6 as 'bigger'.",
+      "evidence": []
+    },
+    "complement_probability": {
+      "act": "Subtract the given probability from 1",
+      "modelled": true,
+      "missing": "",
       "evidence": []
     },
     "complete_the_square": {
@@ -97,6 +115,12 @@
     },
     "direct_proportion": {
       "act": "Scale via the value of one",
+      "modelled": true,
+      "missing": "",
+      "evidence": []
+    },
+    "either_event": {
+      "act": "Add the two probabilities for mutually exclusive events",
       "modelled": true,
       "missing": "",
       "evidence": []
@@ -144,6 +168,12 @@
       "missing": "",
       "evidence": []
     },
+    "expected_number": {
+      "act": "Multiply the probability by the number of trials to get an expected count",
+      "modelled": false,
+      "missing": "No node states or tests the relation expected number = probability x number of trials. add_or_multiply only decides between adding and multiplying two event probabilities, not between a probability and a trial count; multiply_divide_fractions multiplies two fractions with no context attached. A node would have to hand over a probability and a number of trials and ask for the expected count (and what it means that the answer need not be a whole number). A student holding every child can find p = 1/5, know how to multiply fractions, and still write 200 / (1/5) = 1000 or report the probability as the answer, because nothing told them which quantity multiplies which.",
+      "evidence": []
+    },
     "factorise_common": {
       "act": "Take out the HCF and write the correct bracket",
       "modelled": true,
@@ -164,6 +194,12 @@
     },
     "find_inverse": {
       "act": "Invert and state the domain",
+      "modelled": true,
+      "missing": "",
+      "evidence": []
+    },
+    "find_missing_value_from_mean": {
+      "act": "Recover the total from the mean and count, then subtract the known values to isolate the missing one",
       "modelled": true,
       "missing": "",
       "evidence": []
@@ -270,8 +306,38 @@
       "missing": "",
       "evidence": []
     },
+    "mean_from_frequency_table": {
+      "act": "Divide the sum of value x frequency by the TOTAL frequency",
+      "modelled": false,
+      "missing": "multiply_by_frequency produces the numerator (sum of fx) and fractions_arith does division, but nothing in the graph tests that the divisor is the sum of the frequency column rather than the number of rows. A node would have to ask, from a frequency table alone, how many pieces of data there are altogether - no fx total, no mean. A student who holds read_a_frequency_table, multiply_by_frequency and fractions_arith can correctly compute sum fx = 87 and then divide by 5 because there were five rows, getting 17.4 instead of 87/30 = 2.9.",
+      "evidence": []
+    },
+    "mean_of_a_list": {
+      "act": "Add the values and divide by how many there are",
+      "modelled": true,
+      "missing": "",
+      "evidence": []
+    },
+    "median_of_a_list": {
+      "act": "Locate the middle of the ordered list, averaging the two middle values when the count is even",
+      "modelled": false,
+      "missing": "order_a_list gets the list in order and fractions_arith does arithmetic, but no node tests the positional act: counting in from both ends to the middle, and knowing that an even count leaves two middle values which must be averaged. A node would have to hand over an ALREADY ordered list and ask only which value or values sit in the middle and what to do with them. A student holding every child can order 3, 4, 7, 9, 11, 12 perfectly and then give 7 (or 7 and 9, or the mean of all six) as the median, because the halfway-position rule was never an object of test.",
+      "evidence": []
+    },
     "midpoint_and_distance": {
       "act": "Apply the midpoint and distance formulas",
+      "modelled": true,
+      "missing": "",
+      "evidence": []
+    },
+    "modal_and_median_class": {
+      "act": "Run a cumulative count through the classes to find which one contains the middle value, and read off the class with the largest frequency",
+      "modelled": false,
+      "missing": "Nothing tests cumulative totalling across classes: adding frequencies down the table until the running total passes half the data. read_a_frequency_table only tests what the columns mean, order_a_list works on a list of individual values, and what_an_average_is is conceptual. A node would have to ask, from a grouped table, how many values lie at or below each class boundary and hence where the n/2-th value falls. A student with every child can give the modal class correctly and then name the middle ROW of the table as the median class, or average the class frequencies, because the running-total step is never required of them anywhere.",
+      "evidence": []
+    },
+    "mode_and_range": {
+      "act": "Read off the most frequent value and the difference between the largest and smallest",
       "modelled": true,
       "missing": "",
       "evidence": []
@@ -322,6 +388,18 @@
       "act": "Carry out the division",
       "modelled": false,
       "missing": "Needs a node for the division process itself — long division or matching coefficients: divide the leading term, multiply back, subtract, bring down the next term. Expanding, solving linear equations and negatives are all ingredients; sign errors at the subtraction step and dropping a missing power are the real failures and have no home.",
+      "evidence": []
+    },
+    "probability_from_data": {
+      "act": "Form the fraction of one observed frequency over the total of all frequencies",
+      "modelled": true,
+      "missing": "",
+      "evidence": []
+    },
+    "probability_of_an_event": {
+      "act": "Put the count of favourable outcomes over the total count and simplify",
+      "modelled": true,
+      "missing": "",
       "evidence": []
     },
     "rationalise_denominator": {
@@ -506,6 +584,12 @@
     },
     "use_factor_theorem": {
       "act": "Substitute the root and solve for the constant",
+      "modelled": true,
+      "missing": "",
+      "evidence": []
+    },
+    "without_replacement": {
+      "act": "Multiply the first probability by a second one whose top and bottom have both been adjusted",
       "modelled": true,
       "missing": "",
       "evidence": []

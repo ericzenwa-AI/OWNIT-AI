@@ -1,4 +1,11 @@
 {
+  "add_or_multiply": {
+    "what": "If you want either one thing or another thing to happen, in a single pick, you add their probabilities. If you want one thing and then another thing to both happen, across separate picks or events, you multiply.",
+    "example": "Rolling a die once: P(getting a 2 or a 5) = 1/6 + 1/6 = 2/6. Rolling a die twice: P(getting a 2 then a 5) = 1/6 x 1/6 = 1/36.",
+    "wrong": "Students multiply when they should add, getting 1/6 x 1/6 = 1/36 for 'rolling a 2 or a 5 in one roll', because multiplying feels like the 'proper maths' thing to do with two probabilities, regardless of whether it's an 'or' in one event or an 'and' across two.",
+    "plain": "When you want this thing or that thing to happen in one go, you add the chances together. When you want this thing to happen and then that other thing to happen too, you multiply them instead.",
+    "like": "It is like deciding between two bus routes versus needing both a bus and a train to connect - either route working is an add-up of chances, but needing both legs to go right is a multiply."
+  },
   "add_subtract_fractions": {
     "what": "To add or subtract fractions with different denominators, first rewrite both fractions so they share a common denominator, then combine the top numbers over that shared bottom.",
     "example": "1/4 + 1/6: common denominator is 12, so 1/4 = 3/12 and 1/6 = 2/12. Then 3/12 + 2/12 = 5/12.",
@@ -90,12 +97,26 @@
     "plain": "This kind of sum only settles down and equals something sensible when the changing number inside is small enough to shrink towards nothing as you keep going. If it is too big, the pieces you are adding just keep growing forever and never reach a proper answer.",
     "like": "It is like paying off a debt with tiny repeated instalments that shrink each time - it only actually clears if each payment is smaller than the last, not bigger."
   },
+  "both_events_independent": {
+    "what": "When one event doesn't change the chances of the other - like separate coin flips, or picking and putting back - the chance of both happening is the two chances multiplied together.",
+    "example": "P(heads) = 1/2 for each of two coin flips. P(both heads) = 1/2 x 1/2 = 1/4.",
+    "wrong": "They add the probabilities instead of multiplying, getting 1 instead of 1/4, carrying over the 'or means add' rule into an 'and' situation where it doesn't belong. Others multiply but forget the events are independent and wrongly adjust the second probability as if the first pick wasn't replaced.",
+    "plain": "When one thing happening has no effect at all on the other thing, you find the chance of both happening by multiplying their separate chances together.",
+    "like": "It is like flipping a coin twice - what happened on the first flip tells you nothing about the second, so you cannot add luck across them, you have to multiply it."
+  },
   "chain_rule": {
     "what": "When you're differentiating something wrapped inside brackets to a power, treat the whole bracket like a single lump: bring the power down, drop the power by one, keep the bracket as is, then multiply by the derivative of what's inside the bracket.",
     "example": "y = (3x + 1)^5 dy/dx = 5(3x+1)^4 * 3 = 15(3x+1)^4",
     "wrong": "They apply the power rule straight to the bracket and forget the multiply-by-the-inside-derivative step entirely, giving 5(3x+1)^4 with no factor of 3. This looks right when the inside is just x (derivative 1), which is exactly why it survives on easier questions and falls apart the moment the bracket has a coefficient other than 1.",
     "plain": "When something is tucked inside brackets and the whole bundle is raised to a power, you cannot just deal with the outside and ignore what is happening inside. You have to also account for how fast the inside part itself is changing.",
     "like": "It is like working out how fast a parcel on a moving conveyor belt is rising if the belt itself is also tilting upward - you need both the belt's speed and the tilt's speed, not just one."
+  },
+  "choose_the_average": {
+    "what": "Mean, median and mode all claim to represent a set, but they can disagree. If one value sits way off from the rest, the mean gets dragged toward it, so the median (or mode) describes the 'typical' value better.",
+    "example": "Wages: 18k, 19k, 20k, 21k, 400k. Mean = 95.6k - nobody earns anywhere near that. Median = 20k, which actually matches what most people get paid. Here median is the better average.",
+    "wrong": "Students default to 'mean = best average' because it's the one with the formula, and give 95.6k as the typical wage without noticing it describes nobody. They don't check whether an outlier is distorting it.",
+    "plain": "Add everything up and share it out equally and you get the mean, which one very odd number can drag a long way. Put them in order and take the middle one and you get the median, which that odd number barely moves. That is why which one you pick matters.",
+    "like": "Like house prices on one street: a single mansion among ten small houses pulls the average price up so far that it describes nobody, while the middle price still describes the street."
   },
   "chord_vs_tangent": {
     "what": "A chord joins two separate points on a curve, and its slope is the average rate of change between them. A tangent touches the curve at just one point, and its slope is the exact rate of change right there. They only agree if the curve happens to be a straight line.",
@@ -138,6 +159,13 @@
     "wrong": "Students compare the front numbers first, thinking 5 x 10^-5 must be biggest because 5 is bigger than 4 and 3. They treat standard form like reading two separate numbers instead of one number where the power dominates.",
     "plain": "When numbers are written as a small number times a power of ten, that power of ten tells you almost everything about how big the number is - it's like knowing which shelf something is on before you look at what's on it.",
     "like": "It's like comparing prices in pounds and pence versus prices in millions of pounds - even the smallest number of millions beats the biggest number of pence."
+  },
+  "complement_probability": {
+    "what": "All the probabilities of everything that could happen add up to 1. So if you know the chance something happens, the chance it doesn't is just 1 minus that.",
+    "example": "P(rain) = 0.3, so P(no rain) = 1 - 0.3 = 0.7.",
+    "wrong": "They try to recount outcomes from scratch for 'not happening' instead of subtracting, and often miscount or forget an outcome. With fractions, they sometimes do 1/P instead of 1 - P, flipping the fraction upside down by reflex.",
+    "plain": "Something either happens or it does not - there is no third option. So once you know how likely it is to happen, you already know how likely it is not to happen, without counting anything new.",
+    "like": "If there is a thirty percent chance it rains today, there has to be a seventy percent chance it stays dry - those two outcomes use up the whole day between them."
   },
   "complete_the_square": {
     "what": "Rewrite a quadratic as a squared bracket plus a leftover number, so ax^2+bx+c becomes a(x+p)^2+q. Once it's in that form, the turning point is just (-p, q), no calculus needed.",
@@ -187,6 +215,13 @@
     "wrong": "They swap the order and plot 2 across, 3 up instead, because they read it like a normal list rather than 'across then up'. Works fine when both numbers are equal, like (3,3), so the swap habit never gets corrected.",
     "plain": "Every point on a grid has an address, and that address always tells you sideways first, then upwards, starting from the same fixed corner.",
     "like": "It is like giving directions to a seat in a cinema: which row along, then which seat up. Get the order wrong and you end up in someone else's lap."
+  },
+  "count_the_outcomes": {
+    "what": "Before working out any probability, you need to know two numbers: how many things could happen in total, and how many of those count as a win. This is just careful counting, no probability yet.",
+    "example": "A bag has 4 red, 3 blue, 2 green counters. Picking one: total outcomes = 9 (4+3+2). Outcomes that are 'green' = 2.",
+    "wrong": "Students jump straight to writing 2/9 or simplifying it, skipping past the actual counting step - which is fine until the counting is the hard part, like counting outcomes from two dice thrown together, where they miscount totals as 6 instead of 36 because they only think about one die.",
+    "plain": "Before you can say how likely something is, you need to know two things: how many outcomes there are altogether, and how many of them actually count as the one you want.",
+    "like": "Picking a sweet from a jar - before you can say your chance of getting a red one, you need to know how many sweets are in the jar in total, and how many of those are red."
   },
   "definite_integral": {
     "what": "You integrate the expression, then work out the antiderivative at the top limit, work it out again at the bottom limit, and subtract bottom from top - that subtraction is the whole point, not an afterthought.",
@@ -265,6 +300,13 @@
     "plain": "One list is everything you are allowed to put in. The other list is everything that can come out. They are not the same list, and knowing one does not automatically tell you the other.",
     "like": "Like a vending machine: the buttons you can press are one list, the drinks that can actually land in the tray are another."
   },
+  "either_event": {
+    "what": "If two things can't both happen at once, the chance of one or the other is just the two chances added together.",
+    "example": "P(red) = 2/5, P(blue) = 1/5, and a counter can't be both colours. P(red or blue) = 2/5 + 1/5 = 3/5.",
+    "wrong": "They multiply the two probabilities instead of adding, getting 2/25 instead of 3/5, because 'combining' events feels like it should mean multiply. This is the opposite rule from the one needed here.",
+    "plain": "If two things cannot both happen at the same time, you work out the chance of one or the other by putting their chances together - not multiplying them, just stacking them up.",
+    "like": "If a raffle has red tickets and blue tickets and no ticket is both colours, your chance of winning with either colour is just the two chances added, like adding two piles of tickets together."
+  },
   "eliminate_by_adding_or_subtracting": {
     "what": "If the same letter has the same coefficient (like both have 3y) in both equations, adding or subtracting the whole equations cancels that letter out. Same sign on that term means subtract, opposite signs means add - because you want that letter to end up as zero.",
     "example": "3x + 2y = 12 and 3x - 2y = 6. The x terms have the same sign, so subtract: (3x+2y) - (3x-2y) = 12-6, giving 4y = 6, y = 1.5. If instead you had 3x+2y=12 and -3x+4y=... you'd add.",
@@ -314,6 +356,13 @@
     "plain": "A power on top tells you to root it, and a power on the bottom or a negative sign tells you to flip it - do these one at a time, in whichever order is easiest, not all at once.",
     "like": ""
   },
+  "everything_adds_to_one": {
+    "what": "If you list every single thing that could possibly happen, one of them definitely will - so their probabilities must add up to 1. That's why, if you know all but one, you can find the missing one by subtracting from 1.",
+    "example": "A spinner lands on red, blue or green. P(red) = 0.3, P(blue) = 0.45. Since all three must add to 1, P(green) = 1 - 0.3 - 0.45 = 0.25.",
+    "wrong": "Students add the given probabilities and call that the missing one (here getting 0.75 instead of 0.25), forgetting the whole point is that everything together makes 1, not that the missing piece equals the sum of the others.",
+    "plain": "Every single thing that could possibly happen, all added together, has to make up the whole of what might happen - no more, no less. So if you know all the chances except one, the missing one is whatever's left over once the others are taken away from the whole lot.",
+    "like": "Think of a pizza cut up and shared out. Whatever slices are already claimed, the rest of the pizza is still there for someone - you find it by seeing how much of the whole pizza is left, not by adding up what's already gone."
+  },
   "exact_form": {
     "what": "Some answers are meant to stay in their precise form - a surd like sqrt(2), a fraction like 1/3, or something with e or pi in it - because rounding it to a decimal throws away exactness the question is asking you to keep. If a calculator answer needs rounding, it's not exact anymore.",
     "example": "Solve x^2 = 3. The exact answer is x = sqrt(3), not x = 1.732. If a question says 'give your answer in exact form' or 'in terms of e', writing 1.732 or 2.718 loses marks even though the decimal is a correct approximation.",
@@ -355,6 +404,13 @@
     "wrong": "Students multiply only the first term, giving 6x - 5 and leaving the second term untouched. With a negative outside, like -2(x - 4), they often get -2x - 8 instead of -2x + 8, forgetting that a negative times a negative inside flips to positive.",
     "plain": "The number outside the bracket has to touch every single thing inside it, not just the one closest to it - and if it is a minus number, every sign inside flips too.",
     "like": "It is like paying for everyone in your group at the till - you cannot pay for one friend's ticket and leave the rest unpaid."
+  },
+  "expected_number": {
+    "what": "Probability tells you the share you'd expect out of one trial. To expect a number of times, multiply that share by how many trials you're doing.",
+    "example": "P(six) = 1/6, rolled 60 times. Expected number of sixes = 1/6 x 60 = 10.",
+    "wrong": "They add instead of multiply, like doing 1/6 + 60, which is meaningless but sometimes slips through if the question numbers are messy. Others divide the wrong way round, working out 60 / (1/6) and getting 360 instead of 10.",
+    "plain": "If something happens a certain share of the time, you can guess roughly how many times it'll happen over a bunch of tries by scaling that share up to the number of tries.",
+    "like": "If one in six people you pass in the street are wearing red, and six hundred people walk by, you'd guess around a hundred were in red - you scale the one-in-six up to however many people actually walked past."
   },
   "exponential_graph": {
     "what": "y = a^x (with a greater than 1) starts near zero for very negative x, never actually touching zero, then climbs slowly at first and then faster and faster as x increases - it never levels off and never turns downward.",
@@ -404,6 +460,13 @@
     "wrong": "They rearrange f(x) for x but never swap x and y first, so they write f^-1(x) = sqrt(x-1) but call it 'x' still meaning the original variable, and lose track of which domain belongs to which function - often just copying the original domain across unchanged.",
     "plain": "An inverse function is the machine that undoes what the first one did, so you have to swap what goes in for what comes out before working out the new rule.",
     "like": "It's like a vending machine that turns coins into crisps - the inverse is the machine that turns crisps back into coins, so you flip which side you start from."
+  },
+  "find_missing_value_from_mean": {
+    "what": "If you know the mean and the count, you know the total (mean times count). Add up the values you do have, and whatever's left over is the missing one.",
+    "example": "Mean of 5 numbers is 8, so total = 40. Four known values: 6, 9, 7, 10, sum = 32. Missing value = 40 - 32 = 8.",
+    "wrong": "Students divide the mean by the count instead of multiplying, getting a tiny 'total' that makes no sense. Others forget to multiply at all and try to find the missing number by averaging the known ones, which ignores the given mean entirely.",
+    "plain": "The average times how many numbers there are tells you what everything adds up to altogether. So add up the numbers you already know, and whatever's missing from that total is the one you don't know yet.",
+    "like": "If five friends spent an average of eight pounds each on a meal, the whole bill must come to forty pounds. If you know what four of them paid, whatever's left of that forty pounds is what the fifth one paid."
   },
   "find_stationary_points": {
     "what": "To find stationary points fully, set the derivative to zero and solve for every x that satisfies it, then go back to the original function to get the matching y-value for each one.",
@@ -657,12 +720,47 @@
     "plain": "If you scale up one side of a balanced scale, you have to scale up everything on that side by the same amount, or it stops being balanced. An equation is exactly that kind of balance.",
     "like": "It is like doubling a recipe - if you double the flour you have to double the sugar and the eggs too, not just the flour, or the recipe stops being the same recipe."
   },
+  "mean_from_frequency_table": {
+    "what": "Each value in the table counts multiple times, so multiply each value by its frequency, add those up, then divide by the total frequency - not by the number of rows.",
+    "example": "Value 2 with frequency 3, value 5 with frequency 1. Totals: 2x3=6, 5x1=5, sum=11. Total frequency = 3+1 = 4. Mean = 11/4 = 2.75.",
+    "wrong": "Students divide by the number of rows in the table (here, 2) instead of the total frequency (4), getting 5.5 instead of 2.75. This mistake hides well in small tables where the difference feels minor but is still completely wrong.",
+    "plain": "Some numbers show up more than once, so you can't just add them once each - you have to count each one as many times as it actually appears, then share that total out across how many numbers there really were, not how many rows are in the table.",
+    "like": "If three of your mates scored two goals each and one mate scored five, the team didn't just score two plus five - the two counts three times over. You add it all up properly, then divide by how many players actually played, not by how many rows you wrote down."
+  },
+  "mean_of_a_list": {
+    "what": "Add up every number in the list, then divide that total by how many numbers there are. The mean spreads the total out evenly across all the values.",
+    "example": "List: 4, 7, -2, 5.5. Total = 4+7-2+5.5 = 14.5. Count = 4. Mean = 14.5/4 = 3.625.",
+    "wrong": "Students divide by the wrong count, often forgetting to count a repeated or negative value properly, or they add wrong when a negative is in the list (treating -2 as +2 because they're not reading signs carefully). This gives a mean that's too high and goes unnoticed since the arithmetic 'looks fine'.",
+    "plain": "Add every number together, then share that total out equally across however many numbers you had. That shared-out amount is the mean.",
+    "like": "If four people put different amounts of money into a pot and then split it evenly, the mean is what each person would get back if it were shared out fairly."
+  },
+  "median_of_a_list": {
+    "what": "Put the numbers in order first, then find the middle one. If there are two middle numbers, the median is halfway between them.",
+    "example": "List: 9, 2, 5, 1, 7, 4. Ordered: 1, 2, 4, 5, 7, 9. Six numbers, so middle two are 4 and 5. Median = (4+5)/2 = 4.5.",
+    "wrong": "Students pick the middle of the list in the order it was given, without sorting first - so they'd pick 1 and 7 here instead of 4 and 5. With an even count, some also just pick one of the two middle values instead of averaging them, giving 4 or 5 instead of 4.5.",
+    "plain": "Line every number up from smallest to biggest first. Then the middle one is the median - and if there are two numbers sharing the middle, you land halfway between them.",
+    "like": "Think of people lined up by height at a party. The person standing exactly in the middle of the line is the median - but you have to actually put them in height order first, not just pick whoever happened to be standing in the middle of the room."
+  },
   "midpoint_and_distance": {
     "what": "The midpoint is the average of the x's and the average of the y's - it just finds the point exactly halfway between two points. The distance is Pythagoras in disguise: the gap in x and the gap in y are the two legs of a right triangle, and the distance is the hypotenuse.",
     "example": "Points (1,2) and (5,8). Midpoint = ((1+5)/2, (2+8)/2) = (3,5). Distance = sqrt((5-1)^2 + (8-2)^2) = sqrt(16+36) = sqrt(52) = 2*sqrt(13).",
     "wrong": "Students square-root too early, writing sqrt(4^2)+sqrt(6^2) = 4+6 = 10 instead of sqrt(52). Or they leave the answer as a decimal (7.21) when the question asks for exact form, losing marks for a correctly done calculation.",
     "plain": "The point exactly halfway between two places is just the average of how far along and how far up each one is. The distance between them is figured out the same way you'd work out the diagonal path across a rectangular field, using the sideways gap and the upways gap.",
     "like": "It is like meeting a friend halfway between your two houses - you average how far east each house is and how far north each house is to find the meeting spot."
+  },
+  "modal_and_median_class": {
+    "what": "With grouped data you can't find an exact mode or median, only which class interval they fall into. The modal class is the one with the highest frequency. The median class is found by locating where the middle position (using total frequency) lands using a running total.",
+    "example": "Classes and frequencies: 0-10 (4), 10-20 (9), 20-30 (5). Modal class = 10-20 (highest frequency). Total = 18, so median position is between 9th and 10th value. Running total: 0-10 covers up to 4, 10-20 covers up to 13 - so the median falls in 10-20.",
+    "wrong": "Students pick the modal class by looking at the biggest numbers in the class labels instead of the frequencies, or they find the median class by just picking the middle row of the table rather than tracking a running total of frequencies - which gives the wrong class whenever frequencies are uneven.",
+    "plain": "When the numbers arrive in groups you never see them one by one, so the best you can do is name a group. The group with the biggest count is the modal one, and the median sits in whichever group the middle value lands in as you count along.",
+    "like": "Like being told how many people are in each age bracket but never anybody's birthday - you can say which bracket most of them are in, and which bracket the middle person falls in, and no more."
+  },
+  "mode_and_range": {
+    "what": "The mode is the value that appears most often. The range is the biggest value minus the smallest. A list can have no mode, one mode, or more than one.",
+    "example": "List: 3, 3, 7, 7, 2, 9. Modes: 3 and 7 (both appear twice). Range = 9 - 2 = 7.",
+    "wrong": "Students say there's 'no mode' whenever two values tie, instead of giving both. For range, they often subtract in the wrong order or pick numbers that aren't actually the max and min from an unsorted list, getting a smaller range than the real one.",
+    "plain": "The mode is just whichever number shows up the most - there can be two winners, or none at all if nothing repeats. The range is the gap between the biggest and smallest number, found by taking the small one away from the big one.",
+    "like": "It is like asking which shoe size sells the most in a shop - sometimes two sizes tie for first place, and that is a perfectly good answer."
   },
   "modulus_graph": {
     "what": "To sketch y = |f(x)|, sketch y = f(x) normally, then flip any part that dips below the x-axis up above it, like folding the paper along the x-axis. The bottom of that fold, where the graph touches or turns, is the vertex.",
@@ -684,6 +782,13 @@
     "wrong": "Students think a 15% increase is undone by a 15% decrease, multiplying by 0.85 to reverse it - this doesn't get back to the start because 15% off the bigger number is more than 15% of the original. They mix up increase and decrease multipliers, using 1.15 when they mean 0.85 or the reverse.",
     "plain": "Growing by a percentage and then shrinking by the same percentage doesn't bring you back to where you started, because the second change is worked out on a different, bigger number.",
     "like": "If your pay goes up ten percent, then next year drops ten percent, you don't end up on your original wage - the drop was ten percent of the bigger number, so you lose more than you gained."
+  },
+  "multiply_by_frequency": {
+    "what": "When a value happens more than once, it contributes that many times to the total - so to get the overall total from a frequency table, multiply each value by its frequency, then add all those up.",
+    "example": "Value 2 with frequency 5, value 3 with frequency 1: total = (2x5) + (3x1) = 10 + 3 = 13.",
+    "wrong": "Students add the values and frequencies together instead of multiplying - getting (2+5)+(3+1) = 11 - or they just add up the frequency column (5+1=6) thinking that's the total, ignoring the actual values entirely.",
+    "plain": "If something happened several times, it counts that many times towards the total - so you times the value by how often it happened, then add all those up to get the grand total.",
+    "like": "It is like working out how much money you made selling drinks - two pounds a can times five cans sold, not two plus five."
   },
   "multiply_divide_fractions": {
     "what": "To multiply fractions, multiply the tops together and the bottoms together. To divide by a fraction, flip the second one upside down and multiply instead. Simplify at the end (or cancel early if you can).",
@@ -733,6 +838,13 @@
     "wrong": "Students try to differentiate A = xy directly while it still has two variables, getting nonsense like dA/dx = y. Others substitute the constraint correctly but forget to check the stationary point is actually a maximum, sometimes reporting a minimum or a boundary value as the answer.",
     "plain": "Before you can find the best possible size or amount, you need to describe the whole situation using just one changing number instead of two, because you can only hunt for a peak or dip when there is a single thing going up and down.",
     "like": "It is like adjusting only the width of a garden bed once you know the fence length is fixed - the length is forced to change automatically as the width changes, so really you are only turning one dial, not two."
+  },
+  "order_a_list": {
+    "what": "To put numbers in order, compare their actual size on the number line, not how they look written down - negatives count as smaller the more negative they are, and decimals compare place by place.",
+    "example": "Order: -3, 0.5, -1.2, 2, -0.4. From smallest: -3, -1.2, -0.4, 0.5, 2.",
+    "wrong": "Students order negatives like positives and write -1.2 after -3 but before 0.5 as if 'bigger digits mean bigger number', getting -3, -0.4, -1.2, 0.5, 2 - they forget -1.2 is less than -0.4 because it's further from zero on the negative side.",
+    "plain": "Putting numbers in order means lining them up by how big they actually are on a number line, not by how many digits or minus signs they have.",
+    "like": "It is like ranking temperatures on a cold week - minus five is colder than minus one, even though minus one looks like the smaller number written down."
   },
   "order_fdp": {
     "what": "To compare a mix of fractions, decimals and percentages, get them all into the same outfit first, usually decimals, then line them up by size.",
@@ -825,6 +937,20 @@
     "plain": "There is one steady move for turning a power of a letter into its rate of change: bring the power down to the front, then lower the power by one. It works whether that power is a whole number, a negative one, or a fraction.",
     "like": ""
   },
+  "probability_from_data": {
+    "what": "When you don't know the outcomes are equally likely, you can't guess the probability - you have to look at what actually happened and use frequency over total trials.",
+    "example": "A dice is rolled 50 times and lands on 6 a total of 12 times. P(6) = 12/50 = 6/25, based on the data, not on 1/6.",
+    "wrong": "They default to 1/6 because 'it's a dice', ignoring that the question gave actual results precisely because the dice might be biased. This gets the 'textbook' answer but misses the point of the question entirely.",
+    "plain": "When you actually have results from doing something over and over, you use those real results to say how likely something is, instead of guessing from what seems fair.",
+    "like": "It is like judging how often your bus is late by checking the last fifty mornings, not by assuming it should always be on time."
+  },
+  "probability_of_an_event": {
+    "what": "Count how many outcomes count as a win, count how many outcomes there are in total, and put win over total. The outcomes have to be equally likely or this falls apart.",
+    "example": "A bag has 4 red, 3 blue, 2 green counters - 9 total. P(blue) = 3/9 = 1/3.",
+    "wrong": "They count the number of colours instead of counters, so they say P(blue) = 1/3 because 'there are 3 colours' even when the counters aren't split evenly. Also common: leaving the fraction unsimplified, like writing 3/9 instead of 1/3, which loses marks even though the number is right.",
+    "plain": "To find the chance of something, count how many ways it can happen the way you want, then count every way it could happen at all, and compare the two - but only works if each outcome is just as likely as the others.",
+    "like": "It is like picking a sweet from a bag without looking - the chance depends on how many of that sweet are actually in there, not how many flavours exist."
+  },
   "product_rule": {
     "what": "When two functions are multiplied together, you can't just differentiate each one and multiply the results. Differentiate the first, keep the second as it is, add that to the first kept as it is times the derivative of the second.",
     "example": "y = x^2 * sin(x) dy/dx = 2x*sin(x) + x^2*cos(x)",
@@ -866,6 +992,13 @@
     "wrong": "Students multiply only the denominator by sqrt(2) and forget the numerator, turning 3/sqrt(2) into 3/2 and losing the sqrt(2) entirely, or they multiply by sqrt(2)/sqrt(2) correctly but simplify sqrt(2)*sqrt(2) as 2sqrt(2) instead of 2.",
     "plain": "A square root sitting on the bottom of a fraction is seen as messy, so there is a trick to move it to the top without changing what the fraction is worth.",
     "like": ""
+  },
+  "read_a_frequency_table": {
+    "what": "A frequency table has two kinds of column doing different jobs: one lists the values that occurred, the other says how many times each value occurred - mixing these up means misreading every row.",
+    "example": "Table: Value 2, Frequency 5; Value 3, Frequency 1. This means the value 2 occurred 5 times, and the value 3 occurred once - not that '2 and 3' are two separate counts of something else.",
+    "wrong": "Students read the frequency column as if it were the data itself, so for the row 'Value 2, Frequency 5' they think there were five 2s and one 5 is just how it's written - or they add up the frequency column thinking that gives the total of the values, when it actually gives the number of pieces of data.",
+    "plain": "A table like this has two jobs split between two columns. One column tells you what showed up, the other tells you how many times it showed up.",
+    "like": "It is like a scoreboard that says 'goals scored: 2' and 'number of matches with that score: 5' - the two is the score, the five is the count, and they mean completely different things."
   },
   "rearrange_formula": {
     "what": "Making a letter 'the subject' means getting it alone on one side of the equals sign, using the same moves you'd use to solve an equation - whatever you do to one side, you do to the other, undoing operations in reverse order.",
@@ -1168,6 +1301,20 @@
     "plain": "A tangent is a straight line that just brushes a curve at one exact spot, matching the curve's steepness right there - so before you can build that line, you need to know both how steep the curve is and exactly where it sits at that spot.",
     "like": "Picture a bicycle wheel touching the ground - the ground is flat and only meets the wheel at one point, matching its direction there."
   },
+  "the_bag_gets_smaller": {
+    "what": "Once you take something out and don't put it back, both numbers in the second fraction change: the total number of items drops by one, and if the thing you removed matches what you're now looking for, that count drops by one too.",
+    "example": "A bag has 5 counters, 3 of them yellow. You pick a yellow one and keep it out. Now there are 4 counters left, and only 2 are yellow, so P(second yellow) = 2/4, not 3/5 and not 2/5.",
+    "wrong": "Students only reduce the bottom number and leave the top the same, writing 3/4 instead of 2/4 - they remember the bag shrank but forget the thing they removed was yellow, so the yellow count should shrink too.",
+    "plain": "Once something is taken out and kept out, the whole situation changes for the next pick - there is less of everything, and sometimes less of the exact thing you care about too.",
+    "like": "It is like sharing a packet of sweets without putting any back - once you eat a red one, there are fewer sweets left and fewer red ones left, both at once."
+  },
+  "total_from_mean_and_count": {
+    "what": "The mean is the total shared out evenly, so if you know the mean and how many values made it, you can rebuild the total by reversing the sharing: multiply mean by count.",
+    "example": "Mean of 4 numbers is 7. Total = 7 x 4 = 28.",
+    "wrong": "Students try to divide the mean by the count instead of multiplying, getting 7/4 = 1.75, because they're used to 'mean' always meaning 'divide' and don't think about which direction reverses it.",
+    "plain": "If you already know what everyone got on average and how many people there were, you can work backwards to find out what they had altogether.",
+    "like": "It is like knowing everyone in a group chipped in three pounds on average for a takeaway, and there were four people - so you know the whole bill, you just build it back up."
+  },
   "two_pairs_of_answers": {
     "what": "A straight line can cross a curve at up to two points, so solving them together can give two different x values, and each x comes with its own matching y - they are not mix-and-match.",
     "example": "y = x + 1 meets y = x^2 - 1 where x + 1 = x^2 - 1, giving x^2 - x - 2 = 0, so x = 2 or x = -1. Then x=2 gives y=3, and x=-1 gives y=0. The pairs are (2,3) and (-1,0), not (2,0) or (-1,3).",
@@ -1195,6 +1342,27 @@
     "wrong": "Students plug in x = -2 instead of x = 2, mixing up the sign inside the bracket with the number to substitute - (x-2) means substitute +2, not -2. This gives a completely different, wrong value for k, but the method looks the same so the error goes unnoticed.",
     "plain": "If a certain number makes an expression come out to exactly zero, then that number is hiding inside a bracket that divides evenly into it. So if you are told the bracket, you already know which number makes everything vanish - and you can use that fact to find missing pieces elsewhere.",
     "like": ""
+  },
+  "what_an_average_is": {
+    "what": "An average is one number that stands in for an entire list, so you can compare groups or describe a set without reading out every value.",
+    "example": "Class A scores: 5, 6, 7. Class B scores: 1, 6, 11. Both have mean 6, so you can say 'both classes did the same on average' instead of listing six numbers.",
+    "wrong": "Students treat the average as just 'a thing you calculate' - plug numbers into a formula - without connecting it to the idea that it's replacing a whole list with one representative value, so they can't explain why it's useful or pick the right one for a situation.",
+    "plain": "An average is one single number that speaks for a whole group of numbers, so you don't have to list every single one to describe how things generally went.",
+    "like": "It is like saying 'this team scores about two goals a game' instead of reading out the score from every single match they have played."
+  },
+  "what_probability_means": {
+    "what": "A probability is just how likely something is, squeezed onto a scale from 0 to 1. 0 means it cannot happen, 1 means it is certain, and a half means it's exactly as likely to happen as not.",
+    "example": "Rolling a 7 on a normal die: probability 0, impossible. Rolling a number less than 7: probability 1, certain. Rolling an even number: probability 1/2, happens half the time.",
+    "wrong": "Students say a probability of 0 means something is 'very unlikely' rather than impossible, and treat 1 as 'very likely' rather than certain - so they'll accept an answer like 1.2 or -0.3 without noticing it's impossible, because they haven't locked onto the fact that probability can't go outside 0 to 1.",
+    "plain": "Nought means it never happens and one means it always happens. A half means it happens about half the times you try. Nothing can happen more often than always, so no chance is ever bigger than one.",
+    "like": "Like the share of a cake you are handed - none of it, all of it, or half of it. Nobody can be handed more cake than there is."
+  },
+  "without_replacement": {
+    "what": "When you pick something and don't put it back, the bag has one fewer item for the second pick, so the second probability is worked out from what's left, not from the original bag. You multiply the first probability by this new, changed second probability.",
+    "example": "A bag has 3 red and 2 blue counters. Pick one, don't replace it, pick another. P(first red) = 3/5. If that happened, only 2 red and 2 blue are left, 4 total, so P(second red) = 2/4. P(both red) = 3/5 x 2/4 = 6/20 = 3/10.",
+    "wrong": "Students multiply 3/5 x 3/5, treating the second pick like the bag is still full - this is what you'd do WITH replacement, and it sneaks through because the numbers still look sensible and the method feels consistent.",
+    "plain": "When you take something away and don't put it back, the second pick is happening in a smaller, changed situation, so you have to work out its chances fresh before multiplying.",
+    "like": "It is like picking a biscuit from a tin and eating it, then offering the tin round again - there is one fewer biscuit in there, so the next person's chances of grabbing the same kind are not what they were before."
   },
   "write_in_standard_form": {
     "what": "Standard form writes a number as something between 1 and 10, times a power of 10 - the power tells you how many places the decimal point moved, and it goes negative for small numbers less than 1.",
