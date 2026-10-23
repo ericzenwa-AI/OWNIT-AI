@@ -512,6 +512,32 @@
   }
   .visual svg { width: 100%; height: auto; display: block; color: var(--ink); }
 
+  /* Who made this. Quiet, but on every screen rather than tucked behind a
+     link nobody presses - a student should know a person is behind it. */
+  .by {
+    margin: 3rem 0 0;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+    font-size: 0.9rem;
+  }
+  .by strong { color: var(--muted); font-weight: 600; }
+
+  /* The two halves of the form, told apart. They used to be one run of
+     labels and inputs, which is how a question ended up in the working
+     box. */
+  .ask-for + .ask-for {
+    margin-top: 1.6rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+  }
+  .ask-for.optional .label { color: var(--faint); }
+  /* The box we are waiting on, after somebody has filled in the other one. */
+  textarea.wants {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139, 124, 255, 0.18);
+  }
+
   .chain { color: var(--muted); font-size: 0.95rem; margin-top: 0.4rem; }
   .note { color: var(--muted); font-size: 0.95rem; }
   p { margin: 0 0 1rem; }
@@ -681,6 +707,13 @@
   <h1>ownIT</h1>
   <p class="sub">Stuck on a maths question? Let's find what's actually missing.</p>
   <div id="screen"></div>
+
+  <!-- Outside #screen, so it survives every redraw: the diagnostic, the
+       lesson and the finding all replace that div, and a line that vanished
+       halfway through a session would be worse than not having one. -->
+  <footer class="by">
+    Built by <strong>Eric Ezenwa</strong>, maths tutor.
+  </footer>
 </main>
 
 <script>
@@ -813,13 +846,27 @@ function askScreen() {
     </div>
 
     <div class="card">
-      <label for="photo">A photo of the question (best)</label>
-      <input type="file" id="photo" accept="image/*,application/pdf">
-      <label for="text">Or type it out</label>
-      <textarea id="text" placeholder="Simplify (x^5 * x^2) / x^3"></textarea>
-      <label for="attempt">What you tried, if anything (optional)</label>
-      <input type="file" id="working" accept="image/*,application/pdf">
-      <textarea id="attempt" placeholder="Or type it out - I don't know how to start"></textarea>
+      <!-- Two groups, each with its own heading, because they were one run
+           of labels and inputs where the optional heading sat above the
+           file button rather than its own box - and both boxes said "or
+           type it out". People put the question in the second one, pressed
+           Start, and were told to give a question. -->
+      <div class="ask-for">
+        <p class="label">Your question</p>
+        <label for="photo">A photo of it &mdash; best, if it has fractions or powers</label>
+        <input type="file" id="photo" accept="image/*,application/pdf">
+        <label for="text">Or type the question here</label>
+        <textarea id="text" placeholder="Simplify (x^5 * x^2) / x^3"></textarea>
+      </div>
+
+      <div class="ask-for optional">
+        <p class="label">What you tried &mdash; optional</p>
+        <label for="working">A photo of your working</label>
+        <input type="file" id="working" accept="image/*,application/pdf">
+        <label for="attempt">Or say what you did</label>
+        <textarea id="attempt" placeholder="I multiplied the powers and got x^10"></textarea>
+      </div>
+
       <p><button id="go">Start</button></p>
       <p id="msg" class="note"></p>
     </div>`;
@@ -833,7 +880,25 @@ async function start() {
   const file = document.getElementById('photo').files[0];
   const text = document.getElementById('text').value.trim();
 
-  if (!file && !text) { msg.textContent = 'Give me the question, or a photo of it.'; return; }
+  if (!file && !text) {
+    // Saying "give me the question" to somebody who has just typed one -
+    // into the other box - is the version of this that got reported. Name
+    // the box, and put the cursor in it.
+    const tried = document.getElementById('attempt').value.trim();
+    const working = document.getElementById('working').files[0];
+    msg.className = 'error';
+    msg.textContent = (tried || working)
+      ? 'That went in the "what you tried" part. The question itself goes in '
+        + 'the box at the top.'
+      : 'Give me the question, or a photo of it.';
+    const box = document.getElementById('text');
+    box.classList.add('wants');
+    box.focus();
+    box.scrollIntoView({block: 'center', behavior: 'smooth'});
+    return;
+  }
+  msg.className = 'note';
+  document.getElementById('text').classList.remove('wants');
 
   track('sent_question', file ? 'photo' : 'typed');
 

@@ -134,3 +134,73 @@ def test_it_only_says_that_when_it_is_true():
     text = diagnostic()
     assert "gap && heldUp.length ?" in text, (
         "the credit must be conditional on there being some")
+
+
+# ---- whose work this is ----------------------------------------------------
+
+
+@pytest.mark.parametrize("name", ["index.html", "landing.html", "student.html"])
+def test_every_page_says_who_built_it(name):
+    """A redesign has quietly dropped things before. This is a person's name
+    on their own work, so it gets a test rather than good intentions."""
+    import pathlib
+
+    text = (pathlib.Path(__file__).resolve().parent.parent
+            / "web" / name).read_text(encoding="utf-8")
+
+    assert "Eric Ezenwa" in text
+
+
+def test_the_app_says_it_on_every_screen():
+    """Outside the div the diagnostic, the lesson and the finding all
+    replace - a line that vanished halfway through a session would be worse
+    than not having one."""
+    text = diagnostic()
+    footer = text[text.index('<footer class="by">'):]
+
+    assert "Eric Ezenwa" in footer[:200]
+    assert text.index('<div id="screen">') < text.index('<footer class="by">')
+
+
+# ---- the two boxes ---------------------------------------------------------
+
+
+def _form():
+    text = diagnostic()
+    return text[text.index("function askScreen()"):text.index("document.getElementById('go')")]
+
+
+def test_each_input_has_its_own_label():
+    """The optional heading sat above a file button rather than its own box,
+    and the working file input had no label at all."""
+    form = _form()
+    for field in ("photo", "text", "working", "attempt"):
+        assert f'for="{field}"' in form, f"{field} has no label"
+
+
+def test_the_two_boxes_cannot_be_confused_by_their_placeholder():
+    """Both said "Or type it out", which is how the question ended up in the
+    working box."""
+    import re
+
+    placeholders = re.findall(r'placeholder="([^"]*)"', _form())
+    assert len(placeholders) == 2
+    assert len(set(placeholders)) == 2, "the two boxes read the same"
+    assert not all(p.lower().startswith("or type it out") for p in placeholders)
+
+
+def test_the_question_and_the_working_are_separate_blocks():
+    form = _form()
+    assert form.count('class="ask-for') == 2
+    assert "Your question" in form and "What you tried" in form
+
+
+def test_typing_in_the_wrong_box_is_told_which_box_is_wanted():
+    """"Give me the question" to somebody who has just typed one - into the
+    other box - is the version of this that got reported."""
+    text = diagnostic()
+    guard = text[text.index("async function start()"):text.index("track('sent_question'")]
+
+    assert 'the box at the top' in guard
+    assert "document.getElementById('attempt').value.trim()" in guard
+    assert "box.focus()" in guard
