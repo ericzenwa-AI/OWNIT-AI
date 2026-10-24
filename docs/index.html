@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eric Ezenwa &mdash; maths tutor, and the diagnostic I built</title>
+<meta name="description" content="I'm a maths tutor. I built ownIT, a diagnostic that finds the skill underneath the question a student is stuck on, and then teaches it. Here is how it works and how I know it is right.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Outfit:wght@400;500;600&family=Google+Sans+Code:wght@400;500&display=swap">
+
+<style>
+  /* ------------------------------------------------------------------
+     One colour, one display face, and mono for everything small.
+
+     The restraint is the point: a page that is trying to demonstrate
+     judgement should not open by showing none. So there is a single ink,
+     a single accent, and the only large thing on the screen is a name.
+
+     Measured against --bg: ink 15.1:1, muted 7.4:1, faint 4.9:1 on large
+     text only, accent 5.6:1.
+     ------------------------------------------------------------------ */
+  :root {
+    --bg:     #14110F;
+    --raised: #1C1916;
+    --ink:    #F3EFEA;
+    --muted:  #B8AFA4;
+    --faint:  #8A8077;
+    --line:   #2E2823;
+    --accent: #E0734A;
+    --good:   #7FBF9A;
+
+    --display: "Fraunces", Georgia, serif;
+    --sans: "Outfit", "Segoe UI", system-ui, sans-serif;
+    --mono: "Google Sans Code", ui-monospace, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding-inline: 1.5rem;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell { max-width: 46rem; margin-inline: auto; }
+  p { margin: 0 0 1.1rem; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+
+  /* The small uppercase label is the whole secondary type system. */
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 0.9rem;
+  }
+
+  header { padding-block: clamp(4rem, 14vw, 8rem) 2rem; }
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(2.6rem, 8vw, 4.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 1.4rem;
+  }
+  .lead {
+    font-size: clamp(1.1rem, 2.6vw, 1.35rem);
+    color: var(--muted);
+    max-width: 34rem;
+    text-wrap: pretty;
+  }
+  .lead strong { color: var(--ink); font-weight: 500; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 2rem; }
+  .button {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    min-height: 44px; padding: 0.6rem 1.2rem;
+    border-radius: 999px; text-decoration: none;
+    font-size: 0.98rem; font-weight: 500;
+    border: 1px solid var(--line); color: var(--ink);
+  }
+  .button.primary { background: var(--accent); border-color: var(--accent); color: #14110F; }
+
+  /* The numbers. Facts, not badges - each one is a thing that was counted. */
+  .facts {
+    display: grid; gap: 1px;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 3.5rem 0;
+  }
+  .facts div { background: var(--bg); padding: 1.1rem 1.2rem; }
+  .facts b {
+    display: block; font-family: var(--display); font-size: 1.8rem;
+    font-weight: 600; line-height: 1; letter-spacing: -0.02em;
+  }
+  .facts span { color: var(--faint); font-size: 0.82rem; }
+
+  section { padding-block: 2.5rem; border-top: 1px solid var(--line); }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 4.2vw, 2.1rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 1.2rem;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 1.05rem; font-weight: 600; margin: 2rem 0 0.6rem;
+  }
+
+  /* A number pulled out of a paragraph, because it is the paragraph's
+     whole argument. */
+  .pull {
+    margin: 1.6rem 0;
+    padding: 1.2rem 1.4rem;
+    background: var(--raised);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 12px 12px 0;
+  }
+  .pull b {
+    display: block; font-family: var(--display); font-size: 1.6rem;
+    font-weight: 600; line-height: 1.1; margin-bottom: 0.3rem;
+  }
+  .pull span { color: var(--muted); font-size: 0.96rem; }
+
+  pre {
+    margin: 1.4rem 0;
+    padding: 1rem 1.1rem;
+    background: var(--raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  pre b { color: var(--ink); font-weight: 500; }
+  code { font-family: var(--mono); font-size: 0.9em; color: var(--muted); }
+
+  ul { padding-left: 1.1rem; margin: 0 0 1.1rem; }
+  li { margin-bottom: 0.5rem; }
+  li::marker { color: var(--faint); }
+
+  footer {
+    padding-block: 3rem 4rem;
+    border-top: 1px solid var(--line);
+    color: var(--faint);
+    font-size: 0.92rem;
+  }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header>
+  <p class="tag">Maths tutor &middot; online, UK</p>
+  <h1>Eric Ezenwa</h1>
+  <p class="lead">Five years teaching maths, and the same thing every time:
+  <strong>the question a student is stuck on is almost never where the problem
+  is.</strong> So I built something that finds the real one and then teaches
+  it.</p>
+  <div class="actions">
+    <a class="button primary" href="https://ownitmaths.com">Try ownIT</a>
+    <a class="button" href="inside-ownit.html">How it works, in full</a>
+    <a class="button" href="https://github.com/ericzenwa-AI/OWNIT-AI">The code</a>
+  </div>
+</header>
+
+<div class="facts">
+  <div><b>196</b><span>skills in the map</span></div>
+  <div><b>1,076</b><span>questions, every answer checked</span></div>
+  <div><b>642</b><span>tests</span></div>
+  <div><b>~3p</b><span>per diagnosis</span></div>
+</div>
+
+<section>
+  <p class="tag">What it does</p>
+  <h2>A student sends the question they are stuck on. It finds what is missing
+  underneath it.</h2>
+  <p>Differentiation sits on indices. Indices sit on knowing what a power
+  means. When a student gets a question wrong, the mark scheme blames that
+  topic &mdash; so that is the topic they revise, and nothing changes, because
+  the break is two years further down.</p>
+  <p>ownIT walks down a map of 196 skills, one layer at a time, asking a short
+  question at each, until something gives way. Usually three questions. Then it
+  teaches that one thing, step by step, and brings them back to their own
+  question. It never gives them the answer to it.</p>
+  <p>It is live, free, and takes about three minutes:
+  <a href="https://ownitmaths.com">ownitmaths.com</a>.</p>
+</section>
+
+<section>
+  <p class="tag">Write-up one</p>
+  <h2>How I know the answer key is right</h2>
+  <p>The questions are written by a model. So is the mark on which option is
+  correct &mdash; and nothing checks that. It is the worst thing a diagnostic
+  can get wrong, because it is invisible: the student answers correctly, is
+  recorded as not knowing the skill, and the diagnosis goes hunting for a gap
+  that was never there. The report looks completely normal.</p>
+  <p>So I had a second model solve every question from scratch, never shown the
+  stored answer. Where the two disagreed, a third decided.</p>
+
+  <div class="pull">
+    <b>55 of the first 531</b>
+    <span>had the wrong answer marked correct. Not one of them looked wrong.
+    77 were retired.</span>
+  </div>
+
+  <p>The errors were not spread evenly, and that was the useful part.
+  Expanding brackets and negative numbers came out right nearly every time;
+  areas between curves and binomial expansions were wrong about a third of the
+  time. <strong>Writing the question was never the hard part. Working out the
+  answer was.</strong></p>
+  <p>That one finding changed the architecture. Question generation moved off
+  the cheap model, and the economics turned out to point the same way: a
+  question is written once and served to hundreds of students, so the cost of
+  writing it is spread across all of them, while a wrong answer key is charged
+  to every single one.</p>
+  <p>Every question added since goes through the same gate. The statistics and
+  probability topics I added most recently were 120 questions; all 120 were
+  confirmed, with one dispute escalated to the stronger model and the stored
+  answer upheld. A test fails the build if any skill in the map has no
+  questions on the shelf.</p>
+</section>
+
+<section>
+  <p class="tag">Write-up two</p>
+  <h2>What a session costs, and why the teaching runs on the cheaper model</h2>
+  <p>Every call is assigned a model deliberately, and the rule is not "use the
+  best one". It is <strong>what does being wrong here cost?</strong></p>
+
+<pre><b>Reading the student's question</b>    Opus      once per session
+<b>Writing a diagnostic question</b>      Sonnet    once per skill, ever
+<b>A turn of the lesson</b>               Sonnet    ten times per lesson
+<b>Explaining a skill</b>                 Sonnet    once per skill, ever</pre>
+
+  <p>Reading the question gets the expensive model because it runs <em>once</em>
+  and a misread sends the entire session somewhere untrue &mdash; every question
+  after it is about the wrong topic. A teaching turn gets the cheaper one
+  because it runs <em>ten times</em>, it is grounded in an explanation that was
+  already written and checked, and the student is sitting there waiting. Being
+  wrong costs a sentence, not a diagnosis.</p>
+
+  <div class="pull">
+    <b>1.7p &ndash; 4.7p</b>
+    <span>per diagnosis, measured against the real prompts with a token
+    counter rather than estimated. A ten-turn lesson adds about 5p.</span>
+  </div>
+
+  <p>The question bank is the other half. Diagnostic questions are written once
+  and stored, so the common path through the app makes <em>no</em> model call
+  at all beyond reading the question &mdash; which is why a retake, where the
+  skill is already known, costs nothing.</p>
+  <p>Knowing the number mattered more than shrinking it. It set the daily
+  ceiling, it decided which model goes where, and when I later costed the same
+  app for Nigerian schools, the question "what will a school pay per student
+  per term, divided by sessions" was answerable in a minute.</p>
+</section>
+
+<section>
+  <p class="tag">Write-up three</p>
+  <h2>The three days the app was blank</h2>
+  <p>I redesigned the page that shows a student their result. In the code, the
+  screens are built as JavaScript template literals &mdash; text wrapped in
+  backticks. I left explanatory comments inside one, naming the fields the way
+  the rest of the codebase names them: in backticks.</p>
+  <p>A backtick inside a template ends the template. The rest of the script
+  became a syntax error, nothing on the page ran, and every student who opened
+  the diagnostic got a header and nothing else.</p>
+
+  <div class="pull">
+    <b>Three days</b>
+    <span>live, and the whole test suite passing throughout.</span>
+  </div>
+
+  <p>That is the part worth sitting with. There were hundreds of tests, and
+  they all passed, because <strong>every one of them read the page as text and
+  the text was perfectly correct.</strong> Nothing ever ran it. A page that is
+  text-correct and script-broken sails through a test suite that only ever
+  reads.</p>
+  <p>The fix took a minute. What I did afterwards took longer and mattered
+  more:</p>
+  <ul>
+    <li>Wrote a test for exactly this fault, and <strong>ran it against the
+    broken version first</strong> to prove it fails &mdash; a test you have
+    never seen fail is a test you are trusting on faith.</li>
+    <li>Added a second, cruder net: every template that opens must close.</li>
+    <li>Started loading the real pages in a headless browser after deploying,
+    rather than checking that the new code had merely arrived.</li>
+  </ul>
+  <p>It was found by a user, not by me, and the user was the person I built it
+  for. I had checked that the deploy landed. I had not checked that the page
+  worked.</p>
+</section>
+
+<section>
+  <p class="tag">How I work</p>
+  <h2>Things I decided not to build</h2>
+  <p>Most of what I can show is in the repository &mdash; but the decisions I
+  am most pleased with are removals.</p>
+  <ul>
+    <li><strong>A feature that asked students to explain their wrong
+    answers.</strong> Built, shipped, then deleted a week later: it never
+    changed the diagnosis, and nothing downstream read what it stored. It was a
+    nicer moment, not a better answer.</li>
+    <li><strong>Generated diagrams.</strong> Four rendering faults had already
+    reached real students. A wrong diagram is worse than a wrong answer key,
+    because it looks authoritative and nobody re-reads it. Diagrams in this
+    project are drawn by hand and committed, which is also why whole topics are
+    honestly marked "not covered" rather than faked.</li>
+    <li><strong>A paywall</strong>, two days after building it, when the
+    experiment it was meant to run stopped being the right one.</li>
+  </ul>
+  <p>The same instinct runs through the measurement. I ran a check on 196
+  student-facing explanations and 85 of them failed &mdash; some of them
+  genuinely wrong, not merely clumsy. That number is in the repository and on
+  this page because the alternative is not knowing it.</p>
+</section>
+
+<section>
+  <p class="tag">Elsewhere</p>
+  <h2>What I am looking for</h2>
+  <p>Work where the hard part is knowing whether the system is right, not
+  getting it to produce something. I came to this from teaching rather than
+  from software, which shows in both directions: I am newer to the code than
+  most, and more careful than most about what the output is actually doing to
+  the person reading it.</p>
+  <p>
+    <a href="https://ownitmaths.com">ownitmaths.com</a> &middot;
+    <a href="https://github.com/ericzenwa-AI/OWNIT-AI">github.com/ericzenwa-AI</a> &middot;
+    <a href="https://erictutors.carrd.co">tutoring</a>
+  </p>
+</section>
+
+<footer>
+  <p>Built and written by Eric Ezenwa. The long technical walkthrough is
+  <a href="inside-ownit.html">here</a>.</p>
+</footer>
+
+</div>
+</body>
+</html>
