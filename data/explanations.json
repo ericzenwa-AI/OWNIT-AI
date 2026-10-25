@@ -17,8 +17,8 @@
     "what": "Fractions with algebra in them follow the same rules as number fractions - common denominator to add or subtract, cancel common factors to simplify, multiply straight across to combine. The letters do not change the rules, they just make you factorise first to see what cancels.",
     "example": "(x+1)/(x^2-1) = (x+1)/((x-1)(x+1)) = 1/(x-1).",
     "wrong": "Students cancel terms that are added instead of multiplied, like cancelling the x in (x+2)/x to get 2, when nothing there actually cancels because x is not a common factor of the whole top.",
-    "plain": "Letters standing in for numbers still have to follow the exact same fraction rules numbers do. Before you cancel anything, check it's actually being multiplied through the whole top and bottom, not just sitting next to other stuff being added.",
-    "like": ""
+    "plain": "A fraction with letters in it still works the same way as any other fraction - you can only cancel something if it is multiplying everything on top and everything on the bottom, not if it is just sitting there added on.",
+    "like": "It is like splitting a bill between friends - you can only cancel someone out of the split if they are part of every item, not if they just happen to be standing nearby."
   },
   "area_between_curves": {
     "what": "To find the area trapped between two curves, first find where they cross - those crossing points become your limits - then integrate the top curve minus the bottom curve between them.",
@@ -31,8 +31,8 @@
     "what": "The area between a curve and the x-axis over some interval is the definite integral there - but only stays equal to that integral while the curve stays above the axis; below the axis the integral goes negative, and area can't be negative.",
     "example": "Area under y = x^2 from x=0 to x=2 is the integral, 8/3 - 0 = 8/3.",
     "wrong": "Students integrate straight through a curve that dips below the x-axis without splitting it up, so positive and negative regions cancel. For y=x from x=-1 to x=1 the integral comes out 0, even though the actual area (two triangles) is 1.",
-    "plain": "Measuring space below a line works fine while the line stays above the ground - but the moment it dips underground, the counting machine starts subtracting instead of adding, because it doesn't know that space can't be less than nothing.",
-    "like": "Imagine a bank balance line on a graph - the machine totals up everything above zero as savings and everything below zero as debt, and if you add them together they can cancel out, even though the actual amount of money that moved around never went negative."
+    "plain": "Adding up the space under a wiggly line works fine while the line stays above the ground, but once it dips below, that bit counts as negative space, so you have to deal with it on its own or the two parts will cancel each other out.",
+    "like": "It is like tracking money in and out of an account - spending below zero does not cancel out of existence just because you add it to your savings, you have to look at the two separately to know how much actually moved."
   },
   "arithmetic_sequence": {
     "what": "An arithmetic sequence keeps adding the same fixed amount each step. The nth term is the first term plus that fixed amount repeated (n-1) times, since the first term itself hasn't had anything added yet.",
@@ -45,15 +45,15 @@
     "what": "To add up the first n terms of a sequence that goes up by the same amount each time, pair the first and last terms, average them, and multiply by how many terms there are - that's what the sum formula is doing underneath.",
     "example": "a = 2, d = 3, n = 10. Sum = (10/2) x (2x2 + 9x3) = 5 x (4+27) = 5x31 = 155.",
     "wrong": "Students forget to divide by 2, computing n x (2a+(n-1)d) instead of n/2 x (2a+(n-1)d), which exactly doubles the true answer - here giving 310 instead of 155 - and the mistake is easy to miss because the rest of the working looks right.",
-    "plain": "To total up a run of numbers that climb steadily, pair the smallest with the largest, find their middle value, then multiply that middle value by how many numbers there are in total.",
-    "like": "If you're stacking chairs numbered one to ten in a row and want the total weight, pairing the lightest with the heaviest gives you the same middle weight every time - so you can just take that middle weight and multiply it by how many chairs there are, instead of adding them one by one."
+    "plain": "To add up a long list of numbers that climb by the same amount each time, pair the smallest with the biggest, find their middle value, then multiply by how many numbers there are.",
+    "like": "It is like a tug of war team lining up from shortest to tallest - pairing the shortest with the tallest gives you the same middle height every time, so you can work out the total without measuring everyone."
   },
   "back_into_standard_form": {
     "what": "Standard form needs the front number between 1 and 10. If your working gives you something outside that range, slide the decimal point and adjust the power of 10 to make up for it - move the point left, the power goes up; move it right, the power goes down.",
     "example": "34 x 10^5 is not standard form because 34 is bigger than 10. Move the point one place left: 34 becomes 3.4. Since you made the front number 10 times smaller, the power must get 10 times bigger: 10^5 becomes 10^6. Answer: 3.4 x 10^6. Another one: 0.6 x 10^-3. Move the point one place right: 0.6 becomes 6. That made the front number bigger, so the power gets smaller: 10^-3 becomes 10^-4. Answer: 6 x 10^-4.",
     "wrong": "Students leave it as 34 x 10^5 because it 'looks like' standard form (a number times ten to a power) and there's no instruction telling them to check the front digit is under 10. Others fix the front number but forget to change the power at all, writing 3.4 x 10^5 - which is a completely different size of number, out by a factor of 10.",
-    "plain": "Standard form has one rule: the first number has to sit between one and ten. If it doesn't, you shift the decimal point until it does, and you pay for that shift by changing the power of ten to match.",
-    "like": "It is like changing money into fewer, bigger notes - twenty ten pound notes becomes two hundred pound notes. Same amount of money, just written with different sized units."
+    "plain": "In standard form, the number at the front always has to be at least one but less than ten - if it isn't, you haven't finished yet. Slide the decimal point to fix the front number, and nudge the power of ten the opposite way so the overall value stays exactly the same.",
+    "like": "It is like swapping two pound coins for twenty ten pence pieces - the pile looks different but your money has not actually changed, because the swap was balanced."
   },
   "back_substitute": {
     "what": "Once one unknown is known, put that number into either original equation to work out the other one - the original equation still has to be true.",
@@ -80,22 +80,22 @@
     "what": "You can use a few terms of an expansion to get a decimal approximation for something like a square root, but only when the substituted value is small enough for the series to behave - if it isn't, the approximation is meaningless even though the arithmetic still works.",
     "example": "sqrt(1.02) = (1+0.02)^(1/2) is about 1 + 0.01 - 0.00005 = 1.00995, using x=0.02 which is small.",
     "wrong": "Students plug in whatever value the question gives, even when it's way outside the safe range (say x=2), and still trust the number that comes out, because the arithmetic looks fine and nothing warns them it's gone wrong.",
-    "plain": "You can use the first few terms of an expansion to get a close decimal answer to something like a square root, but only when the number you're plugging in is small. Plug in a big number and the shortcut quietly stops working, even though the sum still spits out an answer.",
-    "like": "It is like guessing someone's total shopping bill by rounding the prices - fine for a basket of small items, but if one item costs a thousand pounds the rounding trick falls apart."
+    "plain": "Using a short string of terms to guess a tricky number only works when the thing you are plugging in is small - if it is not small, the shortcut falls apart even though the sums still come out looking normal.",
+    "like": "It is like estimating how long a short trip to the shop will take by walking speed - that trick stops working if the trip is actually to another country, even though you could still do the sum."
   },
   "binomial_coefficients": {
     "what": "The coefficients in a binomial expansion come from 'n choose r', worked out as n! / (r!(n-r)!) - the same numbers you'd read off Pascal's triangle - and each term is that coefficient times the two parts raised to powers that add up to n.",
     "example": "(1+x)^4: coefficients are 4C0, 4C1, 4C2, 4C3, 4C4 = 1, 4, 6, 4, 1. So expansion is 1 + 4x + 6x^2 + 4x^3 + x^4.",
     "wrong": "They compute nCr correctly but forget that when it's (a+b)^n rather than (1+x)^n, each term also needs a^(n-r) attached, not just the coefficient and b^r - so terms like a^3 get dropped entirely, especially when a isn't 1.",
-    "plain": "The numbers in front of each term in an expansion come straight from Pascal's triangle, and each term also carries the two original pieces raised to powers that always add up to the same total.",
+    "plain": "When you expand something like one plus x raised to a power, the numbers in front of each term come from a set pattern - the same pattern you get from Pascal's triangle - and each term's two parts always add up in power to the original power you started with.",
     "like": ""
   },
   "binomial_validity": {
     "what": "When the power in a binomial expansion is negative or a fraction, the expansion goes on forever rather than stopping, and it only actually adds up to the right value when the variable part is small enough in size - specifically when its absolute value is less than 1.",
     "example": "(1+x)^-1 = 1 - x + x^2 - x^3 + ..., valid only for |x| < 1. At x = 2: 1 - 2 + 4 - 8 + ... never settles down or matches 1/3, because |x| = 2 is too big.",
     "wrong": "They expand the series correctly but give no restriction on x at all, or write 'x < 1' forgetting negative values also break it, and for expressions like (2+x)^n they forget to rescale, stating |x|<1 when it should really be |x|<2.",
-    "plain": "This kind of sum only settles down and equals something sensible when the changing number inside is small enough to shrink towards nothing as you keep going. If it is too big, the pieces you are adding just keep growing forever and never reach a proper answer.",
-    "like": "It is like paying off a debt with tiny repeated instalments that shrink each time - it only actually clears if each payment is smaller than the last, not bigger."
+    "plain": "The never-ending version only settles down to an answer when the part being raised to the power is small enough - smaller than one, ignoring any minus sign. Outside that, the terms grow instead of shrinking and the whole thing is meaningless.",
+    "like": ""
   },
   "both_events_independent": {
     "what": "When one event doesn't change the chances of the other - like separate coin flips, or picking and putting back - the chance of both happening is the two chances multiplied together.",
@@ -157,8 +157,8 @@
     "what": "The power of ten decides the size almost every time - bigger power means bigger number, smaller (more negative) power means smaller number. Only compare the front numbers when the powers are equal.",
     "example": "Order 4 x 10^-2, 3 x 10^3, 5 x 10^-5. By power alone: 10^-5 is smallest, then 10^-2, then 10^3. So order is 5 x 10^-5, 4 x 10^-2, 3 x 10^3.",
     "wrong": "Students compare the front numbers first, thinking 5 x 10^-5 must be biggest because 5 is bigger than 4 and 3. They treat standard form like reading two separate numbers instead of one number where the power dominates.",
-    "plain": "When numbers are written as a small number times a power of ten, that power of ten tells you almost everything about how big the number is - it's like knowing which shelf something is on before you look at what's on it.",
-    "like": "It's like comparing prices in pounds and pence versus prices in millions of pounds - even the smallest number of millions beats the biggest number of pence."
+    "plain": "When numbers are written with a power of ten, that power tells you almost everything about how big the number is - ignore the small front number until the powers are tied.",
+    "like": "It is like comparing prices in pounds versus pence. A price in pounds, even a small one, usually beats a price in pence - you check the units before you check the number."
   },
   "complement_probability": {
     "what": "All the probabilities of everything that could happen add up to 1. So if you know the chance something happens, the chance it doesn't is just 1 minus that.",
@@ -178,8 +178,8 @@
     "what": "fg(x) means: do g to x first, then do f to the result. The function written on the right acts first, closest to x, and the one on the left wraps around the outside.",
     "example": "f(x) = x+1, g(x) = 2x. fg(x) = f(g(x)) = f(2x) = 2x + 1.",
     "wrong": "Students do them in the order written left to right, calculating f first then g, getting gf(x) instead - here that would give g(x+1) = 2x+2, the wrong answer. The notation looks like it should read left to right like a sentence, so this mistake feels natural and often isn't checked.",
-    "plain": "When one machine's answer is fed straight into another machine, the one written closest to the number goes first, and the outer one acts on whatever comes out of it.",
-    "like": "It's like getting dressed - you put your socks on before your shoes, even though 'shoes then socks' is how you'd say it if you read the instruction the wrong way round."
+    "plain": "When one function sits right next to another like this, you do the one closer to the letter first, then feed that answer into the other one - the one further away acts second, on the outside.",
+    "like": "It is like getting dressed - you put socks on before shoes, even though shoes get mentioned first when someone says 'put your shoes and socks on'."
   },
   "connected_rates": {
     "what": "When you're given how fast one thing changes and want how fast another changes, and they're linked through a third variable, you multiply the two known rates together - the variable they share cancels like a fraction.",
@@ -192,15 +192,15 @@
     "what": "Any constant disappears when you differentiate, so when you integrate you cannot know which constant was there originally - it could have been anything. The +c admits that gap; you only pin it down if you're told a specific point the function passes through.",
     "example": "Both x^2 + 3 and x^2 - 100 differentiate to 2x. So integrating 2x only gives x^2 + c. If you're told the curve passes through (0,7), then c = 7.",
     "wrong": "Students drop the +c entirely once they've done a few questions where it wasn't needed, or they add it out of habit without understanding why - so on a question giving a point to find c, they either forget the +c is even there to solve for, or they don't know why a point on the curve is enough information to find it.",
-    "plain": "Going backwards from a rate of change to the original amount, you lose track of a fixed starting number, because any starting number would have given the exact same rate of change. So you leave a gap for it until you're told where the curve actually starts.",
-    "like": "It's like knowing a car has been travelling at sixty miles an hour for two hours - that tells you it's moved a hundred and twenty miles, but not where it started from unless someone tells you."
+    "plain": "Going backwards from a rate of change to the original amount leaves one thing unknown - how far up or down the whole thing was shifted, because that shift vanishes without a trace when you move forwards.",
+    "like": "It is like being told how fast a lift has been moving but not which floor it started on. You can work out how far it has travelled, but not which floor it is on now unless someone tells you its starting point."
   },
   "convergence_condition": {
     "what": "A geometric series only settles on a finite total if each term gets smaller in size than the one before, forever - that depends purely on the size of the ratio, not its sign.",
     "example": "r=-0.5: terms are 1,-0.5,0.25,-0.125,... they shrink toward zero even though they flip sign, so the series converges. r=-2 grows in size, so it does not.",
     "wrong": "Students think 'negative ratio' automatically means no sum to infinity, confusing alternating sign with growing size. They also think any fraction works, missing that r=-1 or r=1.2 fail even though they look small or close to 1.",
-    "plain": "Imagine adding up a never-ending list of numbers. If each one is smaller than the last, the total can settle down to a fixed number instead of running off forever.",
-    "like": "Think of pouring water into a glass, but each pour is half the size of the one before. Eventually it looks full and stays that way, even though you never technically stop pouring."
+    "plain": "A list of numbers that keep shrinking towards nothing, however they do it, can add up to one fixed total forever. Flipping between positive and negative does not stop them shrinking.",
+    "like": "It is like taking smaller and smaller steps towards a wall, sometimes forwards and sometimes backwards, but each step shorter than the last - you still end up settling at one spot, not walking off into the distance."
   },
   "convert_fdp": {
     "what": "Fractions, decimals and percentages are three different outfits for the same number. To swap outfits: fraction to decimal, divide top by bottom; decimal to percentage, multiply by 100; percentage to fraction, put it over 100 and simplify.",
@@ -213,8 +213,8 @@
     "what": "A coordinate is an address for a point: the first number says how far across, the second says how far up, always starting from (0,0).",
     "example": "The point (3,2) is 3 across and 2 up from the origin.",
     "wrong": "They swap the order and plot 2 across, 3 up instead, because they read it like a normal list rather than 'across then up'. Works fine when both numbers are equal, like (3,3), so the swap habit never gets corrected.",
-    "plain": "Every point on a grid has an address, and that address always tells you sideways first, then upwards, starting from the same fixed corner.",
-    "like": "It is like giving directions to a seat in a cinema: which row along, then which seat up. Get the order wrong and you end up in someone else's lap."
+    "plain": "A coordinate tells you where a point is by saying how far across first, then how far up, always counting from the same starting corner.",
+    "like": "It is like giving directions in a city - first how many blocks across, then how many blocks up - get the order wrong and you end up somewhere else entirely."
   },
   "count_the_outcomes": {
     "what": "Before working out any probability, you need to know two numbers: how many things could happen in total, and how many of those count as a win. This is just careful counting, no probability yet.",
@@ -234,15 +234,15 @@
     "what": "For any base a (not e), differentiating a^x brings down a factor of ln a: d/dx(a^x) = a^x * ln a. That ln a is the price you pay for the base not being e.",
     "example": "d/dx(2^x) = 2^x * ln 2. At x = 0 this gives ln 2, about 0.693.",
     "wrong": "Students carry over the e^x rule and write d/dx(2^x) = 2^x with no ln 2 attached, because that's the only exponential rule they've memorised. This is wrong for every base except e, but since e^x questions are common, the habit sticks.",
-    "plain": "When a number that is not the special one grows by repeated multiplying, how fast it grows depends a little on which number you picked, and that extra bit shows up as a fixed multiplier stuck to the answer.",
+    "plain": "When you find the rate of change of a number raised to the power of x, you get that same expression back again, but multiplied by a fixed number that depends on which number you started with - unless that number was the special one called e, in which case nothing extra gets multiplied on.",
     "like": ""
   },
   "deriv_exp_e": {
     "what": "e^x is the one function that is its own derivative - differentiate it and you get exactly the same thing back. If there's a constant multiplying x in the exponent, like e^(kx), that constant gets pulled down front by the chain rule.",
     "example": "d/dx(e^x) = e^x. d/dx(e^(3x)) = 3e^(3x). d/dx(e^(-2x)) = -2e^(-2x).",
     "wrong": "Students treat e^x like a normal power and write d/dx(e^x) = x*e^(x-1), copying the rule for x^n. Others forget the chain rule multiplier on e^(kx) and just write e^(kx) again with no k out front - this one is sneaky because it looks identical to the plain e^x case.",
-    "plain": "There is one special growing pattern that grows at exactly the same rate as its own size, no matter how big it gets already.",
-    "like": "It is like a savings account where the amount you earn each second exactly matches how much money is already sitting in it."
+    "plain": "There is one special growing number whose rate of change is always exactly the same size as the amount itself, at every single moment.",
+    "like": "It is like a savings account that grows by exactly its current balance every instant - the bigger it gets, the faster it grows, in perfect step with itself."
   },
   "deriv_ln": {
     "what": "The derivative of ln x is 1/x - a completely different type of expression, not another log. It comes from ln x being the inverse of e^x, but you just need to know the result.",
@@ -262,29 +262,29 @@
     "what": "The derivative of sin x is cos x, and the derivative of cos x is negative sin x - but this only holds when x is measured in radians, not degrees.",
     "example": "d/dx(sin x) = cos x, so at x = 0, the slope of sin x is cos(0) = 1. d/dx(cos x) = -sin x, so at x = 0 the slope of cos x is 0.",
     "wrong": "Students memorise 'sin becomes cos, cos becomes sin' and forget the minus sign on the cosine derivative, writing d/dx(cos x) = sin x instead of -sin x. Others apply these rules to angles in degrees without adjusting, which silently gives wrong numerical slopes even though the shape of the answer looks right.",
-    "plain": "Sine and cosine trace out a wave. How steeply that wave is climbing at any moment is itself a wave, just shifted along - which is why the steepness of one of them turns out to be the other.",
-    "like": "Like a swing. Its height follows one smooth wave, and its speed follows the same wave shifted over: fastest at the bottom, where the height is changing quickest, and dead still at the top of each arc, where for an instant it stops climbing."
+    "plain": "The steepness of a sine wave at any moment is given by a cosine wave, and the steepness of a cosine wave is a sine wave turned upside down. This only works when the angle is measured in radians, not degrees.",
+    "like": "Like a swing: its height follows one smooth wave and its speed follows the same wave shifted over, fastest at the bottom and dead still at the top of each arc."
   },
   "deriv_tan": {
     "what": "The derivative of tan x is 1 over cos squared x, also written as sec squared x.",
     "example": "d/dx(tan x) = sec^2(x) = 1/cos^2(x). At x = 0, this gives 1/cos^2(0) = 1/1 = 1.",
     "wrong": "Students try to guess a pattern from sin and cos and write d/dx(tan x) = sec x or cos x, or they attempt to derive it from tan x = sin x/cos x using the quotient rule but botch the simplification and never reach sec^2(x), leaving an unsimplified or wrong fraction.",
-    "plain": "The steepness of the tan curve at any point is always one divided by cosine at that point, squared. It is a fixed result, not something you can guess by mixing sine and cosine rules together.",
+    "plain": "Tan is sine divided by cosine, so its steepness works out as one divided by cosine squared. It climbs gently in the middle and shoots up near the places cosine reaches nought, where tan has no value at all.",
     "like": ""
   },
   "derivative_meaning": {
     "what": "dy/dx at a point tells you the gradient of the curve exactly there - how steep it is and which way it's heading, if you zoomed in so close the curve looked like a straight line. It's not the height of the curve, it's the steepness.",
     "example": "For y = x^2, dy/dx = 2x. At x = 3, dy/dx = 6. That means at the point (3,9) the curve is climbing steeply, at a slope of 6 - for every 1 you move right, y goes up about 6.",
     "wrong": "Students plug x into y = x^2 instead of into dy/dx = 2x, so they say the gradient at x=3 is 9. It feels right because you 'found a number from the curve' - but 9 is the height, not the steepness.",
-    "plain": "A derivative tells you how steep a curve is at one exact spot, not how high up the curve is there. Steepness and height are two completely different pieces of information about the same point.",
-    "like": "It is like the difference between how high up a hill you are and how out of breath the climb makes you right now - one is your position, the other is how hard the ground is pushing back at that instant."
+    "plain": "A derivative does not tell you how high up the curve is at a point. It tells you how steep the hill is right there, if you stood on it and felt the slope under your feet.",
+    "like": "Imagine a graph of height against time is a drawing of a hill you are walking along. Your altitude is the height, but the derivative is how steep the ground feels under your shoes at that exact spot - two completely different things, even at the same spot."
   },
   "differentiate_function": {
     "what": "Differentiating turns a function into its rate-of-change function. For a term like a*x^n, bring the power down to multiply the front, then knock the power down by one.",
     "example": "y = 3x^4 + 2x - 5. Differentiate term by term: 3x^4 -> 12x^3, 2x -> 2, -5 -> 0. So dy/dx = 12x^3 + 2.",
     "wrong": "Students forget that a constant on its own (like -5) differentiates to 0, and leave it in the answer, or they subtract 1 from the power but forget to multiply by the original power, giving dy/dx = 3x^3 + 2 instead of 12x^3 + 2.",
-    "plain": "To find the steepness rule for a whole expression, you handle each piece on its own and then put the results back together. Any piece that is just a plain number with no x attached disappears completely, because a flat number never changes and has no steepness.",
-    "like": "It is like totting up a shopping bill item by item - each item gets its own treatment, and a stall that gave you something for free adds nothing to what you owe."
+    "plain": "To find the steepness formula, deal with each piece of the expression on its own, turn the bits that have a changing letter into their steepness version, and let any fixed number on its own disappear completely - because a flat number never goes up or down.",
+    "like": ""
   },
   "direct_proportion": {
     "what": "If one amount doubles, the other doubles too - they scale together. Find what one unit costs first, then multiply up to whatever amount you need.",
@@ -311,14 +311,14 @@
     "what": "If the same letter has the same coefficient (like both have 3y) in both equations, adding or subtracting the whole equations cancels that letter out. Same sign on that term means subtract, opposite signs means add - because you want that letter to end up as zero.",
     "example": "3x + 2y = 12 and 3x - 2y = 6. The x terms have the same sign, so subtract: (3x+2y) - (3x-2y) = 12-6, giving 4y = 6, y = 1.5. If instead you had 3x+2y=12 and -3x+4y=... you'd add.",
     "wrong": "Students always subtract regardless of signs, so when the coefficients are already opposite (like +3x and -3x), subtracting doubles the x term instead of cancelling it - they get 6x + ... = 6 instead of the correct 6y = 18, and don't notice because the numbers still look 'reasonable'.",
-    "plain": "When one letter shows up with the same amount in both equations, you can make it vanish by adding or subtracting the whole equations. Whether you add or subtract depends on whether that letter's sign matches in both.",
-    "like": ""
+    "plain": "When two mystery-number puzzles share one of the same hidden amounts, you can line them up and knock that amount out completely, leaving just one mystery to solve. Whether you add or subtract the two puzzles depends on whether that shared amount is pulling the same way or opposite ways in each one.",
+    "like": "Think of two shopping receipts where one item costs the same both times - if it's added in both, take one receipt away from the other to cancel it; if it's added in one and taken off in the other, add the receipts together instead."
   },
   "equate_indices": {
     "what": "If two powers with the same base are equal, their indices must be equal too - but only once both sides are actually written as powers of that same base. Before you can jump from '3^a = 3^b' to 'a = b', check the base isn't zero, negative, or 1, because those bases break the rule (they can give the same value for different indices).",
     "example": "2^(x+1) = 2^5 means x+1 = 5, so x = 4. But if you had 1^(x+1) = 1^5, you can't conclude x+1=5, since every index gives 1.",
     "wrong": "Students see two powers set equal and immediately equate the indices, even when the bases aren't actually the same yet (like 4^x = 2^5, where 4 needs rewriting as 2^2 first). This gets easy matching-base questions right but gives nonsense like x = 5 instead of the correct x = 2.5 when the base needs converting first.",
-    "plain": "If two powers are truly written with the same base number, then the little numbers on top must match. But that only works once both sides are actually wearing the same base - if they are not, you have to rewrite one of them first.",
+    "plain": "If two powers have exactly the same base number, and they come out equal, then their top numbers must match too - but that only works when the base is not zero, one, or negative, because those bases can give the same answer from completely different top numbers.",
     "like": ""
   },
   "equation_meaning": {
@@ -353,8 +353,8 @@
     "what": "A negative power means 'flip it and make the power positive', a fractional power means 'take a root', and anything to the power zero is 1 - these aren't three separate rules, they're all just power laws in disguise, so you can chain them.",
     "example": "Evaluate 8^(-2/3). Take the cube root of 8 first: 8^(1/3) = 2. Square it: 2^2 = 4. Then flip it because of the negative: 8^(-2/3) = 1/4.",
     "wrong": "Students treat the negative sign as making the answer negative, giving 8^(-2/3) = -4, or they do the power before the root and get stuck on 8^2 = 64 needing a cube root of 64, ending up with a messy decimal instead of the clean 1/4.",
-    "plain": "A power on top tells you to root it, and a power on the bottom or a negative sign tells you to flip it - do these one at a time, in whichever order is easiest, not all at once.",
-    "like": ""
+    "plain": "A power that is a fraction means take a root, a negative power means flip the number upside down afterwards, and a power of nothing means the answer is one. Do these in order - root first, then flip - and nothing turns negative along the way.",
+    "like": "It is like a recipe with steps in a fixed order: peel first, then slice. Do them in the wrong order and the dish does not come out right, even though you used the same ingredients."
   },
   "everything_adds_to_one": {
     "what": "If you list every single thing that could possibly happen, one of them definitely will - so their probabilities must add up to 1. That's why, if you know all but one, you can find the missing one by subtracting from 1.",
@@ -374,36 +374,36 @@
     "what": "e to any power, no matter how big, small, negative or weird, never hits zero - it gets close but never touches. So if you've factorised something and one factor is e^(something), you can cross it off the list of things that could make the whole expression zero, because it physically can't be the reason.",
     "example": "Solve (x-2)e^(3x) = 0. Since e^(3x) is never 0, the only way to get zero is x-2=0, so x=2. You don't even look at the exponential part again.",
     "wrong": "Students set e^(3x) = 0 anyway and try to solve it, ending up writing 3x = ln(0), then get stuck or write x = undefined as if that's a valid extra solution, sometimes even listing it alongside x=2 as if there are two answers.",
-    "plain": "A number that keeps getting multiplied by itself can shrink and shrink forever, but it never actually reaches nothing - so it can never be the reason something equals zero.",
-    "like": "It is like halving a slice of cake again and again - you get thinner and thinner slivers, but you never end up with literally nothing on the plate."
+    "plain": "A number built from growing or shrinking by the same amount over and over can get as tiny as you like, but it can never actually land on nothing - so if something equals zero, it was never going to be that part's fault.",
+    "like": "It is like halving a biscuit again and again forever - the crumb gets smaller and smaller but you never end up with literally zero biscuit."
   },
   "expand_binomial": {
     "what": "Expanding a bracket to a power means writing out every term you'd get if you multiplied the bracket by itself that many times, using the pattern of coefficients from Pascal's triangle, and remembering that the second term inside the bracket gets raised to a power too, not just the letter.",
     "example": "(1+2x)^3 = 1 + 3(2x) + 3(2x)^2 + (2x)^3 = 1 + 6x + 12x^2 + 8x^3.",
     "wrong": "Students use the right coefficients 1,3,3,1 but only raise the x, not the 2 in front of it - writing 3x^2 instead of 3*(2x)^2 = 12x^2. This gives a wrong answer that still looks plausible because the powers of x are correct, just the numbers in front are too small.",
-    "plain": "When you multiply out a bracket raised to a power, every single thing inside that bracket gets multiplied by itself that many times too - not just the letter, the number sitting next to it as well.",
-    "like": "It is like scaling up a recipe for more people - if you double the batch, you double every ingredient, not just the flour and not the sugar too."
+    "plain": "When you multiply a two-part bracket by itself several times, every term that comes out has both parts raised to some power, not just the letter - the plain number in front gets raised too, every time it appears.",
+    "like": "Imagine doubling a recipe three times in a row - the sugar does not just get written next to a bigger number, every batch of sugar itself gets multiplied up properly each time."
   },
   "expand_binomial_fractional": {
     "what": "When the power is negative or a fraction, the expansion never ends - you can only ever write the first few terms, and it only means anything as long as the bit being expanded stays small.",
     "example": "(1+x)^(-1) = 1 - x + x^2 - x^3 + ... - carries on forever, each term flipping sign.",
     "wrong": "Students try to use the whole-number method, expecting the expansion to stop after n+1 terms like it does for a positive whole power. For (1+x)^(-1) they might stop at 1 - x + x^2 and call that the full answer, not realising there's no last term to reach.",
-    "plain": "When the power is a fraction or a minus number, the expansion never finishes - you just keep writing more terms forever, and it only works properly if the thing being expanded is small to start with.",
-    "like": "It is a bit like measuring a coastline - the closer you look, the more detail there is, and you never reach a final, exact answer, so you just stop once you have enough."
+    "plain": "When the power is a fraction or negative, writing out the full expansion never finishes - you can only write the first few pieces, and they only mean anything sensible while the extra bit inside the bracket stays small.",
+    "like": "It is like a photo that keeps getting zoomed in forever - you can describe the first few details you see, but there is no final, complete description, and zooming only makes sense while you are still close in."
   },
   "expand_brackets": {
     "what": "Expanding two brackets means multiplying every term in the first bracket by every term in the second, then combining any like terms at the end.",
     "example": "(x + 3)(x + 2) = x*x + x*2 + 3*x + 3*2 = x^2 + 2x + 3x + 6 = x^2 + 5x + 6.",
     "wrong": "Students multiply only the first terms and the last terms - getting x^2 + 6 - and skip the two 'middle' cross products entirely, because it looks like a shorter version of the same process and no one term is obviously missing.",
-    "plain": "Every single thing in the first bracket has to meet every single thing in the second bracket - four little multiplications in total, then tidy up.",
-    "like": "It is like every person on one team shaking hands with every person on the other team - nobody gets left out."
+    "plain": "When you have two sets of brackets sitting next to each other, everything in the first one has to meet everything in the second one - not just the nearest neighbours.",
+    "like": "It is like every person at one table shaking hands with every person at another table, not just the ones sitting opposite each other."
   },
   "expand_single_bracket": {
     "what": "Whatever sits outside the bracket multiplies every single term inside it, not just the first one - and if that outside thing is negative, the sign flips on every term inside too.",
     "example": "3(2x - 5) = 3*2x - 3*5 = 6x - 15.",
     "wrong": "Students multiply only the first term, giving 6x - 5 and leaving the second term untouched. With a negative outside, like -2(x - 4), they often get -2x - 8 instead of -2x + 8, forgetting that a negative times a negative inside flips to positive.",
-    "plain": "The number outside the bracket has to touch every single thing inside it, not just the one closest to it - and if it is a minus number, every sign inside flips too.",
-    "like": "It is like paying for everyone in your group at the till - you cannot pay for one friend's ticket and leave the rest unpaid."
+    "plain": "The number sitting right outside a bracket belongs to every single term inside it, not just the first one - and if that number is negative, every sign inside flips.",
+    "like": "It is like a delivery charge added to every single item in a basket, not just the first thing you put in."
   },
   "expected_number": {
     "what": "Probability tells you the share you'd expect out of one trial. To expect a number of times, multiply that share by how many trials you're doing.",
@@ -416,15 +416,15 @@
     "what": "y = a^x (with a greater than 1) starts near zero for very negative x, never actually touching zero, then climbs slowly at first and then faster and faster as x increases - it never levels off and never turns downward.",
     "example": "For y = 2^x: at x=-2, y=0.25; at x=0, y=1; at x=3, y=8; at x=5, y=32. The jumps in y get bigger and bigger even though the jumps in x stay the same size.",
     "wrong": "Students sketch it as a curve that eventually flattens out or turns back down, like a parabola or a capped growth curve, because that's the shape of most other graphs they've seen. It survives because for small x-values near the y-axis, exponential growth actually does look gentle and easy to mistake for levelling off.",
-    "plain": "This kind of graph creeps along barely moving for a while, then suddenly shoots upward faster and faster, and it never turns around or flattens out - it just keeps climbing forever.",
-    "like": "It is like a rumour spreading - hardly anyone knows at first, then suddenly it feels like everyone does, and it does not stop or reverse once it gets going."
+    "plain": "This kind of graph starts off barely leaving the ground, then grows faster and faster forever - it never flattens out and it never turns back down.",
+    "like": "It is like a rumour spreading - hardly anyone knows at first, then suddenly it feels like everyone does, and it never calms down on its own."
   },
   "factor_pairs": {
     "what": "Two whole numbers that multiply together to make the number you started with, going through every combination that works.",
     "example": "Factor pairs of 12: 1x12, 2x6, 3x4.",
     "wrong": "They stop after finding one or two pairs, missing others - for 12 they might only list 2x6 and 3x4, forgetting 1x12, because they stop once the numbers 'look done'.",
-    "plain": "These are the pairs of whole numbers that multiply together to give you back the number you started with, and you have to hunt for every single pair, not just the first couple you spot.",
-    "like": "It is like finding all the ways two people could split a bag of sweets evenly between them - there is more than one way, and you have to check them all."
+    "plain": "Factors are two whole numbers that multiply to give you the number you started with, and you keep going until you have found every single pair, not just the first couple you spot.",
+    "like": ""
   },
   "factor_theorem_meaning": {
     "what": "If putting a number into f(x) makes it come out zero, that number is a root, and that tells you (x minus that number) divides evenly into f(x) - it's the connection between a root and a factor written as a bracket.",
@@ -437,8 +437,8 @@
     "what": "Every term in the expression shares some factor - a number, a letter, or both - and you pull the biggest one out to the front, leaving the rest in brackets. Check by multiplying back through: it has to rebuild exactly what you started with.",
     "example": "Factorise 6x^3 + 9x^2. Both terms share 3x^2 (biggest number that divides 6 and 9 is 3, biggest power of x shared is x^2). Take it out: 3x^2(2x + 3). Check: 3x^2 times 2x is 6x^3, 3x^2 times 3 is 9x^2. Correct.",
     "wrong": "Students take out a factor that works but isn't the highest one - like pulling out just 3 from 6x^3 + 9x^2 to get 3(2x^3 + 3x^2), missing that x^2 was also common. It's not wrong, exactly, but it's not finished, and it causes trouble later when the question expects the fully factorised form or when solving equations, since the leftover bracket still has a common factor hiding in it.",
-    "plain": "Every part of the expression has something in common hiding inside it, and you can pull that shared piece out to the front, leaving what's left in a bracket behind it.",
-    "like": "It's like noticing every item on a shopping list costs a multiple of two pounds, so you write it as two pounds times a list of smaller numbers instead."
+    "plain": "Look at every piece of the expression and find the biggest thing they all share, then pull that shared thing right out to the front, leaving what's left behind in brackets.",
+    "like": "It is like packing several bags that all happen to contain a torch - instead of carrying a torch in each bag, you take all the torches out and carry one big torch separately, leaving the bags lighter."
   },
   "factorise_cubic": {
     "what": "To break a cubic into three brackets, find one value that makes it zero (a root), divide the cubic by that bracket to leave a quadratic, then factorise the quadratic as normal.",
@@ -458,8 +458,8 @@
     "what": "An inverse undoes what the function did. To find it, write y = f(x), swap x and y, then rearrange to make y the subject again - the domain of the inverse is whatever the range of the original function was.",
     "example": "f(x) = x^2 + 1 for x >= 0. Write y = x^2 + 1, swap: x = y^2 + 1, so y = sqrt(x-1). f^-1(x) = sqrt(x-1), domain x >= 1 (since that was the range of f).",
     "wrong": "They rearrange f(x) for x but never swap x and y first, so they write f^-1(x) = sqrt(x-1) but call it 'x' still meaning the original variable, and lose track of which domain belongs to which function - often just copying the original domain across unchanged.",
-    "plain": "An inverse function is the machine that undoes what the first one did, so you have to swap what goes in for what comes out before working out the new rule.",
-    "like": "It's like a vending machine that turns coins into crisps - the inverse is the machine that turns crisps back into coins, so you flip which side you start from."
+    "plain": "An inverse is the process that undoes a function completely, swapping what used to go in for what used to come out.",
+    "like": "It is like rewinding a video - whatever the function did to turn the start into the end, the inverse plays it backwards to turn the end back into the start."
   },
   "find_missing_value_from_mean": {
     "what": "If you know the mean and the count, you know the total (mean times count). Add up the values you do have, and whatever's left over is the missing one.",
@@ -486,15 +486,15 @@
     "what": "Read the situation, name the unknown, write down what the words or picture are actually saying in symbols, then solve that equation like any other.",
     "example": "A rectangle has sides x and x+3, perimeter 26. Perimeter is 2(x + x+3) = 26, so 4x + 6 = 26, 4x = 20, x = 5.",
     "wrong": "Students build the equation from only part of the situation, for example adding the two sides but forgetting perimeter needs doubling: x + (x+3) = 26 gives x = 11.5, a number that looks like a fine answer but solves the wrong problem.",
-    "plain": "You have a whole situation in words, but really it is just an equation wearing a disguise. Once you spot which numbers are equal to each other, the disguise comes off and it is normal solving from there.",
-    "like": "It is like a recipe written as a story instead of a list - once you pull out the actual quantities, it is just cooking like any other."
+    "plain": "Before you can solve anything, you have to turn the actual situation into a proper equation that captures everything it is telling you, not just some of it.",
+    "like": "It is like writing a shopping list from what someone tells you - if you miss out half of what they said, the list looks fine but it is wrong."
   },
   "form_expression_from_context": {
     "what": "You are given a real situation with two related quantities, and told or shown how they connect (a fixed perimeter, a fixed area, a fixed cost). You use that connection to remove one variable, so you end up with a single expression in one variable that you can then work with.",
     "example": "A rectangle has perimeter 20. So 2x+2y=20, meaning y=10-x. Area = xy = x(10-x) = 10x - x^2. Now area is a function of x alone.",
     "wrong": "Students write the area as xy and stop there, or plug in the constraint wrong (like using y=20-x instead of y=10-x), because they forget the perimeter equation has a 2 in front of each variable.",
-    "plain": "You have two things that depend on each other, and one fact ties them together. Use that fact to swap one of them out, so you are only dealing with one unknown instead of two.",
-    "like": "If you know how much money you and a friend have between you, and you know your amount, you instantly know theirs too - you never needed two unknowns, just one."
+    "plain": "When you are told how two amounts are tied together, use that connection to write one of them in terms of the other, so everything ends up depending on just one thing.",
+    "like": "It is like knowing you have exactly twenty pounds to spend on crisps and drinks - once you decide how much goes on crisps, the amount left for drinks is already fixed, so you only need to track one number."
   },
   "form_expression_words": {
     "what": "Read the sentence and translate each piece separately: pick a letter for the unknown number, then convert phrases like 'more than', 'twice', 'less than' into the operations they actually mean, keeping the order the words give you - which is not always the order you write them in algebra.",
@@ -528,8 +528,8 @@
     "what": "A fraction is a division that hasn't been done yet. To turn it into a decimal, divide the top number by the bottom number, and keep going after the decimal point until it stops or starts repeating.",
     "example": "3/8: divide 3 by 8. 3.000 / 8 = 0.375, since 30/8=3 rem 6, 60/8=7 rem 4, 40/8=5 rem 0. So 3/8 = 0.375. For one that doesn't terminate: 1/3: 1.000 / 3 = 0.333... the 3 repeats forever, so 1/3 = 0.333... (written as 0.3 with a dot over it).",
     "wrong": "Students divide the bottom by the top instead, so 3/8 becomes 8/3 = 2.67, which is nowhere near right. Others stop dividing too early when they hit a remainder that isn't zero, writing 1/3 = 0.3 and calling it done, because they've never been told decimals are allowed to go on forever.",
-    "plain": "A fraction is really a division that never got finished. Splitting three pizzas between eight people just means doing three divided by eight.",
-    "like": "Sharing three pound coins between eight people at the till - the machine would give you a decimal answer, not a fraction."
+    "plain": "A fraction is really just one number being divided by another number that hasn't been worked out yet. To see it as a decimal, do that division and keep going, even if it never stops.",
+    "like": "It is like sharing a bag of sweets between friends - if the sweets don't split evenly, you keep cutting pieces smaller and smaller rather than stopping halfway and pretending everyone got a whole number."
   },
   "fractions_arith": {
     "what": "To add or subtract fractions you need a common denominator first; to multiply, you multiply straight across top and bottom; to divide, you flip the second fraction and multiply. Each operation has its own rule - they don't mix.",
@@ -542,8 +542,8 @@
     "what": "f(x) is the output of the function when you feed it x - a value. f'(x) and dy/dx are both the derivative, the rate of change, but written in different notations depending on whether you call the function f(x) or y.",
     "example": "If f(x) = x^2, then f(3) = 9 is a specific value, but f'(x) = 2x is a new function telling you the gradient at any x, so f'(3) = 6 is the gradient at x=3.",
     "wrong": "Students read f'(x) as 'f times x' or think f(2) means f multiplied by 2, instead of substituting 2 into the function - so they'll compute f(2) for f(x)=x^2 as 2x^2 instead of correctly substituting to get 4.",
-    "plain": "Think of a function as a machine: you post a number in, and a different number comes out. The letter with the dash on it is a second machine that tells you how steep the first machine's output is changing.",
-    "like": ""
+    "plain": "When you see a letter with brackets round another letter, the thing in the brackets is the number you feed in, not something you're multiplying by. The letter outside with a little dash on it means a brand new rule for working out steepness at that point, not the first rule times something.",
+    "like": "Think of it like a vending machine labelled f - you post in a number, and it hands you back a result. f of two means you posted in two, not that you're multiplying f by two."
   },
   "geometric_sequence": {
     "what": "A geometric sequence keeps multiplying by the same fixed ratio each step. The nth term is the first term multiplied by that ratio raised to the power (n-1), again because the first term hasn't been multiplied yet.",
@@ -577,8 +577,8 @@
     "what": "Gradient tells you how steep a line is and which way it slants - how much y changes for every step across in x. It's a rate: change in y divided by change in x between two points on the line.",
     "example": "Points (1, 2) and (4, 11). Change in y = 11 - 2 = 9. Change in x = 4 - 1 = 3. Gradient = 9/3 = 3, meaning y goes up by 3 for every 1 across.",
     "wrong": "Students divide change in x by change in y instead, getting 3/9 = 1/3, because they don't fix which change goes on top - the rule 'rise over run' gets applied backwards under pressure.",
-    "plain": "Steepness is about how much you climb for every step you take forwards. Take two points, see how much higher you got, and compare that to how far across you walked.",
-    "like": "Like a hill on a walk - if you go up ten metres over every hundred metres you walk, that ratio is how steep it feels under your feet."
+    "plain": "Steepness is about how much you climb for every step you take sideways, and the order matters - up over across, never the other way round.",
+    "like": "It's like a hill's steepness on a bike ride: how much height you gain divided by how far you've pedalled forward. Swap them round and a gentle hill suddenly looks impossibly steep."
   },
   "highest_common_factor": {
     "what": "The biggest number (or term) that divides exactly into both things you're given, with nothing left over.",
@@ -591,7 +591,7 @@
     "what": "When y is tangled up with x in an equation rather than isolated, you differentiate both sides term by term, treating y as a function of x, and every time you differentiate a y-term you tack on dy/dx by the chain rule - then you rearrange to get dy/dx by itself.",
     "example": "x^2 + y^2 = 25. Differentiate: 2x + 2y(dy/dx) = 0. Rearrange: dy/dx = -x/y.",
     "wrong": "Students differentiate y^2 as 2y and stop, forgetting the dy/dx that chain rule demands, so they get 2x + 2y = 0 and a meaningless answer. Others remember dy/dx on simple terms like y^2 but forget it's needed on mixed terms like xy, missing the product rule there too.",
-    "plain": "Sometimes an equation never lets you get y on its own. You can still find the steepness without untangling it: work through every term where it stands, remembering that y quietly depends on x, and only sort out the steepness at the end.",
+    "plain": "When two changing things are tangled together in the same sentence instead of one being neatly given by the other, you still have to track how both of them are changing, every single time either one shows up.",
     "like": ""
   },
   "increasing_decreasing": {
@@ -605,22 +605,22 @@
     "what": "There are a few fixed rules for combining powers: multiplying same bases adds the powers, dividing subtracts them, a power to a power multiplies, anything to the power 0 is 1, and a negative power flips it to the bottom (or top) of a fraction.",
     "example": "x^3 * x^-5 = x^-2 = 1/x^2. Also (x^2)^3 = x^6, and x^0 = 1.",
     "wrong": "Students multiply the powers when they should add (turning x^3*x^2 into x^6 instead of x^5), or panic on negative powers and just drop the sign, turning x^-2 into x^2.",
-    "plain": "A power is shorthand for multiplying something by itself over and over. These rules are just what happens to that shorthand when you combine two of them, so you never have to write the whole thing out and count.",
+    "plain": "A power is shorthand for multiplying something by itself. The rules say what happens when you combine two of them on the same thing: the counts add when you multiply and take away when you divide. A count of nought gives one, and a count below nought flips it underneath.",
     "like": ""
   },
   "index_notation": {
     "what": "Index notation is the small raised number that tells you how many times to multiply a number by itself. 2^3 means 2 x 2 x 2, not 2 x 3.",
     "example": "2^3 = 2 x 2 x 2 = 8. 5^2 = 5 x 5 = 25.",
     "wrong": "Students read 2^3 and multiply the base by the power, getting 2 x 3 = 6 instead of 8. It sticks because for 2^1 or anything to the power 1 the two methods happen to agree, so the error isn't caught early.",
-    "plain": "That little raised number is not saying multiply, it is saying repeat. It tells you how many copies of the number to chain together with times signs.",
-    "like": "It is like a recipe that says use three eggs, not add three to the number of eggs you already have."
+    "plain": "That small raised number tells you how many copies of a number get multiplied together, not what to multiply the number by.",
+    "like": "Think of it like folding a bit of paper in half repeatedly - the small number says how many folds you do, not how thick one fold makes it."
   },
   "inequality_meaning": {
     "what": "Each sign tells you how two things compare: < means strictly smaller, > means strictly bigger, and adding the line underneath (<= or >=) means the end value itself counts too, not just the values beyond it.",
     "example": "x < 5 means x can be 4.999 but not 5. x <= 5 means x can be exactly 5 as well as anything smaller.",
     "wrong": "Students treat < and <= as basically the same thing and forget to check boundary cases, so on a question asking 'can x equal 5' with x <= 5 they say no, because they're picturing the open circle from < instead of the filled one.",
-    "plain": "One sign says two things can never be tied, one is always strictly ahead. The other sign lets them tie, so the boundary number itself is allowed in.",
-    "like": "It is like a race where one rule says you must beat the record, and another rule says matching the record is good enough to win."
+    "plain": "These signs are just ways of comparing two amounts, and whether the line sits underneath tells you if being exactly equal still counts as true.",
+    "like": "It's like a height limit sign at a fairground ride: 'taller than this line' leaves out anyone exactly on it, but 'this line or taller' lets them on too."
   },
   "inequality_on_number_line": {
     "what": "On a number line, a filled-in circle means that value is included (the inequality has 'or equal to'), and an open circle means it isn't; the arrow shows which side of that value counts.",
@@ -633,8 +633,8 @@
     "what": "When you multiply or divide both sides of an inequality by a negative number, the direction of the inequality reverses, because negating flips the order of numbers on the number line - what was bigger becomes smaller.",
     "example": "Start with 2 < 5, both true. Multiply both sides by -1: -2 and -5. Now -2 is bigger than -5, so the sign must flip: -2 > -5.",
     "wrong": "Students multiply or divide by a negative and keep the sign the same, so solving -x > 4 they write x > -4 instead of x < -4 - the algebra step feels identical to the positive case, so the flip gets skipped.",
-    "plain": "Flipping something onto its opposite side also flips which one used to be bigger. So when you multiply or divide by a negative number, the whole comparison turns around.",
-    "like": "It is like a photo negative - whatever was the lightest patch in the photo becomes the darkest patch once the colours invert."
+    "plain": "When you flip a number from positive to negative, it swaps places on the number line - the one that was winning is now losing. So if you multiply or divide both sides of a 'bigger than' statement by a negative number, which side is bigger swaps too.",
+    "like": "Think of it like a seesaw. If one side was higher up, and you flip the whole seesaw upside down, the side that was up is now down - the comparison reverses even though nothing about the people sitting on it changed."
   },
   "integer_solutions": {
     "what": "To list the integers that satisfy an inequality, check the boundary numbers themselves - whether they're included depends on whether the inequality is strict or not - then count the whole numbers between or beyond them.",
@@ -647,36 +647,36 @@
     "what": "An integral hands you back a function whose slope at every point matches the function you started with - it undoes differentiation the way adding undoes subtracting. If differentiating F gives f, then integrating f gives F back (plus a constant), because differentiation only cares about the shape, not the starting height.",
     "example": "Differentiate F(x) = x^2 + 5 and you get f(x) = 2x. Integrate 2x and you get x^2 + c - the +5 is gone from view, but it could be any constant, since it vanished when you differentiated.",
     "wrong": "Students treat integration as a separate rule to memorise (raise power, divide by new power) with no link to differentiation at all, so when asked WHY it works, they describe the procedure instead of the undoing relationship - and get stuck the moment a question asks them to check an answer by differentiating it.",
-    "plain": "Working out a slope and then undoing that step should hand you back roughly what you started with. Integrating is that undoing move, so it always ties back to whatever differentiating would have done to get there.",
-    "like": "It is like retracing your steps home from a walk - you end up back where you started, except you cannot be totally sure of the exact house number unless someone tells you which one it was."
+    "plain": "One process tells you how fast something is changing at every moment, and the other one works backwards from that to rebuild the original thing - but it can never tell you exactly where it started, only its shape, so you always leave a gap for the missing starting point.",
+    "like": "It's like being handed a video of someone's speed on a walk and being asked where they started. You can rebuild the whole shape of their journey, but you genuinely cannot know if they began at the shop or the park - both fit the same speeds."
   },
   "integrate_by_substitution": {
     "what": "When the expression is built from an inner function, you rename that inner function u, rewrite everything (including the limits) in terms of u, integrate the simpler thing, and only then you're done - no need to switch back if the limits were changed to u already.",
     "example": "Integral of 2x(x^2+1)^3 dx from x=0 to 1. Let u = x^2+1, so du = 2x dx. When x=0, u=1; when x=1, u=2. Integral becomes integral of u^3 du from 1 to 2 = [u^4/4] = (16-1)/4 = 15/4.",
     "wrong": "Students substitute u into the expression correctly but then plug the original x-limits (0 and 1) into the u-answer instead of converting them, getting a completely wrong number even though the algebra up to that point was right.",
-    "plain": "When a sum has a wrapped-up bit inside another bit, give the inside a new short name so the whole thing gets simple enough to add up. If your start and end points were measured in the old name, swap those over too, so you never have to translate back at the end.",
-    "like": "Like changing miles into kilometres before you start a journey calculation - if you convert the start and finish points at the beginning, you never have to convert your final answer back."
+    "plain": "When a hard sum has something messy hiding inside it, give that messy inner bit a new short name, rewrite the whole sum using only that short name, and if you were working between two boundary points, change those boundary points to match the new name too - then you never need to swap back.",
+    "like": "It's like renaming a complicated foreign dish to its English name on the menu before you order it. Once you've renamed it, everything on the bill, including the portion sizes, needs to use the new name too, not the old one."
   },
   "integrate_expression": {
     "what": "To integrate a power of x you raise the power by one and divide by the new power - do that to every term, then stick a +C on the end because any constant vanishes when you differentiate.",
     "example": "Integrate 3x^2 + 4x: each term goes up a power and divides by the new power, giving x^3 + 2x^2 + C.",
     "wrong": "The most common slip is forgetting the +C entirely, since it doesn't change the shape of the answer and often isn't checked. Also common: dividing by the old power instead of the new one, or forgetting to raise the power at all and just multiplying.",
-    "plain": "Finding the total from a rate means growing each piece's power by one step and shrinking it by dividing by that new bigger number, then remembering there could have been some fixed starting amount hiding that we can't see, so we add a mystery constant to admit that.",
-    "like": "Like knowing how fast a tap is filling a bucket but not how much water was already in it before you started watching - you can work out how much got added, but not the total, so you leave a blank for the unknown starting amount."
+    "plain": "To undo a power, push its number up by one and share the term out by that new number - do this to every piece of the sum, then remember any hidden starting amount could have been added, so tack on a mystery plus-something at the end.",
+    "like": ""
   },
   "integrate_powers": {
     "what": "To integrate a power of x, push the index up by one and divide by that new index - the exact reverse of the differentiation rule that brings the index down and multiplies by it.",
     "example": "Integrate x^3: raise the power to 4, divide by 4, get x^4/4 + c. Integrate x^(-2): raise to -1, divide by -1, get -x^(-1) + c, i.e. -1/x + c.",
     "wrong": "Students divide by the OLD power instead of the new one, turning x^3 into x^4/3. With negative or fractional powers they often forget to raise the index at all, or mishandle the sign - integrating x^(-2) as x^(-1) + c without the minus sign, since the sign flip from dividing by a negative index is easy to miss.",
-    "plain": "To undo the shrinking that happens when you find a rate of change, you do it backwards: make the power one bigger, then divide by that new bigger number.",
+    "plain": "Undoing a power works backwards from building it up - push the power number up by one, then divide the whole thing by that new, bigger number.",
     "like": ""
   },
   "inverse_function": {
     "what": "The inverse function undoes what the original function does. To find it, write y = f(x), swap x and y so the roles reverse, then rearrange to get y on its own again - that new expression is f^-1(x).",
     "example": "y = 3x + 2. Swap: x = 3y + 2. Rearrange: x - 2 = 3y, so y = (x-2)/3. That's f^-1(x).",
     "wrong": "Students rearrange first without swapping x and y, so they find x in terms of y but call it the inverse without ever switching the letters - it looks like progress but it's actually just solving for x, not undoing the function. Others swap correctly but then make an algebra slip while rearranging, like forgetting to divide the whole side by 3.",
-    "plain": "An inverse undoes exactly what the original does. To find it, swap the input and the output, then work out what you'd need to put in now to get the number you used to put in.",
-    "like": "Like a recipe that turns raw dough into bread - the inverse asks: if I start with a loaf of bread, what set of steps gets me back to raw dough. You have to reverse the whole process, not just relabel it."
+    "plain": "An inverse undoes exactly what the original rule did. To find it, swap the two things that were playing input and output round, and then work out what the new output has to be - swap first, rearrange after, never the other way round.",
+    "like": "It's like working out how to untie a knot by thinking about which move tied it. If putting your shoe on was tying the laces, taking it off means undoing them in reverse order, not just doing something else with the laces."
   },
   "inverse_operations": {
     "what": "Every operation has one that cancels it out completely - add undoes subtract, multiply undoes divide, squaring undoes square root. If a number is stuck to your letter by one of these, doing the opposite operation to both sides removes it while keeping the equation true, because whatever you do to one side you must do to the other or the balance breaks.",
@@ -689,8 +689,8 @@
     "what": "Terms can only be combined if they are built from the exact same letters raised to the exact same powers - x and x are alike, but x and x^2, or x and a plain number, are different kinds of quantity and can't be merged into one count.",
     "example": "In 4x + 3x^2 + 2x, the 4x and 2x are alike (both plain x), but 3x^2 is not, since it's x squared, not x.",
     "wrong": "Students combine 4x and 3x^2 into 7x^2 or 7x, treating any term with an x in it as the same kind. This survives because when only one power of x appears in a whole question, the distinction never gets tested, so the false rule 'if it has x, add it' works every time until x^2 turns up.",
-    "plain": "You can only add or combine things that are actually the same kind of thing. A plain number of somethings and a squared amount of the same thing look similar but are not the same kind of quantity, so they can't be lumped together.",
-    "like": "Like counting apples and boxes of apples separately - three apples plus two boxes of apples isn't five of anything, because they're not the same kind of item."
+    "plain": "Two amounts can only be added together into one count if they are measuring the exact same kind of thing - the same letter, raised to the exact same power. A letter on its own and that same letter squared are not the same kind of quantity, even though they share a letter.",
+    "like": "It's like counting apples and boxes of apples as if they were both just 'apples'. Three apples plus two boxes of apples does not make five apples - they're different units, even though the word apple appears in both."
   },
   "limit_h_to_zero": {
     "what": "Picture two points on a curve joined by a straight line - a chord. Its gradient is a rough estimate of the curve's steepness. As you slide the second point closer and closer to the first, that chord gradient settles down toward one exact number, and that number is the gradient of the curve at that single point - the derivative.",
@@ -717,8 +717,8 @@
     "what": "Before you can eliminate a variable, its coefficient has to be the same size in both equations. You look at what each equation is multiplied by, and scale one or both so that one letter's numbers line up.",
     "example": "2x+3y=7 and x-2y=1. Multiply the second equation by 2: 2x-4y=2. Now the x-coefficient is 2 in both equations, ready for elimination.",
     "wrong": "Students multiply only part of the equation - scaling the x-term but leaving the constant on the other side untouched, so x-2y=1 becomes 2x-4y=1 instead of 2x-4y=2. It looks like the coefficients match, but the equation itself is no longer true, so everything built on it afterward is wrong.",
-    "plain": "If you scale up one side of a balanced scale, you have to scale up everything on that side by the same amount, or it stops being balanced. An equation is exactly that kind of balance.",
-    "like": "It is like doubling a recipe - if you double the flour you have to double the sugar and the eggs too, not just the flour, or the recipe stops being the same recipe."
+    "plain": "Before you can cancel a letter out between two equations, both sides of each equation need to grow by the same amount - not just the part with the letter on it. If you multiply one piece and forget the rest, you have built a different equation, not a matching one.",
+    "like": "It is like scaling up a recipe - if you double the flour you have to double the sugar and the eggs too, or it is not the same recipe any more, just a mess."
   },
   "mean_from_frequency_table": {
     "what": "Each value in the table counts multiple times, so multiply each value by its frequency, add those up, then divide by the total frequency - not by the number of rows.",
@@ -780,8 +780,8 @@
     "what": "Every percentage change is one multiplication. A rise of x% means multiply by (1 + x/100). A fall of x% means multiply by (1 - x/100). To undo it, divide by that same number.",
     "example": "A 15% increase multiplies by 1.15. To undo a 15% increase, divide by 1.15, not multiply by 0.85.",
     "wrong": "Students think a 15% increase is undone by a 15% decrease, multiplying by 0.85 to reverse it - this doesn't get back to the start because 15% off the bigger number is more than 15% of the original. They mix up increase and decrease multipliers, using 1.15 when they mean 0.85 or the reverse.",
-    "plain": "Growing by a percentage and then shrinking by the same percentage doesn't bring you back to where you started, because the second change is worked out on a different, bigger number.",
-    "like": "If your pay goes up ten percent, then next year drops ten percent, you don't end up on your original wage - the drop was ten percent of the bigger number, so you lose more than you gained."
+    "plain": "Going up by a percentage and coming back down by the same percentage do not cancel out, because the second change works on a different, bigger number. Undoing a percentage change means reversing the exact multiplication that made it, not flipping the sign on the percentage.",
+    "like": "If your pocket money goes up by fifteen percent one week, then down by fifteen percent the next, you end up with less than you started with - the fifteen percent off is fifteen percent of a bigger number."
   },
   "multiply_by_frequency": {
     "what": "When a value happens more than once, it contributes that many times to the total - so to get the overall total from a frequency table, multiply each value by its frequency, then add all those up.",
@@ -794,36 +794,36 @@
     "what": "To multiply fractions, multiply the tops together and the bottoms together. To divide by a fraction, flip the second one upside down and multiply instead. Simplify at the end (or cancel early if you can).",
     "example": "2/3 x 4/5 = 8/15. For division: 2/3 / 4/5 = 2/3 x 5/4 = 10/12 = 5/6.",
     "wrong": "Students try to find a common denominator for multiplication like they do for adding, giving a wrong answer such as turning 2/3 x 4/5 into something over 15 with the wrong top. For division, a common error is flipping the first fraction instead of the second, or forgetting to flip at all and just multiplying straight across.",
-    "plain": "Multiplying fractions doesn't need matching bottoms the way adding does - you just deal with tops and bottoms separately.",
-    "like": "If you take two thirds of a portion, and then take four fifths of that, you're shrinking it twice - nothing about that needs a shared size to compare against."
+    "plain": "Multiplying fractions does not need the pieces to be the same size first, you just multiply straight across, tops together and bottoms together. Dividing by a fraction means asking how many of that fraction fit into the first one, which turns into flipping and multiplying.",
+    "like": ""
   },
   "multiply_terms": {
     "what": "Multiply the numbers together, then multiply the letters together, and stick the results side by side.",
     "example": "3 times 2x: 3*2 = 6, so answer is 6x. x times x: that's x^2, not 2x.",
     "wrong": "For x times x, they write 2x, treating it like addition (x + x = 2x) instead of multiplication. It survives because x + x and x times x look similarly 'simple' and both feel like combining two x's into one thing.",
-    "plain": "Putting two of the same letter side by side means they're being multiplied, not added, so they don't just merge into a bigger version of themselves.",
-    "like": ""
+    "plain": "Multiplying two letters together is not the same as adding them - x times x makes something new called x squared, it does not just double x. Addition joins two of the same thing; multiplication makes a different kind of thing entirely.",
+    "like": "Two metres plus two metres is four metres, still a length. But two metres times two metres is four square metres, a totally different kind of measurement - area, not length."
   },
   "negatives": {
     "what": "Negatives flip direction: subtracting a negative is the same as adding, and multiplying two negatives gives a positive. The sign rules matter more than the size of the numbers.",
     "example": "5 - (-3) = 5 + 3 = 8. And (-4) x (-2) = 8, but (-4) x 2 = -8. Two negative signs cancel; one negative sign doesn't.",
     "wrong": "Students see 5 - (-3) and either ignore the second negative and write 2, or they see two minus signs and just make it '-8' by multiplying the numbers instead of adding them. With multiplication, a common one is (-4) x (-2) = -8, treating negatives as always making things more negative rather than tracking that two negatives cancel.",
-    "plain": "Taking away a debt is the same as being given money, and two things pulling in the opposite direction can end up pushing the same way.",
-    "like": "If you owe someone three pounds and that debt gets cancelled, you're three pounds better off - taking away the negative acted just like adding."
+    "plain": "Taking away a negative pushes you the opposite way, forwards instead of back, so it works the same as adding. Two negatives multiplied together flip each other back to positive, but only when there are exactly two of them.",
+    "like": "Think of negative as turning to face backwards. Turn round twice and you're facing forwards again, turn round once and you're still facing the wrong way."
   },
   "normal_equation": {
     "what": "The normal is the line at right angles to the tangent, at the same point. Perpendicular lines have gradients that multiply to -1, so take the tangent's gradient, flip it upside down, and change its sign.",
     "example": "Tangent gradient at a point is 4. Normal gradient = -1/4. If the point is (2,4): y - 4 = -1/4 (x - 2).",
     "wrong": "Students just negate the gradient without flipping it (using -4 instead of -1/4), because 'opposite' feels like it should just mean a sign change, not a reciprocal too.",
-    "plain": "A line that cuts across another at a perfect right angle doesn't just point the other way, it tilts completely differently - steep becomes shallow, not just downhill instead of uphill.",
-    "like": "Think of a steep ramp and the flat path that meets it square on - the flat path isn't the ramp flipped upside down, it's a totally different steepness."
+    "plain": "A line that cuts another at a perfect right angle does not just point the opposite way, it points at a completely different steepness too, flipped upside down as well as flipped in sign.",
+    "like": "If a hill goes up steeply to the right, the path straight across it at a right angle is nearly flat, not just a steep path going down instead."
   },
   "nth_term_rule": {
     "what": "An nth term rule is a formula that tells you what any term in a sequence is, based on its position. Feed in the position number n, and it hands back the value sitting there.",
     "example": "nth term = 3n + 2. The 10th term means put n = 10: 3(10) + 2 = 32.",
     "wrong": "Students plug the term's value into n instead of its position, or they treat n as if it were the term itself - so asked for 'the term worth 32' they might just write 32 into the formula rather than solving 3n+2=32 for n.",
-    "plain": "A sequence is just a list of numbers in order, and each one has a position in that list, like first, second, third. A rule for the sequence is a little machine: tell it which position you want, and it tells you the number sitting there.",
-    "like": "It is like a row of houses with numbers on the doors - if someone tells you the house number, you know exactly which one to walk to, without checking every house before it."
+    "plain": "Every sequence follows a pattern, and a rule lets you jump straight to any term without counting through all the ones before it. Tell the rule which position you want, and it hands back the value sitting there.",
+    "like": "It's like knowing which house number is on a street - you don't walk past every house to find number twenty, you use the pattern of the numbering instead."
   },
   "null_factor": {
     "what": "If two things multiply together and the answer is zero, one of them has to be zero - there's no other way to make a product vanish. So each bracket can be set equal to zero on its own.",
@@ -864,8 +864,8 @@
     "what": "When x and y are both written in terms of some other letter like t, you find dy/dt and dx/dt separately, then divide one by the other to get dy/dx - the parameter cancels like it would in a fraction.",
     "example": "x = t^2, y = 2t. dx/dt = 2t, dy/dt = 2. dy/dx = (dy/dt)/(dx/dt) = 2/(2t) = 1/t.",
     "wrong": "Students divide the wrong way round, computing dx/dt over dy/dt instead, getting t instead of 1/t - this survives because both look like plausible answers and nothing in the question flags which is upside down. Others try to eliminate t first to get y in terms of x directly, which works sometimes but wastes time and often goes wrong on messier equations.",
-    "plain": "Sometimes x and y are not linked to each other directly - instead they are both controlled by a hidden third number changing behind the scenes. To find how y changes compared to x, you first see how each one changes compared to that hidden number, then combine those two changes together.",
-    "like": "It is like two clock hands both driven by the same motor - to compare how fast one hand moves against the other, you look at how each one moves against time first, then work out their speeds relative to each other."
+    "plain": "Sometimes x and y are both being steered by a hidden third number, like a dial being turned, rather than being linked to each other directly. To see how y changes compared to x, you look at how each one changes with the dial, then compare those two changes.",
+    "like": "It's like two cars whose speeds both depend on the same accelerator pedal - you can't compare the pedal to each car directly, but you can work out how the cars compare to each other through it."
   },
   "percentage_as_decimal": {
     "what": "A percentage is a number out of 100, so to write it as a decimal you divide by 100, which just shifts the digits two places. Going back, you multiply by 100.",
@@ -885,15 +885,15 @@
     "what": "A percentage is a chunk out of 100, so to find it of an amount you turn the percentage into a fraction or decimal of 100 and multiply by the amount.",
     "example": "Find 15% of 60. 15% = 15/100 = 0.15. 0.15 x 60 = 9.",
     "wrong": "Students divide the amount by the percentage number instead of multiplying, so for 15% of 60 they do 60 / 15 = 4. This looks plausible because it gives a smaller number, and often goes unnoticed on percentages under 50.",
-    "plain": "Finding a percentage of something means working out what fraction of it that percentage represents, then shrinking the whole amount down to that fraction.",
-    "like": "Like a shop discount - 15% off sixty pounds means working out that slice of sixty pounds, which is the amount you save."
+    "plain": "A percentage tells you how many pieces out of a hundred you need, so finding it of an amount means taking that fraction of the whole thing.",
+    "like": "It's like a discount sign in a shop - fifteen percent off something worth sixty pounds means taking fifteen out of every hundred pounds off, not dividing the price by fifteen."
   },
   "perpendicular_gradients": {
     "what": "Two lines are perpendicular when their gradients multiply to give -1 - so to find the perpendicular gradient, flip the original fraction upside down and change its sign.",
     "example": "Gradient is 2 (which is 2/1). Flip it: 1/2. Change sign: -1/2. Check: 2 times -1/2 = -1. Correct.",
     "wrong": "Students just change the sign and forget to flip - turning gradient 2 into -2 instead of -1/2. It survives because 'change the sign' is the part people remember, and for a gradient like 1, flipping does nothing, so -1 for '1' happens to be right and reinforces the shortcut wrongly.",
-    "plain": "Turning a line through a right angle does two things to its steepness. It swaps how far across for how far up, and it flips which way the line leans. So a gentle climb becomes a steep drop.",
-    "like": ""
+    "plain": "A perpendicular line meets another at a perfect square corner, like the corner of a book page. If one line climbs steeply, the other has to lean the opposite way and climb gently, in an exact flipped relationship.",
+    "like": "It's like two ramps meeting at a right angle - if one is steep and tilted one way, the other has to be shallow and tilted the other way to meet it square on."
   },
   "perpendicular_line": {
     "what": "Perpendicular lines have gradients that multiply to give -1, so to get the perpendicular gradient, flip the original gradient upside down and change its sign. Then use the given point to find the equation as usual.",
@@ -906,15 +906,15 @@
     "what": "A digit is worth more or less depending on where it sits, not just what it says. Moving right of the decimal point, each spot is worth ten times less than the one before it: tenths, then hundredths, then thousandths.",
     "example": "In 4.06, the 4 is worth 4 whole ones, the 0 is worth 0 tenths, and the 6 is worth 6 hundredths - so the number is 4 + 0/10 + 6/100.",
     "wrong": "Students see 4.06 and read the digits after the point as '06', treating it like a two-digit number bolted onto the end, so they think 4.06 is bigger than 4.3 because '06' looks bigger than '3'. They're comparing the digits as if position doesn't change what they're worth.",
-    "plain": "Where a digit sits changes what it's worth, not just what number it happens to be. The further right you go past the point, the smaller each spot's value gets.",
-    "like": "Like pounds and pence - the pounds digit and the pence digit can both be a 6, but one of them is worth far more than the other because of where it sits."
+    "plain": "The digits after the decimal point are not a number tacked onto the end - each spot is worth ten times less than the one before it, so you have to compare them one place at a time, left to right.",
+    "like": "It is like comparing prices - four pounds and six pence is less than four pounds and thirty pence, even though six looks bigger than three, because the six is sitting in the pence column, not the tens of pence."
   },
   "polynomial_division": {
     "what": "Dividing a cubic by a linear factor works like long division with numbers - you divide, multiply back, subtract, and bring down the next term, ending up with a quadratic (and maybe a remainder).",
     "example": "(x^3 - 6x^2 + 11x - 6) divided by (x-1) gives x^2 - 5x + 6, with no remainder.",
     "wrong": "Students get the sign wrong when subtracting during the process, so terms that should cancel don't, and the quotient comes out with the wrong middle coefficient - here getting x^2 + 5x + 6 or similar because a minus was dropped partway through.",
-    "plain": "When you split a big number by a smaller one using long division, you divide, multiply back, subtract, then bring the next digit down. Dividing a messy expression by a simple one works the exact same way, step by step.",
-    "like": "It is like sharing out a big pile of sweets bag by bag, checking what is left over after each round before moving to the next batch."
+    "plain": "When you divide one expression by another the long way, you are constantly subtracting - and subtracting a negative flips its sign. Miss that flip once and every term after it comes out wrong.",
+    "like": ""
   },
   "power_of_a_negative_term": {
     "what": "When you raise a whole term like -2x to a power, everything inside gets raised - the number, the sign, and the letter all together. The sign that comes out depends on whether the power is odd or even, not on what sign you started with.",
@@ -927,15 +927,15 @@
     "what": "10 to a positive power is 1 followed by that many zeros. 10 to a negative power is 1 divided by that many zeros' worth of ten, so it's a small decimal. Multiplying by 10^n shifts the decimal point n places - right if n is positive, left if n is negative.",
     "example": "10^3 = 1000. 10^-3 = 1/1000 = 0.001. So 7 x 10^-3 = 0.007.",
     "wrong": "Students treat a negative power as a negative number, saying 10^-3 = -1000, because the minus sign in the exponent gets read the same way as a minus sign anywhere else in a sum.",
-    "plain": "A power of ten just tells you how far to slide the decimal point. A big positive power slides it right, making the number huge; a negative power slides it left, making the number tiny - it does not make the number negative.",
-    "like": "Think of it like zooming a map in or out - zooming out shrinks things down small, it does not flip them upside down."
+    "plain": "A power of ten being negative does not mean the number is negative - it means the number is small, a fraction less than one. The minus sign is telling you which way to slide the decimal point, not making the value drop below zero.",
+    "like": "Think of it as zooming out on a map - a bigger negative power zooms further out, shrinking the number, but you never end up with a negative distance."
   },
   "power_rule": {
     "what": "To differentiate a power of x, bring the power down in front as a multiplier and knock the power down by one. This works for any power - negative, fractional, whatever - as long as it's written as x to a power.",
     "example": "y = 3x^4 - 2x^-1 + x^(1/2) dy/dx = 12x^3 + 2x^-2 + (1/2)x^(-1/2) (each term: multiply by old power, subtract 1 from power)",
     "wrong": "They apply it fine to whole number powers like x^3 but freeze on x^-2 or sqrt(x). For sqrt(x) they often forget to rewrite it as x^(1/2) first, so they either leave it undifferentiated or guess the derivative is (1/2)sqrt(x). For 1/x^2 written as x^-2, they multiply by -2 but then flip the sign of the power the wrong way, landing on -2x^-3 becoming +2x^-1 or similar sign slips.",
-    "plain": "There is one steady move for turning a power of a letter into its rate of change: bring the power down to the front, then lower the power by one. It works whether that power is a whole number, a negative one, or a fraction.",
-    "like": ""
+    "plain": "A power tells you how many times something is multiplied by itself, even when it is written as a fraction, a negative, or a root in disguise. There is one move that works on all of them, as long as the thing is written as x to a power first.",
+    "like": "It is like a rule for shrinking a stack of boxes - it does not care whether you started with five boxes, half a box, or a box counted backwards, the same shrinking move applies once everything is written as a stack."
   },
   "probability_from_data": {
     "what": "When you don't know the outcomes are equally likely, you can't guess the probability - you have to look at what actually happened and use frequency over total trials.",
@@ -969,8 +969,8 @@
     "what": "For one function divided by another, differentiate the top times the bottom, subtract the top times the derivative of the bottom, then divide the whole thing by the bottom squared. Order matters because subtraction isn't symmetric.",
     "example": "y = x^2 / (x+1) dy/dx = [2x(x+1) - x^2(1)] / (x+1)^2 = (x^2 + 2x) / (x+1)^2",
     "wrong": "Students often get the rule mostly right but swap the order of subtraction on top, writing [x^2(1) - 2x(x+1)] / (x+1)^2, which gives the negative of the correct numerator. Because both versions look 'balanced' and use all the right pieces, it's easy to write the wrong order and not notice, especially under time pressure.",
-    "plain": "When one changing thing is divided by another, there is an exact order you subtract in, and swapping that order flips the sign of your answer.",
-    "like": "It is like working out who owes who money after a split bill - getting the order backwards turns a debt into a credit."
+    "plain": "When one changing amount is divided by another changing amount, you cannot just differentiate the top and bottom separately and divide those - the two are tangled together, so there is a set order of steps that untangles them correctly.",
+    "like": "It is like working out how your share of a bill changes when both the total bill and the number of people change at the same time - you cannot just look at one of them, the order you combine the changes in matters."
   },
   "radians": {
     "what": "Radians measure angles using the radius of a circle instead of degrees - a full turn is 2*pi radians instead of 360 degrees. Calculus and most real-world formulas involving angles want radians, not degrees, because the maths only comes out clean that way.",
@@ -983,15 +983,15 @@
     "what": "A ratio like 2:3 says for every 2 of one thing there are 3 of the other - it's about the split between them, not the total. Add the parts to find out how many equal shares the whole thing is cut into.",
     "example": "In a ratio of 2:3, there are 2 + 3 = 5 parts total. If the total is 20, each part is 20/5 = 4, so the amounts are 8 and 12.",
     "wrong": "Students read 2:3 as meaning 2 out of 3, treating it like a fraction of the whole and getting shares that don't add up properly. Others assume the ratio gives the actual amounts directly, saying the two quantities simply are 2 and 3 regardless of what total the question gives.",
-    "plain": "A ratio tells you how something is split between groups, not how many things there are in total.",
-    "like": "It is like sharing sweets between two friends by handing out two, then three, then two, then three - the pattern tells you the split, not the total bag size."
+    "plain": "A ratio tells you how something is split between two groups, not how big either group actually is. To find real amounts, you first work out how many equal chunks the whole thing is cut into.",
+    "like": "It's like sharing a pizza between two people by slices, not by weight - knowing it's split three slices to two tells you nothing about the size of the pizza until you count the total slices."
   },
   "rationalise_denominator": {
     "what": "A surd sitting under a fraction line is considered 'untidy', so you multiply top and bottom by something that turns that surd into a whole number, without changing the value of the fraction since you're really multiplying by 1.",
     "example": "Simplify 3/sqrt(2). Multiply top and bottom by sqrt(2): (3*sqrt(2))/(sqrt(2)*sqrt(2)) = (3*sqrt(2))/2.",
     "wrong": "Students multiply only the denominator by sqrt(2) and forget the numerator, turning 3/sqrt(2) into 3/2 and losing the sqrt(2) entirely, or they multiply by sqrt(2)/sqrt(2) correctly but simplify sqrt(2)*sqrt(2) as 2sqrt(2) instead of 2.",
-    "plain": "A square root sitting on the bottom of a fraction is seen as messy, so there is a trick to move it to the top without changing what the fraction is worth.",
-    "like": ""
+    "plain": "A square root sitting underneath a fraction is not wrong, just awkward to work with, so there is a trick to swap it for a whole number underneath without changing what the fraction is worth.",
+    "like": "It is like changing a foreign coin into pounds before you can use it in a shop here - the value does not change, just the form it is in."
   },
   "read_a_frequency_table": {
     "what": "A frequency table has two kinds of column doing different jobs: one lists the values that occurred, the other says how many times each value occurred - mixing these up means misreading every row.",
@@ -1004,15 +1004,15 @@
     "what": "Making a letter 'the subject' means getting it alone on one side of the equals sign, using the same moves you'd use to solve an equation - whatever you do to one side, you do to the other, undoing operations in reverse order.",
     "example": "C = 2 pi r, make r the subject. Divide both sides by 2 pi: C/(2 pi) = r. So r = C/(2 pi).",
     "wrong": "Students divide only the C, writing r = C/2 pi meaning C/2 times pi, or they divide by 2 and forget the pi entirely, getting r = C/2. Both come from treating 2 pi as two separate things instead of one multiplied block sitting next to r.",
-    "plain": "Getting a letter on its own means peeling away everything stuck to it, one layer at a time, doing the exact same peel to both sides of the equals sign.",
-    "like": "It is like unwrapping a present - you take off the same layer of tape and paper from both hands at once, not just one."
+    "plain": "A formula is a balanced statement, and if a letter is tangled up with other numbers on one side, you can peel those numbers away one at a time, as long as you peel them off both sides so the balance never breaks.",
+    "like": "It is like untangling one person out of a group hug - you have to undo each arm wrapped around them one at a time, and in reverse order to how they got wrapped on."
   },
   "reciprocal": {
     "what": "Dividing by a fraction asks how many of that fraction fit into your number. Flipping the fraction and multiplying works because dividing by something small makes the answer bigger, and multiplying by its reciprocal does exactly that.",
     "example": "6 / (1/2) asks how many halves fit into 6, which is 12. Using the rule: 6 x 2/1 = 12, matching the answer.",
     "wrong": "Students think dividing always makes numbers smaller, so they expect an answer smaller than 6 and get confused or forget to flip, computing 6 / 1 / 2 = 3 instead, which happens to look plausible because it is still a small clean number.",
-    "plain": "Dividing by a fraction is really asking how many of that fraction you can fit inside your number, and that answer can end up bigger, not smaller.",
-    "like": "It is like asking how many quarter-hour slots fit into an hour - the answer is four, bigger than the hour you started with."
+    "plain": "Dividing asks how many of one thing fit inside another. Because a half fits into a whole twice, dividing by a half gives you twice as much - which is why dividing by a fraction turns into multiplying by it upside down.",
+    "like": "Like cutting a loaf into half-slices: ask how many halves are in three loaves and you get six, more than you started with, not fewer."
   },
   "recognise_composite": {
     "what": "A composite function is one built by putting one function inside another - you do something to x, then do something else to the result. To spot one, ask: is there an 'outer' action being applied to a whole 'inner' expression, rather than to x directly?",
@@ -1025,28 +1025,28 @@
     "what": "Some expressions look like ordinary numbers or products but are actually powers of the same base in disguise - things like 9, 27, 1/8, or sqrt(2). Before you can add, compare, or solve anything with them, you have to see that 9 is really 3^2 and 27 is really 3^3, so they share a base and can be combined.",
     "example": "You are asked to solve 9^x = 27. As written you cannot do anything - different bases. Rewrite both as powers of 3: 9 = 3^2, 27 = 3^3. Now the equation is (3^2)^x = 3^3, so 3^(2x) = 3^3, so 2x = 3.",
     "wrong": "Students try to solve 9^x = 27 directly, sometimes taking logs clumsily or guessing x = 3, because they don't spot that 9 and 27 are both powers of 3. Without that spotting step, the whole method never starts.",
-    "plain": "Some numbers are secretly the same number multiplied by itself a few times, just written differently. Spotting that two different-looking numbers actually come from the same building block is what lets you compare or combine them.",
-    "like": "It is like realising fifty pence, a pound, and two pounds are all just different amounts of the same coin - once you see they all come from twenty pences, working with them gets much easier."
+    "plain": "Some numbers are secretly the same building block multiplied by itself a certain number of times, and you cannot compare or combine them with another number until you notice they share that same building block.",
+    "like": "It is like realising two different sized Lego models are both built from the same single brick - once you see that, you can compare how many bricks each one used."
   },
   "recognise_product": {
     "what": "A product is two separate functions of x multiplied together, where neither is a fixed number. Spotting one means picking out the two pieces, u and v, that are each doing their own thing with x.",
     "example": "x^2 * sin(x) is a product: u = x^2, v = sin(x). But 3 * sin(x) is not a product needing the product rule - 3 is just a constant multiplier.",
     "wrong": "Students label anything with a multiplication sign as a product needing the product rule, so they overcomplicate 5x^3 (which is just a constant times a power) by splitting it into u=5, v=x^3 and grinding through unnecessary steps. It still gives the right answer, so the habit never gets corrected.",
-    "plain": "Sometimes you're multiplying two things that both change depending on x. That's different from multiplying something changing by a plain fixed number - the fixed number doesn't need special treatment.",
-    "like": "Picture speed multiplied by time, where both are changing as you drive - that's different from doubling a single changing number, like just multiplying your speed by two."
+    "plain": "A product is two different bits that both depend on x, multiplied together. If one of the bits is just a plain number with no x in it, it is not really a product at all - it is one thing scaled up or down.",
+    "like": "It is like the difference between mixing two unknown ingredients together and just doubling a recipe - doubling is not really combining two things, it is scaling the one thing you have."
   },
   "recognise_quotient": {
     "what": "Some expressions are written as one thing divided by another, but that doesn't mean you must use the quotient rule - if the bottom is just a number or a simple power of x, it's often faster to rewrite it as a product with a negative power.",
     "example": "x^3 / 5 is easier as (1/5)x^3, a simple power - no quotient rule needed. But (x^2 + 1)/(x - 1) genuinely needs the quotient rule, since both top and bottom vary with x in a complicated way.",
     "wrong": "Students see a fraction and immediately reach for the quotient rule, even when the denominator is a constant like x/2 or x^3/7, turning a one-line power rule problem into a messy quotient rule calculation - which often still works but wastes time and invites arithmetic slips.",
-    "plain": "When something is divided by a number that never changes, you don't need a complicated rule for division - you can treat it as an easier multiplication instead. Save the harder method for when both the top and the bottom are genuinely changing.",
-    "like": "Splitting a bill three ways is just dividing by a fixed number, so you can do it in one simple step. It's only complicated when the number of people sharing the bill keeps changing too."
+    "plain": "When you see something divided by a plain number, that number is not changing, so you can slide it round to the front instead of treating the whole thing as a division problem. Division only gets trickier when both the top and the bottom are changing as x changes.",
+    "like": "Splitting a bill of a changing amount by a fixed number of five people is simple multiplication by one fifth. It only gets properly complicated when the number of people sharing the bill is also changing."
   },
   "recognise_reverse_chain": {
     "what": "Some integrals are one function stuffed inside another, with the derivative of the inside sitting right there as a factor. If you can see 'a function of a function, times the derivative of the inner bit', that's your signal to substitute u = inner bit.",
     "example": "Look at the integral of 2x(x^2+1)^5 dx. The inner function is x^2+1, its derivative is 2x, and 2x is sitting right there multiplying the bracket. So substitute u = x^2+1, du = 2x dx, giving integral of u^5 du = u^6/6 + C = (x^2+1)^6/6 + C.",
     "wrong": "Students try to expand (x^2+1)^5 first with the binomial, or they guess the answer is (x^2+1)^6/6 without checking the 2x was needed - which works here by luck but fails the moment the factor out front isn't the exact derivative, like integral of x(x^2+1)^5 dx where they forget the missing factor of 2.",
-    "plain": "Sometimes a calculation is hiding a smaller calculation inside it, and the rate at which that smaller part is changing is sitting right next to it, multiplied in. Spotting that match is what tells you the two parts belong together.",
+    "plain": "Sometimes what you are integrating is one thing wrapped around another, and the exact derivative of the inside is sitting right there as an extra factor. That is the signal to swap the inside bit for a new letter and integrate that instead.",
     "like": ""
   },
   "reverse_percentage": {
@@ -1095,22 +1095,22 @@
     "what": "Roots are fractional powers and fractions of powers are subtractions - once everything is written as a single base raised to a single index, you just add, subtract or multiply the indices using the normal power rules.",
     "example": "Simplify (x^3 * sqrt(x)) / x^2. Write sqrt(x) as x^(1/2): (x^3 * x^(1/2))/x^2 = x^(3+1/2-2) = x^(3/2).",
     "wrong": "Students simplify the whole numbers and the roots separately, or forget to convert the root into a fractional power at all, leaving an answer like x^3 * sqrt(x) / x^2 uncombined, or wrongly cancelling to get x^(1/2) by matching 'x^3 over x^2' and ignoring the sqrt(x) term.",
-    "plain": "A root sign is a fraction hiding as a power, and dividing powers of the same thing means subtracting how many times it's multiplied. Turn everything into one thing raised to one power, then add or subtract those powers using the normal rules.",
-    "like": ""
+    "plain": "A square root is the same thing as raising a number to the power of one half, and once everything is written using powers of the same base, you combine them by adding or subtracting those powers, never by combining the whole numbers separately.",
+    "like": "Think of power as how many times you've folded a piece of paper in a particular direction - you only compare and combine fold counts if they're folds of the exact same sheet."
   },
   "simplify_logs": {
     "what": "Logs turn multiplication into addition and division into subtraction, and a power in front of a log becomes a multiplier out front (or vice versa). Use these three moves to squash several logs into one, or to pull one log apart.",
     "example": "Write 2log(x) + log(y) - log(z) as a single log. 2log(x) = log(x^2). So log(x^2) + log(y) - log(z) = log(x^2 y) - log(z) = log(x^2 y / z).",
     "wrong": "Students try to add the logs first and write log(x) + log(y) = log(x+y), treating log like it distributes over addition the way multiplication does. This is backwards - log(x)+log(y) = log(xy), not log(x+y) - but it feels natural because addition 'should' combine simply.",
-    "plain": "When two logs are added together, that actually means the numbers inside them get multiplied. Once you see logs as a code for multiplying and dividing, squashing them together or pulling them apart is just following the code.",
-    "like": "It is like two people saying how loud something is in decibels. Adding the decibels is really the same as multiplying how much louder it actually got."
+    "plain": "Logs turn multiplying into adding and dividing into subtracting, and a number sitting in front of a log can hop up to become a power inside it, or come back down the other way. Adding logs together is never the same as adding what's inside them.",
+    "like": "It's like tracking how loud two sounds are together - the loudness levels add up even though the actual sound pressures behind them were multiplying, not adding."
   },
   "simplify_ratio": {
     "what": "Divide both sides of the ratio by the same number, over and over, until nothing but 1 divides both parts evenly.",
     "example": "Simplify 8:12: both divide by 4, giving 2:3.",
     "wrong": "They divide by a number that only works on one side, or stop too early - for 8:12 they might divide by 2 and stop at 4:6, thinking it's simplified because both numbers got smaller.",
-    "plain": "A ratio is just comparing two amounts, so you can shrink both numbers down as long as you shrink them by the same amount each time, right down until they cannot get any smaller.",
-    "like": "It is like a recipe for two people that you scale down bit by bit until you reach the smallest version that still tastes the same."
+    "plain": "Keep dividing both numbers in the ratio by the same number until the only number that divides both of them evenly is one.",
+    "like": "It's like simplifying a recipe that serves twelve down to serving three - you divide every ingredient by the same amount, and you keep going until you can't shrink it any further."
   },
   "simultaneous_linear_quadratic": {
     "what": "The line crosses the curve in up to two places, so you set the two expressions for y (or x) equal to each other, get a quadratic, solve it for two x-values, then find the matching y for each.",
@@ -1137,8 +1137,8 @@
     "what": "When x shows up on both sides, get all the x-terms together on one side and all the plain numbers together on the other, moving each term across the equals sign by doing the opposite operation.",
     "example": "5x - 3 = 2x + 9. Subtract 2x from both sides: 3x - 3 = 9. Add 3 to both sides: 3x = 12. Divide by 3: x = 4.",
     "wrong": "Students shift the x-term correctly but forget to flip the sign on the number when it crosses, writing 3x = 9 - 3 = 6, giving x = 2 instead of 4.",
-    "plain": "If x turns up on both sides of the balance, you shift all the x's to one side and all the plain numbers to the other, and every time something hops over the equals sign it switches from adding to taking away, or the other way round.",
-    "like": "It's like sorting two mixed piles of coins and notes between two people until one person only holds coins and the other only holds notes - whatever crosses over changes hands, not what it's worth."
+    "plain": "When the letter you are trying to find appears on both sides of the equation, you need to gather all its copies on one side and all the plain numbers on the other, and every time a piece crosses the equals sign it switches between adding and subtracting, or between multiplying and dividing.",
+    "like": "It's like settling a shared bill where both people owe each other money - you move amounts from one side to the other, flipping what's owed as it crosses."
   },
   "solve_exponential_equation": {
     "what": "When the two sides of an equation with x in the index can't be forced onto the same base, taking logs of both sides brings x down out of the index so you can solve for it normally.",
@@ -1151,8 +1151,8 @@
     "what": "To solve for x in the index, get both sides written as a power of the same base, then the indices themselves become a normal equation you solve like any other.",
     "example": "Solve 9^x = 27. Write both as powers of 3: (3^2)^x = 3^3, so 3^(2x) = 3^3, so 2x = 3, so x = 1.5.",
     "wrong": "Students try to solve 9^x = 27 by taking logs straight away or by guessing whole number values of x, missing that x = 1.5 works, since it isn't obvious from trial and error, and often just give up or write x = 3 by dividing 27 by 9.",
-    "plain": "If both sides of the puzzle can be rewritten using the exact same base number, then the powers themselves must be equal, and that gives you a plain, ordinary equation to solve.",
-    "like": "It's like comparing two stacks of the same size box - if the stacks are equal, you only need to count how many boxes are in each."
+    "plain": "When the unknown number is stuck up in the power, you cannot just divide it away. You have to rewrite both sides so they are the same base number raised to some power, and then the powers themselves must match.",
+    "like": "Think of it like converting pounds and euros before you can compare them - once both amounts are in the same currency, you can just compare the numbers."
   },
   "solve_linear": {
     "what": "Solving a linear equation means undoing what's been done to x, one step at a time, in reverse order, until x is alone.",
@@ -1165,22 +1165,22 @@
     "what": "Solve it like an equation, moving terms and dividing as usual, but if you multiply or divide both sides by a negative number, the inequality sign flips direction.",
     "example": "Solve -2x + 3 > 7. Subtract 3: -2x > 4. Divide by -2 (flip the sign): x < -2.",
     "wrong": "Students divide by the negative and keep the sign the same, getting x > -2 instead of x < -2. It looks like ordinary equation-solving so the flip step gets skipped, and the answer is backwards.",
-    "plain": "You solve it the same way as a normal equation, but there's one extra rule: if you multiply or divide by a negative number, the direction of the inequality has to turn around.",
-    "like": "It's like a mirror flipping left and right - once you cross into negative territory, bigger and smaller swap places."
+    "plain": "You solve this almost exactly like a normal equation, moving numbers across and dividing. The one difference is that if you ever multiply or divide by a negative number, the inequality sign has to turn round and point the other way.",
+    "like": "It is like a mirror - once you flip something, left and right swap over, so greater-than becomes less-than."
   },
   "solve_log_equation": {
     "what": "Get all the logs onto one side, squash them into a single log, then use the fact that if log_b(A) = c, then A = b^c. This turns a log equation into an ordinary equation you can solve, but you must check your answers actually work in the original equation because logs of negative numbers or zero don't exist.",
     "example": "Solve log2(x) + log2(x-2) = 3. Combine: log2(x(x-2)) = 3. So x(x-2) = 2^3 = 8. x^2 - 2x - 8 = 0, (x-4)(x+2)=0, x=4 or x=-2. Check x=-2: log2(-2) is undefined, reject it. Answer: x=4.",
     "wrong": "Students solve the quadratic and write down both roots as the answer, because the quadratic-solving step feels like the finish line and they forget logs need positive inputs. On easier questions where both roots happen to be positive this mistake never gets caught, which is why it sticks around.",
-    "plain": "Squash all the logs together into one, then unwrap that single log to get back to an ordinary equation, and always check the answer still makes sense once you're done.",
-    "like": "It's like unlocking a box within a box - once you're inside, you still have to check what you found is actually real and not something impossible."
+    "plain": "A log asks the backwards question. Not what you get when you multiply a number by itself a few times, but how many times you had to. Solving one means turning that backwards question into the ordinary multiplying version, then finishing it off.",
+    "like": "Like being told a colony of bacteria ended up eight times bigger by doubling over and over, and working out that it must have doubled three times."
   },
   "solve_modulus_equation": {
     "what": "A modulus equation splits into two cases: the inside expression equals the other side, or the inside expression equals minus the other side. Solve both, then check each answer actually works in the original equation, since a modulus can never come out negative.",
     "example": "|x - 5| = 2x + 1. Case 1: x - 5 = 2x + 1 gives x = -6, but then 2x+1 = -11, negative, and modulus can't equal a negative number - reject. Case 2: x - 5 = -(2x+1) gives 3x = 4, x = 4/3, check: |4/3 - 5| = 11/3 = 2(4/3)+1 = 11/3 - valid. Only x = 4/3 works.",
     "wrong": "They find both x-values from the two cases and give both as final answers without checking whether the right-hand side is actually non-negative at each one, so an invalid extra solution like x = -6 slips through.",
-    "plain": "A modulus means the distance from zero, so it could have come from a positive number or its negative twin, meaning you have to check both possibilities and throw out any answer that gives a distance that can't exist.",
-    "like": "It's like being told someone walked ten steps from home - they could be ten steps north or ten steps south, so you check both directions before deciding which one actually happened."
+    "plain": "The bars throw away the minus sign, so two different insides give the same answer - one the positive version and one its negative. You solve both, then check each against the original, because one of them often does not actually work.",
+    "like": "Like being told someone is three miles from home: they could be three miles north or three miles south, and only one of those may fit the rest of what you know."
   },
   "solve_quadratic": {
     "what": "A quadratic usually has two values of x that make it true, and to find both you get everything to one side equal to zero, factorise, then use that each bracket can be zero on its own. If it won't factorise nicely, the formula or completing the square gets you there instead.",
@@ -1193,8 +1193,8 @@
     "what": "Find the roots of the quadratic, sketch the shape of the curve, and use that shape to read off which x values make the inequality true - the answer is one or two ranges, not just the two numbers you found.",
     "example": "Solve x^2 - x - 6 > 0. Factor: (x-3)(x+2) > 0, roots at x=3 and x=-2. Curve is a U-shape, positive outside the roots. Answer: x < -2 or x > 3.",
     "wrong": "Students solve for the roots x=-2 and x=3 and just write those down as the answer, or write -2 < x < 3 without checking against the shape of the curve - which happens to be exactly backwards here since the parabola is positive outside the roots, not between them.",
-    "plain": "The two numbers you find are not the answer here - they are the fence posts. You then need to work out which side of the fence, or which patch of ground, the question is actually asking about.",
-    "like": "Like being told a shop is open before nine and after five - the opening times mark the gaps, they are not the answer to when it is open."
+    "plain": "Finding the two numbers where the curve crosses zero is only half the job. You then need to picture the shape of the curve to work out which stretch of numbers, not which two exact numbers, actually makes the statement true.",
+    "like": "It is like being told a rollercoaster is above ground level somewhere along the track. Finding the two spots where it touches the ground does not tell you where it is above it - you need to picture the whole ride to see which stretches count."
   },
   "solve_simultaneous_elimination": {
     "what": "You've got two equations, two unknowns, and neither variable lines up neatly. So you scale one or both equations up until one variable has matching (or opposite) coefficients, then add or subtract the whole equations to wipe that variable out.",
@@ -1207,8 +1207,8 @@
     "what": "Get one equation to say 'y equals something' (or x equals something), then swap that something into the other equation wherever that letter appears. That turns two equations with two unknowns into one equation with one unknown, which you can actually solve.",
     "example": "y = x + 1 and 2x + y = 7. Substitute: 2x + (x+1) = 7, so 3x + 1 = 7, 3x = 6, x = 2. Then y = x+1 = 3. Check: 2(2)+3 = 7, correct.",
     "wrong": "Students substitute into the same equation they got the expression from, going in a circle and getting 0=0 or something meaningless. Or they substitute correctly but forget the brackets, writing 2x + x + 1 = 7 as 2x + x1 = 7 or dropping the +1 halfway through, so they get x = 3 instead of x = 2.",
-    "plain": "Once you know what one letter equals in terms of the other, you swap it into the other equation, not back into the one it came from - that second move just brings you back to where you started.",
-    "like": ""
+    "plain": "If one equation tells you what one letter is worth in terms of the other, you can swap that whole description into the second equation wherever that letter appears. That leaves you with only one unknown letter, which you can solve normally.",
+    "like": "It is like replacing a nickname with someone's full description everywhere it appears, so you are only dealing with one mystery person instead of two."
   },
   "solve_with_brackets": {
     "what": "A bracket means everything inside gets multiplied by whatever sits outside it, so that has to happen before anything else to the equation.",
@@ -1228,8 +1228,8 @@
     "what": "Standard form writes any number as a single digit before the decimal point (from 1 up to just under 10), times a power of ten. The power of ten carries all the size, so the front number only ever describes the 'shape' of the digits.",
     "example": "450000 becomes 4.5 x 10^5 - the front number 4.5 sits between 1 and 10, and the power 5 carries how big the number actually is.",
     "wrong": "Students write something like 45 x 10^4 or 0.45 x 10^6, which is mathematically equal but not standard form, because they never checked the rule that the front number must be at least 1 and less than 10 - they just moved the decimal point somewhere that looked plausible.",
-    "plain": "Big or tiny numbers get written as one single-digit number, from one up to just under ten, multiplied by ten repeated a certain number of times. The repeated tens do the job of showing how huge or how small the number really is.",
-    "like": "It is like writing a price as one pound fifty times a thousand instead of writing one thousand five hundred pounds out with all the zeros - same amount, tidier label."
+    "plain": "Any number can be written as a single digit from one up to just under ten, multiplied by ten raised to some power. That power of ten is doing all the work of making the number big or small - the front digit just shows the pattern of digits.",
+    "like": ""
   },
   "standard_form_multiply_divide": {
     "what": "Deal with the front numbers and the powers of ten separately, then check the front number is still between 1 and 10. If it isn't, shift one power of ten across to fix it.",
@@ -1242,8 +1242,8 @@
     "what": "Standard form is a x 10^n. A positive power n means the decimal point moves right (number gets bigger), a negative power means it moves left (number gets smaller, more zeros after the decimal point before the digits start).",
     "example": "3.2 x 10^-3 means move the decimal point 3 places left: 0.0032. Check: 0.0032 x 10^3 = 3.2, correct.",
     "wrong": "Students treat the negative sign as meaning 'move right' (since positive powers move right), writing 3.2 x 10^-3 as 3200 instead of 0.0032 - they remember 'move the point n places' but forget the direction flips with the sign.",
-    "plain": "The count of tens tells the decimal point which way to walk and how many steps to take. A plus count walks it right and makes the number bigger, a minus count walks it left and makes the number smaller.",
-    "like": "Think of the decimal point on a number line with zero in the middle - a plus number sends it right towards bigger house numbers, a minus number sends it left towards smaller ones."
+    "plain": "That power of ten is an instruction for which way to slide the decimal point and how far - bigger numbers slide it right, smaller numbers slide it left.",
+    "like": ""
   },
   "standard_integrals": {
     "what": "Some integrals just have to be known, the same way some derivatives just have to be known - there's no procedure to derive them from scratch in an exam, you recall them.",
@@ -1270,8 +1270,8 @@
     "what": "A line is fixed once you know its steepness and one point it passes through - plug the gradient and the point's coordinates into y = mx + c and solve for c, the only unknown left.",
     "example": "Line through (2, 5) with gradient 3. Use y = 3x + c. Plug in the point: 5 = 3(2) + c, so 5 = 6 + c, so c = -1. Equation: y = 3x - 1.",
     "wrong": "Students plug the point in wrong, swapping x and y - putting 2 in for y and 5 in for x - giving c = 5 - 6 = -1 by coincidence in some cases but a completely different wrong c in general, like 2 = 3(5) + c leading to c = -13. The swap survives because both numbers are just sitting there and nothing visually flags which is which.",
-    "plain": "A straight line is completely pinned down once you know how steep it is and one exact point it goes through. Once you've got both, there's only one number left to find, and that number is the missing piece of the line's equation.",
-    "like": "Think of a ramp leaning at a fixed angle - the angle is the steepness, and one point where it touches the ground fixes exactly where that ramp sits, so there's only one ramp that fits."
+    "plain": "A straight line is completely pinned down once you know how steep it is and one point it passes through. Put the steepness and that point's two numbers into the line's general rule, and the only thing left unknown is where it crosses straight up and down - solve for that.",
+    "like": ""
   },
   "substitute_expr": {
     "what": "Substitution means swapping a letter in an expression for a number and working out the result, keeping track of signs carefully - especially when the number is negative.",
@@ -1333,14 +1333,14 @@
     "what": "The discriminant b^2-4ac tells you what kind of roots a quadratic has without solving it: positive means two different real roots, zero means one repeated root, negative means no real roots at all.",
     "example": "For 2x^2 - 3x + 5: a=2, b=-3, c=5. Discriminant = (-3)^2 - 4(2)(5) = 9 - 40 = -31. Negative, so no real roots.",
     "wrong": "Students plug in with the wrong sign on b, or forget to square b properly when b is negative, writing b^2 as -9 instead of 9 for b=-3. This flips a positive discriminant into a negative one (or vice versa) and gives the completely wrong conclusion about how many roots exist.",
-    "plain": "There is a quick way to check how many solutions a curvy equation has, without actually solving it. You do a small calculation, and the sign of the answer - whether it lands above zero, below zero, or right on zero - tells you the story.",
+    "plain": "There is a quick check you can do to find out how many solutions a wiggly curve problem has, without actually solving it - the check just tells you whether there are two answers, one answer, or none at all.",
     "like": ""
   },
   "use_factor_theorem": {
     "what": "If putting a number into a polynomial makes it equal zero, then the bracket for that number is a factor. So if you're told a bracket like (x-2) is a factor, you know plugging x=2 into the whole expression must give zero - and you can use that to pin down any unknown letters in it.",
     "example": "p(x) = x^3 + kx^2 - 5x - 6, and (x-2) is a factor. Then p(2) = 0: 8 + 4k - 10 - 6 = 0, so 4k - 8 = 0, k = 2.",
     "wrong": "Students plug in x = -2 instead of x = 2, mixing up the sign inside the bracket with the number to substitute - (x-2) means substitute +2, not -2. This gives a completely different, wrong value for k, but the method looks the same so the error goes unnoticed.",
-    "plain": "If a certain number makes an expression come out to exactly zero, then that number is hiding inside a bracket that divides evenly into it. So if you are told the bracket, you already know which number makes everything vanish - and you can use that fact to find missing pieces elsewhere.",
+    "plain": "If a certain number makes the whole expression come out to zero, that number is hiding inside one of its brackets - and you can use that fact to work backwards and find other missing numbers.",
     "like": ""
   },
   "what_an_average_is": {
@@ -1368,7 +1368,7 @@
     "what": "Standard form writes a number as something between 1 and 10, times a power of 10 - the power tells you how many places the decimal point moved, and it goes negative for small numbers less than 1.",
     "example": "0.00034 becomes 3.4 x 10^-4, because moving the decimal point 4 places right (making it 3.4) means the original number is 3.4 divided by 10^4.",
     "wrong": "Students write small numbers with a positive power, giving 3.4 x 10^4 instead of 3.4 x 10^-4, because they count the decimal shifts correctly but forget that shifting right for a small number means the power must be negative, not positive.",
-    "plain": "There is a tidy way to write really big or really tiny numbers, using a small number out front and a power of ten to show how far the decimal point had to travel. Tiny numbers need that power to count backwards, into negatives.",
-    "like": ""
+    "plain": "Standard form is a way of writing a number as one single digit before the decimal point, times how many tens you need to get back to the real size. Big numbers need more tens added on, tiny numbers need tens taken away, and that taking away is shown with a minus sign on the power.",
+    "like": "It is like writing a price as a photo zoomed right in on one note or coin, plus a note saying how many times you'd need to zoom back out - zooming out for something huge, zooming in for something tiny, and the direction you zoom tells you if the sign is plus or minus."
   }
 }
