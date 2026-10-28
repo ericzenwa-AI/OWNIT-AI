@@ -669,3 +669,70 @@ def test_the_lesson_offers_it_only_once_it_has_finished():
     assert "Try one on your own" in lesson
     assert "lesson.finished ?" in lesson
     assert lesson.index("lesson.finished ?") < lesson.index("Try one on your own")
+
+
+# ---- saying you are finished -----------------------------------------------
+
+
+@pytest.mark.parametrize("said", [
+    "thank you", "thanks", "ok thanks", "it's okay", "that's fine",
+    "no thanks", "I'm done", "bye", "all good",
+])
+def test_a_closing_remark_ends_the_lesson(client, db, monkeypatch, said):
+    """Reported: a student said thank you and it's okay, and the lesson kept
+    explaining and asking whether they were stuck. Every category the tutor
+    could report was about how a maths attempt went, so a closing remark
+    landed as a failed attempt."""
+    session_id = _diagnosed(db)
+
+    def must_not_be_called(**kwargs):
+        raise AssertionError("a model was asked about somebody saying thanks")
+
+    monkeypatch.setattr(teach, "next_move", must_not_be_called)
+    got = client.post("/api/teach",
+                      json={"session_id": session_id, "said": said}).json()
+
+    assert got["finished"] is True
+    assert got["stage"] == "done"
+    assert "?" not in got["ask"]
+
+
+def test_an_answer_that_merely_starts_politely_is_still_an_answer(client, db,
+                                                                  monkeypatch):
+    """"Thanks, but why does it flip" is a question, not a goodbye."""
+    session_id = _diagnosed(db)
+    monkeypatch.setattr(teach, "next_move", lambda **kw: _Move())
+
+    got = client.post("/api/teach", json={
+        "session_id": session_id, "said": "thanks, but why does it flip"}).json()
+
+    assert got["finished"] is False
+
+
+@pytest.mark.parametrize("said", ["got it", "x = 4", "no, because the sign flips",
+                                  "5 - (-3) is 8"])
+def test_real_replies_are_never_mistaken_for_goodbyes(said):
+    """Ending a lesson somebody wanted to continue is the worse mistake, so
+    "got it" is deliberately not a closing - it usually means carry on."""
+    assert teach.is_a_closing(said) is False
+
+
+def test_signing_off_is_not_counted_as_being_stuck():
+    """It cost them progress and tripped the rule about trying another way."""
+    turns = [{"stage": "try", "read": "muddled"},
+             {"stage": "try", "read": "done_for_now"}]
+
+    assert teach.stuck_for(turns, "try") == 0
+
+
+def test_the_student_may_stop_at_any_stage():
+    """A different thing from the model declaring mastery early, which it
+    still may not do."""
+    for stage in ("show", "try", "fade", "apply"):
+        assert teach.advance(stage, "done_for_now", 0) == ("done", 0)
+
+
+def test_there_is_a_visible_way_to_stop():
+    page = _page()
+    assert "That's enough" in page
+    assert 'id="enough"' in page

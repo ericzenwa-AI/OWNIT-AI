@@ -1293,6 +1293,23 @@ def teach_turn(request: TeachRequest) -> dict:
 
         last = so_far[-1] if so_far else None
         stage = last["stage"] if last else "connect"
+
+        # Somebody saying thanks is saying they are finished, and they should
+        # not have to wait on a model call to be heard - nor have it read as
+        # a failed attempt, which is what used to happen.
+        if teach.is_a_closing(request.said):
+            store.record_turn(
+                connection, request.session_id, stage="done",
+                said=request.said, understood=0,
+                move=type("Closing", (), {
+                    "say": "Any time. Come back to this whenever you want - "
+                           "it picks up where you left off.",
+                    "ask": "", "read": "done_for_now",
+                    "why": "they signed off", "demo": [], "finished": True})())
+            return {"stage": "done", "say": "Any time. Come back to this "
+                    "whenever you want - it picks up where you left off.",
+                    "ask": "", "demo": [], "finished": True,
+                    "turns": len(so_far) + 1}
         understood = last["understood"] if last else 0
 
         try:

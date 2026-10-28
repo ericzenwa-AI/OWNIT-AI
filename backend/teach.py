@@ -122,9 +122,12 @@ class Move(BaseModel):
 
     # What the last thing the student said tells us. "first" on the opening
     # turn, when there is nothing to judge yet.
-    read: Literal["first", "understood", "partly", "muddled", "no_answer"] = Field(
+    read: Literal["first", "understood", "partly", "muddled", "no_answer",
+                  "done_for_now"] = Field(
         description="How their last reply went. Be strict: 'understood' means "
-                    "they showed the reasoning, not that the number was right.")
+                    "they showed the reasoning, not that the number was right. "
+                    "Use done_for_now when they are not attempting at all - "
+                    "thanking you, saying they are fine, or asking to stop.")
     why: str = Field(
         default="",
         description="The part of what they said that shows it, in their words. "
@@ -241,6 +244,12 @@ def advance(stage: str, read: str, understood_here: int,
     if stage == "connect":
         return ("show", 0) if replied else ("connect", 0)
 
+    # Their call, not ours, and it holds at any stage. This is a different
+    # thing from the model declaring mastery early, which it still may not
+    # do: a student asking to stop is always allowed to stop.
+    if read == "done_for_now":
+        return "done", understood_here
+
     if read == "understood":
         understood_here += 1
     elif read in ("muddled", "no_answer"):
@@ -251,6 +260,46 @@ def advance(stage: str, read: str, understood_here: int,
     if understood_here >= TO_ADVANCE:
         return STAGES[STAGES.index(stage) + 1], 0
     return stage, understood_here
+
+
+# Ways of saying "I am finished", short enough to be unambiguous.
+#
+# A student said "thank you" and "it's okay" and the lesson carried on
+# explaining and asking whether they were stuck - because every category the
+# tutor could report was about how a maths attempt went, and none of them was
+# "they are not attempting". A closing remark landed as a failed attempt,
+# which cost them progress and tripped the rule about trying another way.
+#
+# Matched here rather than by the model: it costs nothing, it cannot be
+# misread, and a student asking to stop should never wait on a model call.
+CLOSERS = (
+    "thanks", "thank you", "thankyou", "ok thanks", "okay thanks", "cheers",
+    "that is ok", "that's ok", "that is okay", "that's okay", "its okay",
+    "it's okay", "it is okay", "that is fine", "that's fine", "no thanks",
+    "no thank you", "i am done", "i'm done", "im done", "that is all",
+    "that's all", "all good", "i am good", "i'm good", "im good", "bye",
+    "goodbye", "stop", "i will stop", "later", "nothing", "no",
+)
+
+# Only a short reply can be a closing remark. "No, because the sign flips"
+# starts with "no" and is an answer.
+CLOSER_WORDS = 4
+
+
+def is_a_closing(said: str) -> bool:
+    """Whether this is somebody signing off rather than having a go.
+
+    Deliberately narrow. "Got it" is not here: it usually means they
+    understood and want to carry on, and ending a lesson somebody wanted to
+    continue is a worse mistake than one more question.
+    """
+    words = (said or "").strip().lower().rstrip(".!").split()
+    if not words or len(words) > CLOSER_WORDS:
+        return False
+    if any(c.isdigit() for c in said):
+        return False
+    plain = " ".join(words)
+    return plain in CLOSERS or plain.removeprefix("ok ").removeprefix("okay ") in CLOSERS
 
 
 def stuck_for(transcript: list, stage: str) -> int:
@@ -267,6 +316,8 @@ def stuck_for(transcript: list, stage: str) -> int:
         if turn.get("stage") != stage:
             break
         if turn.get("read") in ("understood",):
+            break
+        if turn.get("read") == "done_for_now":
             break
         if turn.get("read") in ("partly", "muddled", "no_answer"):
             running += 1

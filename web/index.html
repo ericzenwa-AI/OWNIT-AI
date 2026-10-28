@@ -1530,6 +1530,7 @@ function drawLesson() {
         <p>
           <button id="send-reply" ${lesson.waiting ? 'disabled' : ''}>Send</button>
           <button class="plain" id="stuck" ${lesson.waiting ? 'disabled' : ''}>I am stuck</button>
+          <button class="plain" id="enough" ${lesson.waiting ? 'disabled' : ''}>That's enough</button>
         </p>`}
 
       <p><button class="plain" onclick="leaveLesson()">Back to what we found</button></p>
@@ -1564,6 +1565,9 @@ function drawLesson() {
       if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send.onclick(); }
     };
     document.getElementById('stuck').onclick = () => sayToTutor("I am stuck");
+    // The way out, next to the way in. Saying thanks ends it too, but a
+    // student should not have to work out that it will.
+    document.getElementById('enough').onclick = () => sayToTutor("thanks");
     box.focus();
   }
 }
