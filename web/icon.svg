@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"
+     aria-label="ownIT">
+  <!-- The mark is the method, not the name: the question you came in with,
+       and underneath it the one thing actually in the way, lit.
+
+       Drawn to survive 16px in a tab strip, which is the only size that
+       really matters. That ruled out letterforms - "ownIT" is four letters
+       and even "IT" turns to mush - and it ruled out a third bar, which at
+       16px closed the gaps and made the whole thing one grey smudge.
+
+       Colours are the landing page's dark palette, not the app's purple: the
+       icon has to be one thing across both pages, and a dark tile holds up
+       against light and dark browser chrome alike.
+
+       backend/icons.py draws the same shapes for favicon.ico and the iOS
+       icon. Change one, change the other. -->
+  <rect width="64" height="64" rx="14" fill="#12141C"/>
+  <rect x="10" y="14" width="44" height="13" rx="6.5" fill="#F2F2F4" opacity="0.34"/>
+  <rect x="18" y="37" width="28" height="13" rx="6.5" fill="#3D9BFF"/>
+</svg>

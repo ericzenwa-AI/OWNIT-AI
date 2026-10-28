@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ownIT</title>
+<!-- The tab icon. Browsers in use today all take the SVG; favicon.ico is
+     there for the bare /favicon.ico a browser asks for whether or not a page
+     says to, and the touch icon is what iOS puts on a home screen. All three
+     are the same mark - backend/icons.py draws the bitmaps from web/icon.svg
+     geometry. -->
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <!-- Typesetting only. If either of these fails to load, mathHtml() falls back
      to the plain text the bank stores, which is what the page showed before. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -1964,3 +1964,35 @@ def front(request: Request, s: str | None = None):
     if not LANDING.exists():
         return _page(PAGE, request)
     return _page(LANDING, request)
+
+
+# A day. Long enough that the icon is not refetched on every page load, short
+# enough that changing it reaches people without them clearing anything. The
+# pages themselves stay on FRESH - a stale icon is cosmetic, a stale app is a
+# bug report.
+ICON_CACHE = {"Cache-Control": "public, max-age=86400"}
+
+# Served by name rather than by mounting web/ as a static directory, because
+# mounting would also expose anything else that ever lands in there.
+ICONS = {
+    "/icon.svg": ("icon.svg", "image/svg+xml"),
+    "/favicon.ico": ("favicon.ico", "image/x-icon"),
+    "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+}
+
+
+@app.get("/icon.svg", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+def icon(request: Request):
+    """The tab icon.
+
+    Deliberately not through _page(): a browser fetches these on its own,
+    sometimes without anyone having opened anything, so counting them would
+    put phantom visits in the numbers.
+    """
+    name, kind = ICONS[request.url.path]
+    path = WEB / name
+    if not path.exists():
+        raise HTTPException(404, "No icon has been built.")
+    return FileResponse(path, media_type=kind, headers=ICON_CACHE)
