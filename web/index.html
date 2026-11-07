@@ -256,19 +256,6 @@
     box-shadow: var(--lift);
   }
 
-  /* The handover, which is the one card on this page not addressed to the
-     student. Marked by the accent edge rather than by a different colour:
-     it has to read as the same report, opened at the page a tutor wants,
-     not as an advert bolted to the top of it. */
-  .card.handover {
-    border-left: 3px solid var(--accent);
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-  }
-  .card.handover .gap-line { font-size: 1.15rem; margin: 0.4rem 0 0.9rem; }
-  .card.handover .gap-line strong { color: var(--accent); }
-  .card.handover .note + .note { margin-top: 0.5rem; }
-
   /* The unaided question at the end of a lesson, set inside the lesson card
      so it reads as part of it rather than as a new screen. */
   .card-inset {
@@ -1294,52 +1281,6 @@ function question() {
 // A-level question failed at fraction arithmetic" is demoralising. Read
 // downward it is. Read upward, which is how it is set out here, it is the way
 // back to their own question - so it stays, and the wording carries it.
-// The handover. Everything below this on the page is written to the student,
-// because the student is the one who sat and answered fifteen questions. This
-// block is written to whoever is going to teach them, and it goes first.
-//
-// It exists because of what the product is now: a tool that finds the gap and
-// gives it to a tutor. A tutor opening a report their student generated has
-// about ten seconds of patience before the next lesson starts, and the thing
-// they need in those ten seconds - what to start on, and why to believe it -
-// was spread over four cards and phrased as encouragement.
-//
-// Nothing here is new information. It is the same diagnosis, said once, in
-// the order somebody planning a lesson needs it.
-function handover(r, gap, named, heldUp, nothingBelow) {
-  if (!named) return '';
-
-  const missed = (r.asked || []).filter(a => !a.held);
-
-  // Evidence, not a claim. "Start on X" is worth nothing to a tutor who can
-  // already diagnose; "start on X, and here is what they got right on the way
-  // down to it" is the part they could not have got in ten minutes.
-  const evidence = [
-    heldUp.length
-      ? `held: ${listOf(heldUp.map(escape))}`
-      : '',
-    missed.length
-      ? `gave way: ${listOf(missed.map(a => escape(a.skill)))}`
-      : '',
-  ].filter(Boolean).join(' &middot; ');
-
-  return `<div class="card handover">
-    <p class="label">For whoever is teaching this</p>
-    ${nothingBelow
-      ? `<p>Nothing underneath <strong>${escape(r.stuck_on)}</strong> is
-         missing &mdash; everything it rests on was checked and held. The
-         method itself is the lesson, not a gap lower down.</p>`
-      : `<p class="gap-line">Start on <strong>${escape(named.skill)}</strong>,
-         then work back up to ${escape(r.stuck_on)}.</p>`}
-    ${evidence ? `<p class="note">${evidence}</p>` : ''}
-    ${named.mistake
-      ? `<p class="note">Not a blank &mdash; they have a method, it is the
-         wrong one: ${escape(named.mistake)}</p>` : ''}
-    <p class="note">Found in ${(r.asked || []).length} questions. The route up,
-    the explanation and a question to set are below.</p>
-  </div>`;
-}
-
 function wayBack(gap, stuckOn) {
   if (!gap || !gap.chain || gap.chain.length < 2) return '';
 
@@ -1696,7 +1637,6 @@ function report() {
 
   screen.innerHTML = `
     ${partsBar()}
-    ${handover(r, gap, named, heldUp, nothingBelow)}
     <div class="card">
       ${nothingBelow ? '' :
         `<p class="note">You came in stuck on ${escape(r.stuck_on)}</p>`}
@@ -1730,18 +1670,15 @@ function report() {
            Told the other way round, which is how it read before, the first
            sentence a struggling student meets is the one written for somebody
            who already knows. -->
-      <!-- There was a "Take me through it" button here, and the app taught
-           the lesson itself. It is gone on purpose.
+      <!-- The offer comes before the reading, not after it. A student who
+           has just been told what they are missing wants to be taken through
+           it; the explanation underneath is for whoever would rather read. -->
+      <p class="teach">
+        <button onclick="startLesson()">Take me through it</button>
+        <span class="note">A step at a time, then back to your own question.
+        You do the working.</span>
+      </p>
 
-           The first tutor to use OwnIt for real said he does not believe in
-           AI teaching students, and he is the buyer - students have the
-           problem, tutors pay. An app that teaches is competing with the hour
-           he bills for, which made the best version of that feature still a
-           reason not to recommend us. So the tool finds the gap and hands it
-           over, and the teaching is his.
-
-           backend/teach.py and /api/teach are still there and still tested.
-           This came out of the product, not out of the repo. -->
       ${named && named.explanation && named.explanation.plain
         ? `<p class="plain-said">${mathHtml(named.explanation.plain)}</p>` : ''}
       ${named && named.explanation && named.explanation.like
