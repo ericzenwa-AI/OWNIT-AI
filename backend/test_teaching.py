@@ -362,17 +362,26 @@ def _page():
             / "web" / "index.html").read_text(encoding="utf-8")
 
 
-def test_the_finding_offers_the_lesson_before_the_reading():
-    """It was below the explanation, the worked example, the usual mistake and
-    the practice line - four things to scroll past before being offered the
-    one that actually teaches."""
-    page = _page()
-    assert "Take me through it" in page
-    assert "function startLesson(" in page
+def test_the_finding_does_not_offer_the_lesson_at_all():
+    """This used to assert the opposite, and deleting it would hide that.
 
-    report = page[page.index("function report()"):page.index("function usefulCard(")]
-    assert report.index("startLesson()") < report.index("explanation.plain")
-    assert report.index("startLesson()") < report.index("named.practice")
+    The offer was at the top of the report, above the explanation, because a
+    student who has just been told what they are missing wants taking through
+    it. That was right for a product aimed at students. It is wrong for this
+    one: the first tutor to use OwnIt said he does not believe in AI teaching
+    students, and he is the buyer. The lesson is his.
+
+    What replaces it is pinned in test_handover.py. This is only here to say
+    that the reversal was deliberate.
+    """
+    report = _report_source()
+    assert "startLesson()" not in report, (
+        "the report offers to teach again - see test_handover.py for why not")
+
+
+def _report_source():
+    page = _page()
+    return page[page.index("function report()"):page.index("function usefulCard(")]
 
 
 def test_their_question_stays_on_screen_through_it():
