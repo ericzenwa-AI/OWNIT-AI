@@ -23,7 +23,9 @@ quietly stay in `show` forever either.
 
 MOVING ON TAKES EVIDENCE. Two understood replies in a stage, not one. One
 right answer is a coin that landed the right way up; the brief says so, and
-making it a counter rather than an instruction is what makes it true.
+making it a counter rather than an instruction is what makes it true. A right
+answer with no working shown earns half, which is the fix for a stage nobody
+answering in bare numbers could ever leave.
 
 THE ANSWER IS NEVER GIVEN. Not to the student's own question, at any stage.
 That is the line the whole product is on the right side of, and `apply` is
@@ -87,10 +89,21 @@ THE_JOB = {
     ),
 }
 
-# How many understood replies it takes to leave a stage. Two, not one: a
-# single right answer is a coin that landed the right way up, and the whole
-# complaint about the old report was that it moved on from one.
-TO_ADVANCE = 2
+# Counted in half steps, because a reply is not either-or. A shown piece of
+# reasoning is worth a whole one; a right answer with nothing behind it is
+# worth half. Two solid replies still leave a stage, which is the rule that
+# matters - one right answer is a coin that landed the right way up - but
+# four bare right answers now leave it too, and before this they never did.
+#
+# That was a real deadlock, not a rough edge. A tutor testing the app was
+# asked "what is -2 times -4?", a question whose only honest answer is a
+# number, answered 8, and was marked `partly` for not showing reasoning he
+# had not been asked for. `partly` moved the counter nowhere and counted as
+# being stuck, so three correct answers in a row earned him three worked
+# solutions and the same question with different numbers.
+UNDERSTOOD = 2
+PARTLY = 1
+TO_ADVANCE = 4
 
 # A lesson that has run this long is not working, and the student should be
 # told so rather than kept going round.
@@ -251,11 +264,18 @@ def advance(stage: str, read: str, understood_here: int,
         return "done", understood_here
 
     if read == "understood":
-        understood_here += 1
+        understood_here += UNDERSTOOD
+    elif read == "partly":
+        # Half credit, and the important half is that it is not zero. Getting
+        # it right without saying why is how most of maths is actually done,
+        # and a student who keeps doing it has to be able to finish the stage
+        # eventually - otherwise the only way out is a kind of answer the
+        # tutor never asked them for.
+        understood_here += PARTLY
     elif read in ("muddled", "no_answer"):
         # Lost ground. Not negative - a student who gets one right then one
         # wrong has not earned the next stage, but has not undone the first.
-        understood_here = max(0, understood_here - 1)
+        understood_here = max(0, understood_here - UNDERSTOOD)
 
     if understood_here >= TO_ADVANCE:
         return STAGES[STAGES.index(stage) + 1], 0
@@ -303,23 +323,30 @@ def is_a_closing(said: str) -> bool:
 
 
 def stuck_for(transcript: list, stage: str) -> int:
-    """How many turns running they have failed to get the thing being asked.
+    """How many turns running they have got the thing being asked WRONG.
 
     Counted here rather than left to the model to notice, because it does not
     notice. Put a student in front of it who answers something other than the
     question, and it will ask the same question again, and again - which is
     the exact thing a tutor must not do, and the reason "do not repeat
     yourself" cannot live in a prompt alone.
+
+    `partly` deliberately does not count and resets the run. It used to, and
+    that is how a tutor answering every question correctly got told "let's
+    slow right down" three times: a right answer with no working shown is
+    `partly`, and being stuck here triggers working the step out for them.
+    Handing the answer to somebody who already had it is worse than saying
+    nothing, so only a genuinely wrong or absent answer counts now.
     """
     running = 0
     for turn in reversed(transcript):
         if turn.get("stage") != stage:
             break
-        if turn.get("read") in ("understood",):
+        if turn.get("read") in ("understood", "partly"):
             break
         if turn.get("read") == "done_for_now":
             break
-        if turn.get("read") in ("partly", "muddled", "no_answer"):
+        if turn.get("read") in ("muddled", "no_answer"):
             running += 1
     return running
 
@@ -393,6 +420,12 @@ SYSTEM = (
     "its final answer, however they ask - not as a check, not 'just to "
     "confirm', not at the end. Helping them do one step of it is the job; "
     "doing it for them is the one thing this tool exists not to do.\n"
+    "That includes writing down any form of their expression they have not "
+    "reached yet - its factors, its expansion, its simplified version - even "
+    "to ask them to check it. Asking 'expand (x+3)(x-1) and see if it matches "
+    "the top' when their question was (x^2+2x-3)/(x+3) has handed them the "
+    "factorising, and every question you ask after it is theatre. If you want "
+    "them to factorise, make them find the numbers.\n"
     "\n"
     "You never give the answer to a question you have just asked them. If "
     "they are stuck, make it smaller, or ask a different way, or show the "
@@ -417,6 +450,17 @@ SYSTEM = (
     "A right answer they could have got by guessing between two options is "
     "'partly'. You are deciding whether to stop teaching this, so be hard to "
     "convince.\n"
+    "But 'partly' is still them getting it right, and you must treat it that "
+    "way. Say so in one short clause, then ASK THEM HOW THEY GOT IT - that is "
+    "the reasoning you wanted, and they cannot show it if you never ask. "
+    "Never re-explain, never work it out for them, and never ask the same "
+    "thing again on different numbers: they have answered it.\n"
+    "If the only possible answer to your question is a number, a number is a "
+    "complete answer to it. Ask 'why' questions when you want why.\n"
+    "\n"
+    "NAME THINGS THE WAY THEIR TEACHER DOES, then say what it means: 'the "
+    "numerator (the top)', 'the denominator (the bottom)'. Plain words alone "
+    "leave them unable to follow the lesson they go back to.\n"
     "\n"
     "Maths in plain ASCII: / for divide, ^ for powers, sqrt() for roots."
 )

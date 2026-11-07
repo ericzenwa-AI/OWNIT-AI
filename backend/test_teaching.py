@@ -130,9 +130,51 @@ def test_a_muddled_answer_costs_ground_without_undoing_everything():
     assert teach.advance("try", "muddled", 0) == ("try", 0)
 
 
-def test_a_partly_right_answer_earns_nothing():
-    """A bare right number after a hint is not understanding."""
-    assert teach.advance("try", "partly", 0) == ("try", 0)
+def test_a_partly_right_answer_earns_half_and_never_nothing():
+    """A bare right number is not understanding, but it is not failure.
+
+    It used to earn nothing at all, and nothing is what made the lesson
+    unwinnable: the tutor asks "what is -2 times -4?", the only answer that
+    question has is a number, and a number with no working is `partly`. The
+    stage could not be left by answering its own questions correctly.
+    """
+    stage, carried = teach.advance("try", "partly", 0)
+    assert (stage, carried) == ("try", teach.PARTLY), "it counted for something"
+    assert teach.PARTLY < teach.UNDERSTOOD, "but less than showing the working"
+
+
+def test_bare_right_answers_alone_can_still_finish_a_stage():
+    """The deadlock, as a test. A student who only ever types the number.
+
+    Slower than one who explains - that is the point of half credit - but it
+    has to terminate, or the only way out of the lesson is to give up.
+    """
+    stage, carried = "try", 0
+    for _ in range(20):
+        stage, carried = teach.advance(stage, "partly", carried)
+        if stage != "try":
+            break
+    assert stage == "fade", "answering correctly never got them out of the stage"
+
+
+def test_answering_correctly_is_never_being_stuck():
+    """Being stuck is what makes the tutor work the step out for them.
+
+    A tutor testing the app answered three questions correctly and was told
+    "let's slow right down" and handed three worked solutions, because every
+    bare right answer read as `partly` and `partly` counted towards stuck.
+    Handing the answer to somebody who already had it is the worst turn the
+    lesson can take, so this one is pinned.
+    """
+    only_right = _turns("show", ["partly", "partly", "partly"])
+    assert teach.stuck_for(only_right, "show") == 0
+
+    # And one right answer breaks a run of genuinely wrong ones.
+    recovered = _turns("show", ["muddled", "muddled", "partly"])
+    assert teach.stuck_for(recovered, "show") == 0
+
+    still_lost = _turns("show", ["partly", "muddled", "muddled"])
+    assert teach.stuck_for(still_lost, "show") >= teach.PATIENCE
 
 
 def test_the_lesson_only_ever_moves_one_stage_at_a_time():
@@ -366,9 +408,11 @@ def _turns(stage, reads):
 
 
 def test_failing_twice_running_is_counted():
-    assert teach.stuck_for(_turns("show", ["muddled", "partly"]), "show") == 2
+    assert teach.stuck_for(_turns("show", ["muddled", "no_answer"]), "show") == 2
     assert teach.stuck_for(_turns("show", ["muddled", "understood"]), "show") == 0, (
         "getting it resets the count")
+    assert teach.stuck_for(_turns("show", ["muddled", "partly"]), "show") == 0, (
+        "so does getting it right without saying why")
     assert teach.stuck_for(_turns("try", ["muddled"]), "show") == 0, (
         "a different stage is a different question")
 
