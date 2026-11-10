@@ -199,3 +199,86 @@ def load_skills(path: Path = DEFAULT_PATH) -> dict[str, Skill]:
 # Loaded once, when this module is first imported. If the graph is broken the
 # import fails loudly instead of the app starting up with a bad graph.
 SKILLS: dict[str, Skill] = load_skills()
+
+
+# ---- What rests on a skill ------------------------------------------------
+#
+# `needs` points downward: a skill names what has to be in place before it.
+# Reversed, the same edges answer the question a parent actually asks - not
+# "what is missing" but "how much is this costing them".
+#
+# The spread is severe. Half the skills in the graph carry one or two things;
+# a couple of dozen carry twenty or more, and negative number arithmetic
+# carries most of the subject. A gap that blocks two skills is an afternoon's
+# work. A gap that blocks a hundred is the reason nothing else is landing.
+# Saying both in the same flat voice wastes the only number here that a
+# school can act on.
+
+
+def _dependents(skills: dict[str, Skill]) -> dict[str, list[str]]:
+    """For each skill, the skills that list it in their own needs."""
+    above: dict[str, list[str]] = {skill_id: [] for skill_id in skills}
+    for skill in skills.values():
+        for need in skill.needs:
+            if need in above:
+                above[need].append(skill.id)
+    return above
+
+
+def what_rests_on(skill_id: str, skills: dict[str, Skill] | None = None) -> set[str]:
+    """Every skill that cannot be done until this one is in place.
+
+    Walks the needs edges backwards, so it catches the whole fan-out and not
+    just the skills sitting immediately above. The skill itself is not in the
+    result: it is the foundation, not something standing on it.
+
+    The graph is checked for cycles at import, so this terminates.
+    """
+    skills = SKILLS if skills is None else skills
+    if skill_id not in skills:
+        return set()
+
+    above = _dependents(skills)
+    found: set[str] = set()
+    queue = list(above[skill_id])
+    while queue:
+        current = queue.pop()
+        if current in found:
+            continue
+        found.add(current)
+        queue.extend(above[current])
+    found.discard(skill_id)
+    return found
+
+
+# Where a gap stops being local and starts being the thing holding everything
+# up. Measured off the graph rather than guessed: the median skill carries 2,
+# and the handful that carry twenty or more are a different conversation.
+LOAD_BEARING = 20
+
+
+def reach(skill_id: str, skills: dict[str, Skill] | None = None) -> dict:
+    """How much a gap is costing: what rests on it, and which topics those are.
+
+    `topics` counts kinds of exam question, which only doorway skills carry,
+    so it is the number a department recognises. `skills` counts every step
+    in between, which is the number that shows how deep the damage goes.
+    """
+    skills = SKILLS if skills is None else skills
+    resting = what_rests_on(skill_id, skills)
+    blocked_topics = sorted({
+        skills[above].topic for above in resting if skills[above].topic
+    })
+    return {
+        "skills": len(resting),
+        "of": len(skills),
+        "topics": blocked_topics,
+        # So the page can tell "nineteen topics" from "every topic there is".
+        # The strongest thing the graph can say about a gap is that nothing in
+        # the subject stands clear of it, and that is lost if the page can
+        # only ever print a number.
+        "of_topics": len(topics(skills)),
+        # Said once, here, so the page and any future report agree on where
+        # the line is rather than each picking their own.
+        "load_bearing": len(resting) >= LOAD_BEARING,
+    }

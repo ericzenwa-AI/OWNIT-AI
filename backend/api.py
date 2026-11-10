@@ -49,7 +49,7 @@ import store
 import teach
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
-from graph import A_LEVEL, GCSE, SKILLS, STAGES, entry_points
+from graph import A_LEVEL, GCSE, SKILLS, STAGES, entry_points, reach
 from questions import DONT_KNOW_LABEL, DONT_KNOW_OPTION, LABELS, shuffled_options
 
 log = logging.getLogger("ownit.api")
@@ -816,6 +816,11 @@ def _report(diagnosis, question: str | None = None) -> dict:
                 # Nothing sits below it in the subject at all, so there is
                 # nowhere further to look.
                 "is_bedrock": not SKILLS[gap].needs,
+                # How much this gap is costing them. Naming the skill says
+                # what is missing; this says how much of the subject is
+                # standing on it, which is the difference between an
+                # afternoon's work and the reason nothing else is landing.
+                "rests_on_it": reach(gap),
             }
         )
 
@@ -836,6 +841,10 @@ def _report(diagnosis, question: str | None = None) -> dict:
             "explanation": explain.for_skill(deepest),
             "nothing_there": bool(gave_way and gave_way.dont_know),
             "mistake": gave_way.mistake if gave_way else None,
+            # Unconfirmed as the cause, but if it is the cause this is what
+            # it is holding up, and that is worth knowing before deciding
+            # whether to go and check.
+            "rests_on_it": reach(deepest),
         }
 
 

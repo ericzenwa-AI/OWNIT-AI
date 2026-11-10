@@ -399,6 +399,30 @@
   .held-up { color: var(--muted); margin-bottom: 1.1rem; }
   .held-up strong { color: var(--ink); }
 
+  /* How much the gap is costing them. The number is the point, so it is
+     the thing that is loud; the sentence around it is deliberately flat,
+     because a figure this large does not need help sounding serious. */
+  .cost {
+    margin: 0 0 1.1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: var(--sunk);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .cost strong { color: var(--ink); font-weight: 600; }
+  /* Load-bearing reads in the colour the page already uses for a thing
+     that gave way, because that is what it is: this one is holding up
+     most of the subject. A contained gap gets the held colour, since
+     being contained is the good news. */
+  .cost.heavy { border-color: color-mix(in srgb, var(--broke) 45%, var(--line)); }
+  .cost.heavy .count { color: var(--broke); }
+  .cost.light .count { color: var(--held); }
+  .cost .count { font-weight: 700; color: var(--ink); }
+  .cost .topics { display: block; margin-top: 0.45rem; color: var(--faint); }
+
   /* The way out of the finding, and the point of the whole page: the button
      sits above the explanation rather than below everything. */
   .teach { display: flex; flex-wrap: wrap; gap: 0.6rem 0.9rem; align-items: center;
@@ -1657,6 +1681,10 @@ function report() {
       ${gap && heldUp.length ? `<p class="held-up">You got
         ${listOf(heldUp.map(escape))} right. It&rsquo;s this one underneath
         that&rsquo;s getting in the way.</p>` : ''}
+      <!-- Then what it is costing them. Naming a skill is a label; this
+           is the consequence, and it is the only number on this page a
+           parent or a head of department can act on. -->
+      ${costLine(named)}
       <!-- The order here is the whole point of this screen, and it is not the
            order the explanation is stored in.
 
@@ -1754,6 +1782,68 @@ function report() {
 // diagnosis was correct - a right answer can still be no use, and a wrong one
 // can still be worth the ten minutes - and the only one everybody can answer
 // without thinking about it.
+// What rests on the gap, in a sentence.
+//
+// The server counts it off the skill graph by reversing the prerequisite
+// edges, so this is arithmetic on a map somebody wrote down, not a model's
+// opinion. The spread is what makes it worth saying: half the skills in the
+// graph carry one or two things and a couple of dozen carry twenty or more,
+// so the same finding is an afternoon's work or the reason nothing else is
+// landing, and until now the page said both in the same flat voice.
+//
+// Silent when there is nothing to say - a skill at the top of the graph has
+// nothing standing on it, and inventing a consequence for it would be a lie
+// on the one screen that has to be trusted. Silent too for a page that is
+// reading a reply from before this shipped.
+function costLine(named) {
+  const rests = named && named.rests_on_it;
+  if (!rests || !rests.skills) return '';
+
+  const skills = rests.skills;
+  const topics = rests.topics || [];
+  const one = skills === 1;
+
+  // Named topics are what a tutor plans from, and they are only on the
+  // skills a paper can actually ask for, so there are few enough to read.
+  // Three, then a count, because a list of nineteen is scrolled past.
+  const shown = topics.slice(0, 3).map(escape);
+  const rest = topics.length - shown.length;
+  // "Including differentiation" promises more and then stops, which reads
+  // as a page that lost its place. When the list is the whole list, say so.
+  const named_topics = !topics.length ? ''
+    : rest
+      ? `<span class="topics">Including ${listOf(shown)}, and ${rest} other
+          ${rest === 1 ? 'kind' : 'kinds'} of question.</span>`
+      : `<span class="topics">${topics.length === 1 ? 'The one affected is'
+          : 'Those are'} ${listOf(shown)}.</span>`;
+
+  // A gap that nothing in the subject stands clear of is the strongest
+  // thing this graph can say about anything, and printing it as a number
+  // throws that away: 19 is read as a lot, and 'every kind of question we
+  // cover' is read as the whole subject, which is what it means.
+  const everything = topics.length && topics.length === rests.of_topics;
+  const spread = everything
+    ? 'every kind of exam question we cover'
+    : `<span class="count">${topics.length}</span> ${topics.length === 1
+        ? 'kind' : 'kinds'} of exam question`;
+
+  if (rests.load_bearing) {
+    return `<p class="cost heavy">
+      <strong>This one is load-bearing.</strong>
+      <span class="count">${skills}</span> of the ${rests.of} skills we map
+      need it in place first, across ${spread}. That makes it a likely reason
+      other things aren&rsquo;t landing either, not just this one.
+      ${everything ? '' : named_topics}</p>`;
+  }
+
+  return `<p class="cost light">
+    <strong>This is a contained gap.</strong>
+    Only <span class="count">${skills}</span> other
+    ${one ? 'skill' : 'skills'} we map ${one ? 'needs' : 'need'} it first, so
+    closing it is a short job rather than a term&rsquo;s work.
+    ${named_topics}</p>`;
+}
+
 function usefulCard() {
   return `<div class="card useful" id="useful">
     <p class="note">Did this help?</p>
