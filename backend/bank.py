@@ -29,8 +29,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import store
+from audit import Verified, verify
 from graph import SKILLS
-from questions import MultipleChoiceQuestion, generate_batch
+from questions import BadQuestionError, MultipleChoiceQuestion, generate_batch
 
 # Falling back to a live generation costs money, so it goes to the log where
 # the host will show it, as well as to the database where it can be counted.
@@ -129,9 +130,8 @@ def question_for(skill_id: str, *, connection=None) -> tuple[int | None, Multipl
     try:
         connection = connection or store.connect()
     except Exception:  # noqa: BLE001 - a broken shelf is not a broken session
-        from questions import generate_question
-
-        return None, generate_question(skill_id)
+        # Nowhere to keep anything, but what is asked still gets checked.
+        return None, _one_to_ask(skill_id, *_written_and_checked(skill_id))
 
     try:
         taken = store.take_question(connection, skill_id)
@@ -157,18 +157,64 @@ def question_for(skill_id: str, *, connection=None) -> tuple[int | None, Multipl
         except Exception:  # noqa: BLE001 - bookkeeping must not break a session
             pass
 
-        written = generate_batch(skill_id, PER_SKILL)
-        if not written:
-            from questions import generate_question
+        passed, spare = _written_and_checked(skill_id)
+        if not passed:
+            return None, _one_to_ask(skill_id, passed, spare)
 
-            return None, generate_question(skill_id)
-
-        ids = [store.bank_question(connection, skill_id, q) for q in written]
-        choice = random.randrange(len(written))
-        return ids[choice], written[choice]
+        # Only what a blind solve agreed with goes on the shelf, because the
+        # shelf is what every later student is served from.
+        ids = [store.bank_question(connection, skill_id, q) for q in passed]
+        choice = random.randrange(len(passed))
+        return ids[choice], passed[choice]
     finally:
         if own_connection:
             connection.close()
+
+
+# Two goes before giving up. A whole batch failing its check is rare enough
+# that a second batch nearly always has something in it, and a third would
+# just be paying again for a skill whose questions keep coming out wrong.
+ATTEMPTS = 2
+
+
+def _written_and_checked(skill_id: str, count: int = PER_SKILL):
+    """Write a batch, check it, and try once more if nothing survived.
+
+    Returns (passed, spare). `passed` were solved blind to the same answer as
+    their key. `spare` could not be checked at all - an API error, not a
+    wrong answer - and are only ever a last resort, never kept. Anything
+    judged wrong is in neither.
+    """
+    spare: list = []
+    for _ in range(ATTEMPTS):
+        written = generate_batch(skill_id, count)
+        checked: Verified = verify(skill_id, written)
+        if checked.rejected:
+            log.warning("%s of %s questions written for %r were judged wrong "
+                        "and thrown away", len(checked.rejected), len(written),
+                        skill_id)
+        if checked.passed:
+            return checked.passed, spare
+        spare.extend(checked.unchecked)
+    return [], spare
+
+
+def _one_to_ask(skill_id: str, passed: list, spare: list) -> MultipleChoiceQuestion:
+    """Something to put in front of the student, in order of trust."""
+    if passed:
+        return random.choice(passed)
+    if spare:
+        # The checker could not be reached, which says nothing about the
+        # question. Asked once so the session can go on, and not kept, so it
+        # is never served again without being checked.
+        log.warning("could not check any question for %r - asking one "
+                    "unchecked and not keeping it", skill_id)
+        return random.choice(spare)
+    # Everything written was solved to a different answer than its key, twice
+    # over. Asking one of those is how a student gets marked wrong for being
+    # right, which is worse than this session stopping.
+    raise BadQuestionError(
+        f"every question written for {skill_id!r} was judged wrong when checked")
 
 
 def fill(skill_ids: list[str], per_skill: int = PER_SKILL, workers: int = WORKERS) -> int:
@@ -178,18 +224,26 @@ def fill(skill_ids: list[str], per_skill: int = PER_SKILL, workers: int = WORKER
 
     def work(skill_id: str):
         try:
-            return skill_id, generate_batch(skill_id, per_skill)
+            batch = generate_batch(skill_id, per_skill)
+            return skill_id, len(batch), verify(skill_id, batch)
         except Exception as error:  # noqa: BLE001 - one bad skill must not stop the fill
             print(f"  {skill_id}: failed ({error})", file=sys.stderr)
-            return skill_id, []
+            return skill_id, 0, Verified([], [], [])
 
     try:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            for skill_id, questions in pool.map(work, skill_ids):
-                for question in questions:
+            for skill_id, made, checked in pool.map(work, skill_ids):
+                # Only what was checked and agreed with goes on the shelf.
+                for question in checked.passed:
                     store.bank_question(connection, skill_id, question)
-                written += len(questions)
-                print(f"  {skill_id}: {len(questions)}")
+                written += len(checked.passed)
+                dropped = []
+                if checked.rejected:
+                    dropped.append(f"{len(checked.rejected)} judged wrong")
+                if checked.unchecked:
+                    dropped.append(f"{len(checked.unchecked)} could not be checked")
+                print(f"  {skill_id}: kept {len(checked.passed)} of {made}"
+                      + (f" ({', '.join(dropped)})" if dropped else ""))
     finally:
         connection.close()
 

@@ -338,6 +338,33 @@ def test_a_model_failure_is_explained_not_dumped(client, monkeypatch):
     assert "lost" in response.json()["detail"]
 
 
+def test_no_trustworthy_question_pauses_the_walk_in_words(client, monkeypatch):
+    """Everything written for the next skill was judged wrong when checked.
+    The student is told in a sentence and keeps their answers - a 500 here
+    would read as the app being broken, when it is the app being careful."""
+    from questions import BadQuestionError
+
+    started = client.post("/api/start", json={"question": "q"}).json()
+
+    def nothing_trusted(*args, **kwargs):
+        raise BadQuestionError("every question written was judged wrong")
+
+    monkeypatch.setattr(bank, "question_for", nothing_trusted)
+    failed = client.post(
+        "/api/answer",
+        json={"session_id": started["session_id"],
+              "label": label_of(started, "right"), "answered_before": 0},
+    )
+
+    assert failed.status_code == 503
+    assert "lost" in failed.json()["detail"]
+
+    connection = store.connect()
+    kept = len(store.answers_so_far(connection, started["session_id"]))
+    connection.close()
+    assert kept == 1
+
+
 def test_nothing_is_lost_when_the_model_fails_mid_walk(client, monkeypatch):
     """The answers are already in the database, so the walk resumes."""
     from anthropic import APITimeoutError

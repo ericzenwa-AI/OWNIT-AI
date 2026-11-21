@@ -10,6 +10,7 @@ import pathlib
 
 import pytest
 
+import audit
 import bank
 import store
 from questions import Distractor, MultipleChoiceQuestion
@@ -26,6 +27,11 @@ def never_the_committed_shelf(tmp_path, monkeypatch):
     """
     monkeypatch.setattr(bank, "SHELF_FILE", tmp_path / "question_bank.jsonl")
     monkeypatch.setattr(bank, "_looked_in_the_file", False)
+    # Everything written is checked before it is kept, and the check is a
+    # model call. These tests are about shelving, so every question passes;
+    # the check itself is tested in test_checked_on_the_way_in.py.
+    monkeypatch.setattr(
+        bank, "verify", lambda skill_id, questions: audit.Verified(list(questions), [], []))
 
 
 @pytest.fixture

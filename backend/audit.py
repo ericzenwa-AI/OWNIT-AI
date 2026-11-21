@@ -63,7 +63,7 @@ WORKERS = 8
 LETTERS = "ABCD"
 
 SYSTEM_PROMPT = (
-    "You are checking A-level mathematics multiple-choice questions.\n"
+    "You are checking GCSE and A-level mathematics multiple-choice questions.\n"
     "Work the question out yourself, carefully, and pick the option that is "
     "correct.\n"
     "Show your working before you commit to a letter.\n"
@@ -175,6 +175,101 @@ def check_many(rows, task: llm.Task, workers: int = WORKERS) -> list[Checked]:
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         return list(pool.map(work, rows))
+
+
+# ---- Checking before a question is kept ----------------------------------
+#
+# The audit above checks questions already on the shelf, and only when someone
+# remembers to run it. By then a wrong key has already been served, and every
+# student it was served to was marked as not holding a skill they had.
+#
+# So new questions get the same check on the way in, with the burden of proof
+# turned round. The audit retires a question only when both models reject it,
+# because a question already on the shelf deserves the benefit of the doubt. A
+# question nobody has checked yet has earned nothing: it is kept only once a
+# model that never saw the key has solved it and landed on the same answer.
+
+
+@dataclass
+class Verified:
+    """What came of checking a freshly written batch."""
+
+    # A blind solve agreed with the key. Safe to keep and to serve.
+    passed: list
+    # Judged wrong by both passes. Never kept and never served.
+    rejected: list
+    # The check itself did not run - an API error, nothing back. Not judged
+    # wrong, but not shown right either, so never kept.
+    unchecked: list
+
+
+def _as_row(index: int, skill_id: str, question) -> dict:
+    """A freshly written question, in the shape check_one reads."""
+    return {
+        "id": index,
+        "skill_id": skill_id,
+        "question": question.question,
+        "correct_option": question.correct_option,
+        "distractors": json.dumps(
+            [{"option": d.option, "mistake": d.mistake} for d in question.distractors]
+        ),
+    }
+
+
+def verify(skill_id: str, questions: list, *, check=None,
+           workers: int = 5) -> Verified:
+    """Solve each question blind and keep the ones whose key it agrees with.
+
+    Same two passes as the audit. A first-pass disagreement goes to the
+    stronger model before anything is thrown away, so one bad solve does not
+    cost a good question - but if the second pass cannot confirm the key
+    either, the question goes.
+
+    `check(row, task)` is the solve; tests pass their own so nothing is billed.
+    """
+    if not questions:
+        return Verified([], [], [])
+
+    if check is None:
+        client = Anthropic()
+
+        def check(row, task):
+            return check_one(row, task, client)
+
+    def safely(row, task) -> Checked:
+        try:
+            return check(row, task)
+        except Exception as error:  # noqa: BLE001 - a failed check is not a verdict
+            print(f"  check failed for {skill_id}: {error}", file=sys.stderr)
+            return Checked(row["id"], skill_id, row["question"],
+                           row["correct_option"], None, "", str(error), failed=True)
+
+    rows = [_as_row(i, skill_id, q) for i, q in enumerate(questions)]
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        first = list(pool.map(lambda row: safely(row, FIRST_PASS), rows))
+        disputed = [row for row, c in zip(rows, first) if c.disagrees]
+        second = dict(zip(
+            (row["id"] for row in disputed),
+            pool.map(lambda row: safely(row, SECOND_PASS), disputed),
+        ))
+
+    result = Verified([], [], [])
+    for row, verdict in zip(rows, first):
+        question = questions[row["id"]]
+        if verdict.agrees:
+            result.passed.append(question)
+        elif verdict.failed:
+            result.unchecked.append(question)
+        else:
+            again = second[row["id"]]
+            if again.agrees:
+                result.passed.append(question)
+            elif again.failed:
+                result.unchecked.append(question)
+            else:
+                result.rejected.append(question)
+    return result
 
 
 def banked(connection, skill_id: str | None = None) -> list:

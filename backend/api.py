@@ -50,7 +50,13 @@ import teach
 import walk
 from entry import EntryMatch, MEDIA_TYPES, identify_entry, is_usable, out_of_scope
 from graph import A_LEVEL, GCSE, SKILLS, STAGES, entry_points, reach
-from questions import DONT_KNOW_LABEL, DONT_KNOW_OPTION, LABELS, shuffled_options
+from questions import (
+    DONT_KNOW_LABEL,
+    DONT_KNOW_OPTION,
+    LABELS,
+    BadQuestionError,
+    shuffled_options,
+)
 
 log = logging.getLogger("ownit.api")
 
@@ -173,6 +179,28 @@ def model_unavailable(request: Request, error: APIError) -> JSONResponse:
             "detail": (
                 "I could not reach the marking service just then. Nothing you "
                 "have answered is lost - try again in a moment."
+            )
+        },
+    )
+
+
+@app.exception_handler(BadQuestionError)
+def no_question_we_trust(request: Request, error: BadQuestionError) -> JSONResponse:
+    """Nothing written for this skill survived being checked.
+
+    Rare - it takes two whole batches solved to a different answer than their
+    keys - and deliberate: asking a question we believe is marked wrong would
+    record a student as missing a skill they have. So the walk pauses instead,
+    with its answers kept, the same as when the model cannot be reached.
+    """
+    log.warning("no trustworthy question: %s", error)
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": (
+                "I could not put together a question I trust for the next "
+                "step just then. Nothing you have answered is lost - try "
+                "again in a moment."
             )
         },
     )
