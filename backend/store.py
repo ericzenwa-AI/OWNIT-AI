@@ -379,6 +379,15 @@ LATER_COLUMNS = {
     "lesson_turn": (
         ("demo", "TEXT"),
     ),
+    # A second question on a skill about to be named as the gap. On both the
+    # question on screen and the answer it becomes, because the walk reads an
+    # answer differently depending on whether it was the first on its skill.
+    "pending": (
+        ("follow_up", "INTEGER NOT NULL DEFAULT 0"),
+    ),
+    "answers": (
+        ("follow_up", "INTEGER NOT NULL DEFAULT 0"),
+    ),
 }
 
 
@@ -442,10 +451,11 @@ def save_session(
     # earlier part of the same question: it was answered once, so it is stored
     # once.
     asked = [r for r in diagnosis.results if r.asked and not r.reused]
+    asked += [r for r in getattr(diagnosis, "follow_ups", []) if not r.reused]
     connection.executemany(
         """INSERT INTO answers (session_id, position, skill_id, question,
-               chosen, outcome, misconception, seconds)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               chosen, outcome, misconception, seconds, follow_up)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         [
             (
                 session_id,
@@ -456,6 +466,7 @@ def save_session(
                 _outcome(result),
                 result.mistake,
                 result.seconds,
+                int(getattr(result, "follow_up", False)),
             )
             for position, result in enumerate(asked, start=1)
         ],
@@ -1628,6 +1639,7 @@ def answers_so_far(connection: sqlite3.Connection, session_id: int) -> list:
             question=row["question"],
             chosen=row["chosen"],
             seconds=row["seconds"],
+            follow_up=bool(row["follow_up"]),
         )
         for row in rows
     ]
@@ -1641,17 +1653,21 @@ def set_pending(
     question: str,
     options: list[dict],
     banked_id: int | None = None,
+    follow_up: bool = False,
 ) -> None:
     """Remember exactly what we put on screen, so the answer can be scored."""
     connection.execute(
-        """INSERT INTO pending (session_id, skill_id, question, options, banked_id)
-           VALUES (?, ?, ?, ?, ?)
+        """INSERT INTO pending (session_id, skill_id, question, options, banked_id,
+               follow_up)
+           VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT(session_id) DO UPDATE SET
                skill_id = excluded.skill_id,
                question = excluded.question,
                options  = excluded.options,
-               banked_id = excluded.banked_id""",
-        (session_id, skill_id, question, json.dumps(options), banked_id),
+               banked_id = excluded.banked_id,
+               follow_up = excluded.follow_up""",
+        (session_id, skill_id, question, json.dumps(options), banked_id,
+         int(follow_up)),
     )
     connection.commit()
 
@@ -1673,6 +1689,7 @@ def record_answer(
     mistake: str | None,
     dont_know: bool,
     banked_id: int | None = None,
+    follow_up: bool = False,
 ) -> None:
     """File one answer and take the question off the screen."""
     position = connection.execute(
@@ -1682,9 +1699,10 @@ def record_answer(
     outcome = "correct" if held else ("dont_know" if dont_know else "wrong")
     connection.execute(
         """INSERT INTO answers (session_id, position, skill_id, question,
-               chosen, outcome, misconception)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (session_id, position, skill_id, question, chosen, outcome, mistake),
+               chosen, outcome, misconception, follow_up)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (session_id, position, skill_id, question, chosen, outcome, mistake,
+         int(follow_up)),
     )
     connection.execute("DELETE FROM pending WHERE session_id = ?", (session_id,))
     connection.commit()

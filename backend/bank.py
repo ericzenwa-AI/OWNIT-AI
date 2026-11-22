@@ -171,6 +171,47 @@ def question_for(skill_id: str, *, connection=None) -> tuple[int | None, Multipl
             connection.close()
 
 
+def another_question_for(skill_id: str, session_id: int, *, connection
+                         ) -> tuple[int | None, MultipleChoiceQuestion]:
+    """A second question on a skill, different from any this session has seen.
+
+    Asked when a skill is about to be named as the gap, to tell a real gap
+    from a slip. The same question again would only test whether they
+    remember what they picked, so anything already answered here is out.
+
+    The shelf first, least-used first. Written live - and checked, like
+    every new question - only when the shelf has nothing unseen left.
+    """
+    from questions import Distractor
+
+    unseen = store.unasked_for(connection, skill_id, session_id)
+    if unseen:
+        row = unseen[0]
+        return row["id"], MultipleChoiceQuestion(
+            question=row["question"],
+            correct_option=row["correct_option"],
+            distractors=[Distractor(**d) for d in json.loads(row["distractors"])],
+        )
+
+    log.warning("nothing unseen on the shelf for %r - writing a follow-up live, "
+                "which costs money", skill_id)
+    try:
+        store.record_live_generation(connection, skill_id)
+    except Exception:  # noqa: BLE001 - bookkeeping must not break a session
+        pass
+
+    seen = {row["question"] for row in connection.execute(
+        "SELECT question FROM answers WHERE session_id = ?", (session_id,))}
+    passed, spare = _written_and_checked(skill_id)
+    passed = [q for q in passed if q.question not in seen]
+    spare = [q for q in spare if q.question not in seen]
+    if not passed:
+        return None, _one_to_ask(skill_id, passed, spare)
+
+    ids = [store.bank_question(connection, skill_id, q) for q in passed]
+    return ids[0], passed[0]
+
+
 # Two goes before giving up. A whole batch failing its check is rare enough
 # that a second batch nearly always has something in it, and a third would
 # just be paying again for a skill whose questions keep coming out wrong.

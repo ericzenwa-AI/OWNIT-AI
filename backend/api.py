@@ -299,6 +299,9 @@ class AnsweredOut(BaseModel):
     skill_name: str
     held: bool
     dont_know: bool = False
+    # A second question on a skill already answered once, asked before
+    # naming it as the gap.
+    follow_up: bool = False
 
 
 class Option(BaseModel):
@@ -310,6 +313,9 @@ class QuestionOut(BaseModel):
     skill_name: str
     question: str
     options: list[Option]
+    # Asking again on a skill they just got wrong, before calling it the gap.
+    # The page says so, because otherwise it looks like the same thing twice.
+    follow_up: bool = False
 
 
 class StateOut(BaseModel):
@@ -604,6 +610,7 @@ def answer(request: AnswerRequest) -> StateOut:
             mistake=chosen["mistake"],
             dont_know=chosen["dont_know"],
             banked_id=pending["banked_id"],
+            follow_up=bool(pending["follow_up"]),
         )
     finally:
         connection.close()
@@ -618,6 +625,7 @@ def _descent(answers) -> list[AnsweredOut]:
             skill_name=SKILLS[result.skill_id].name,
             held=result.held,
             dont_know=result.dont_know,
+            follow_up=result.follow_up,
         )
         for result in answers
         if result.skill_id in SKILLS
@@ -652,7 +660,13 @@ def _advance(session_id: int) -> StateOut:
             )
 
         skill = SKILLS[current.ask]
-        banked_id, question = bank.question_for(skill.id, connection=connection)
+        if current.follow_up:
+            # Must not be the question they just got wrong, or it measures
+            # whether they remember what they picked.
+            banked_id, question = bank.another_question_for(
+                skill.id, session_id, connection=connection)
+        else:
+            banked_id, question = bank.question_for(skill.id, connection=connection)
 
         # Shuffle once, here, and keep it - the page has to show the same order
         # the answer is scored against.
@@ -676,6 +690,7 @@ def _advance(session_id: int) -> StateOut:
             question=question.question,
             options=options,
             banked_id=banked_id,
+            follow_up=current.follow_up,
         )
 
         return StateOut(
@@ -684,6 +699,7 @@ def _advance(session_id: int) -> StateOut:
                 skill_name=skill.name,
                 question=question.question,
                 options=[Option(label=o["label"], text=o["text"]) for o in options],
+                follow_up=current.follow_up,
             ),
             asked_so_far=len(answers),
             so_far=_descent(answers),
@@ -720,6 +736,7 @@ def resume(session_id: int) -> StateOut:
                     options=[
                         Option(label=o["label"], text=o["text"]) for o in options
                     ],
+                    follow_up=bool(pending["follow_up"]),
                 ),
                 asked_so_far=len(answered),
                 # This path hands back the stored question rather than working
@@ -807,6 +824,10 @@ def _report(diagnosis, question: str | None = None) -> dict:
             for need in SKILLS[gap].needs
             if (below := diagnosis.result_for(need)) is not None and below.held
         ]
+        # A possible slip counts as holding for the walk, but saying it held
+        # here would be giving it as a reason, and it is not one.
+        beneath = [name for name in beneath
+                   if name not in {SKILLS[s].name for s in diagnosis.unsure}]
 
         gaps.append(
             {
@@ -897,9 +918,21 @@ def _report(diagnosis, question: str | None = None) -> dict:
                 "held": r.held,
                 "dont_know": r.dont_know,
                 "mistake": r.mistake,
+                # Wrong here, then right on a second question: its own
+                # category, neither secure nor a gap.
+                "unsure": r.skill_id in diagnosis.unsure,
             }
             for r in diagnosis.results
             if r.asked
+        ],
+        # Possibly a slip: got it wrong, then right with different numbers.
+        # Listed apart from both the gap and what held, because it is neither.
+        "unsure": [SKILLS[s].name for s in diagnosis.unsure],
+        # Every second question, and how it went.
+        "follow_ups": [
+            {"skill": SKILLS[r.skill_id].name, "held": r.held,
+             "dont_know": r.dont_know, "mistake": r.mistake}
+            for r in diagnosis.follow_ups
         ],
     }
 

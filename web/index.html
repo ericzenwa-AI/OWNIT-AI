@@ -708,6 +708,12 @@
   .card.descent li + li + li + li + li { padding-left: 3.6rem; }
   /* Said they did not know: not a mistake, and not a pass either. */
   .unsure::before { content: "?\00a0\00a0"; color: var(--faint); }
+  /* Wrong, then right with different numbers. Neither secure nor a gap,
+     so neither the tick nor the cross. */
+  .slip::before { content: "~\00a0\00a0"; color: var(--accent-2); }
+  .found { margin: 0; padding: 0; list-style: none; }
+  .found li { margin: 0.45rem 0; }
+  .found .kind { color: var(--muted); font-size: 0.9rem; display: block; }
 
   /* Sits a touch up on Outfit, which has a taller x-height than the serif
      this used to be set in. For the notation only. */
@@ -1208,7 +1214,8 @@ function descent() {
 
   const rows = state.so_far.map(a => {
     const how = a.dont_know ? 'unsure' : (a.held ? 'held' : 'missed');
-    return `<li class="${how}">${escape(a.skill_name)}</li>`;
+    return `<li class="${how}">${escape(a.skill_name)}${a.follow_up
+      ? ' <span class="note">(asked again)</span>' : ''}</li>`;
   }).join('');
 
   return `<div class="card descent">
@@ -1235,6 +1242,13 @@ function askedCard() {
 // sideways when something holds, and saying which just stops it reading as a
 // fixed list.
 function because() {
+  // A second question on the skill they just got wrong. Said, because
+  // without it the screen looks like the same thing being asked twice.
+  if (state.asking && state.asking.follow_up) {
+    return `<p class="because">Before calling <b>${escape(state.asking.skill_name)}</b>
+      the gap, one more on it with different numbers &mdash; in case the last
+      one was a slip.</p>`;
+  }
   const so_far = state.so_far || [];
   if (!so_far.length) return '';
 
@@ -1628,9 +1642,16 @@ function report() {
   // Everything they answered correctly on the way down, in the order asked.
   const heldUp = ((r.asked || []).filter(a => a.held).map(a => a.skill));
 
+  // Wrong, then right on a second question with different numbers. The walk
+  // treated these as holding and kept looking, so they count as holding for
+  // whether anything below was missing - but they are named, separately.
+  const slips = r.unsure || [];
+
   const nothingBelow = Boolean(
     gap && gap.skill === r.stuck_on && (r.asked || []).length &&
-    (r.asked || []).every(a => a.held));
+    (r.asked || []).every(a => a.held || a.unsure));
+  // The only thing that gave way below turned out to be a possible slip.
+  const onlySlips = nothingBelow && slips.length > 0;
 
   // The reasoning is the whole point, and it was the thing missing: naming a
   // skill tells you nothing unless you can see why it, and not something
@@ -1664,9 +1685,16 @@ function report() {
     <div class="card">
       ${nothingBelow ? '' :
         `<p class="note">You came in stuck on ${escape(r.stuck_on)}</p>`}
-      <p class="label">${nothingBelow ? 'Nothing underneath was missing'
+      <p class="label">${onlySlips ? 'No clear gap found below this question'
+        : nothingBelow ? 'Nothing underneath was missing'
         : gap ? 'We found something' : 'Where to start'}</p>
-      ${nothingBelow ? `<p>You got every question we asked. Everything this
+      ${onlySlips ? `<p>Nothing underneath this question came out as a clear
+        gap. ${slips.length === 1 ? 'One answer' : 'Some answers'} didn&rsquo;t
+        fit: you got ${listOf(slips.map(escape))} wrong, then right with
+        different numbers, so ${slips.length === 1 ? 'it' : 'they'} may have
+        been a slip rather than something missing. The method itself is the
+        thing to work on:</p>`
+      : nothingBelow ? `<p>You got every question we asked. Everything this
         rests on held up, so there is no gap lower down to go back for &mdash;
         the method itself is the thing to work on:</p>` : ''}
       ${guess ? `<p>We didn&rsquo;t get far enough to be sure what sits under
@@ -1678,7 +1706,7 @@ function report() {
            differentiation fine, it was the bracket" is heard, and "you cannot
            expand brackets" is not. Only when there is something to say - a
            student who got nothing right must not be told they did. -->
-      ${gap && heldUp.length ? `<p class="held-up">You got
+      ${gap && heldUp.length && !onlySlips ? `<p class="held-up">You got
         ${listOf(heldUp.map(escape))} right. It&rsquo;s this one underneath
         that&rsquo;s getting in the way.</p>` : ''}
       <!-- Then what it is costing them. Naming a skill is a label; this
@@ -1738,6 +1766,8 @@ function report() {
     </div>
 
 
+    ${foundCard(r, gap, nothingBelow)}
+
     ${why && !nothingBelow ? `<div class="card">
       <p class="label">Why we stopped here</p>
       ${why}
@@ -1761,10 +1791,19 @@ function report() {
     <details class="card">
       <summary>Every question you answered</summary>
       <ul>${r.asked.map(a =>
-        `<li class="${a.held ? 'held' : 'missed'}">${escape(a.skill)}
-          &mdash; ${a.held ? 'you got this'
+        `<li class="${a.unsure ? 'slip' : (a.held ? 'held' : 'missed')}">${escape(a.skill)}
+          &mdash; ${a.unsure ? 'unsure, possibly a slip'
+                   : a.held ? 'you got this'
                    : (a.dont_know ? 'you weren&rsquo;t sure' : 'not quite')}
          ${a.mistake ? `<br><span class="note">${escape(a.mistake)}</span>` : ''}</li>`
+        // The second question on a skill sits straight under the first, so
+        // the pair reads as what it was: one check, made twice.
+        + (r.follow_ups || []).filter(f => f.skill === a.skill).map(f =>
+        `<li class="${f.held ? 'held' : 'missed'}">${escape(f.skill)}
+          <span class="note">(asked again, different numbers)</span>
+          &mdash; ${f.held ? 'you got this'
+                   : (f.dont_know ? 'you weren&rsquo;t sure' : 'not quite')}</li>`
+        ).join('')
       ).join('')}</ul>
     </details>
 
@@ -1842,6 +1881,31 @@ function costLine(named) {
     ${one ? 'skill' : 'skills'} we map ${one ? 'needs' : 'need'} it first, so
     closing it is a short job rather than a term&rsquo;s work.
     ${named_topics}</p>`;
+}
+
+// What came out of the walk, in three kinds: the gap, what was secure, and
+// anything that was possibly a slip. The last is its own kind because it is
+// neither - wrong once, right with different numbers - and folding it into
+// either one would claim more than the answers show.
+function foundCard(r, gap, nothingBelow) {
+  const asked = r.asked || [];
+  const secure = asked.filter(a => a.held).map(a => a.skill);
+  const slips = r.unsure || [];
+  if (!secure.length && !slips.length) return '';
+  // Stopping early is not the same as finding nothing: say which.
+  const gapName = gap && !nothingBelow ? escape(gap.skill)
+    : r.stopped_early ? 'none confirmed yet' : 'none found below the question';
+  return `<div class="card">
+    <p class="label">What we found</p>
+    <ul class="found">
+      <li class="missed"><span class="kind">Gap</span>${gapName}</li>
+      ${secure.length ? `<li class="held"><span class="kind">Secure</span>
+        ${listOf(secure.map(escape))}</li>` : ''}
+      ${slips.length ? `<li class="slip"><span class="kind">Unsure, possibly a slip</span>
+        ${listOf(slips.map(escape))} &mdash; wrong first, then right with
+        different numbers</li>` : ''}
+    </ul>
+  </div>`;
 }
 
 function usefulCard() {

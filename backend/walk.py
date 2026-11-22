@@ -64,6 +64,9 @@ class SkillResult:
     # Carried over from an earlier part of the same question rather than asked
     # again. Stored once, not twice.
     reused: bool = False
+    # A second question on a skill that was about to be named as the gap,
+    # asked to tell a real gap from a slip. Never the first answer on a skill.
+    follow_up: bool = False
 
 
 @dataclass
@@ -93,6 +96,12 @@ class Diagnosis:
     # The lowest skill we saw fail. When we stop early this is the best answer
     # available, but its own prerequisites were never checked.
     deepest_failure: str | None = None
+    # Got wrong, then right on a second question with different numbers. Not
+    # a gap and not secure either - possibly a slip - so the walk treated it as
+    # holding and went on looking, and the report gives it its own category.
+    unsure: list[str] = field(default_factory=list)
+    # Every second question asked, whichever way it went.
+    follow_ups: list[SkillResult] = field(default_factory=list)
 
     def result_for(self, skill_id: str) -> SkillResult | None:
         for result in self.results:
@@ -415,6 +424,9 @@ class Step:
 
     ask: str | None
     diagnosis: Diagnosis
+    # The question being asked for is a second one on a skill already
+    # answered wrong, so it must be a different question from the first.
+    follow_up: bool = False
 
     @property
     def finished(self) -> bool:
@@ -478,8 +490,26 @@ def step(
         raise ValueError(f"'{entry_skill_id}' is not a skill in the graph")
 
     reading = reading or Reading()
-    given = {answer.skill_id: answer for answer in answers}
+    # First answers and second questions are kept apart. A follow-up is never
+    # the answer a skill is walked on - it only decides how to read the first.
+    given: dict[str, SkillResult] = {}
+    follow_ups: dict[str, SkillResult] = {}
+    for answer in answers:
+        if answer.follow_up:
+            follow_ups.setdefault(answer.skill_id, answer)
+        else:
+            given[answer.skill_id] = answer
     needed: str | None = None
+    asking_again = False
+    # Wrong the first time, right on a second question with different numbers.
+    # Worked out from every answer, not just the ones this replay reaches: a
+    # slip higher up sends the walk back past slips found lower down, and
+    # those were still possible slips - the report has to name them all.
+    unsure: list[str] = [
+        skill_id for skill_id, first in given.items()
+        if not first.held and not first.dont_know
+        and skill_id in follow_ups and follow_ups[skill_id].held
+    ]
 
     diagnosis = Diagnosis(
         entry_skill_id=entry.id,
@@ -525,17 +555,18 @@ def step(
             if skill_id in results:
                 continue
 
-            if asked >= cap:
-                diagnosis.stopped_early = f"asked the maximum of {cap} questions"
-                diagnosis.unchecked += [
-                    later for later in candidates[position:] if later not in results
-                ]
-                break
-
             # The first skill we have no answer for is the next question. Stop
-            # here and hand it back rather than asking for it ourselves.
+            # here and hand it back rather than asking for it ourselves - unless
+            # the student has already been asked as many as we ask anyone.
             result = given.get(skill_id)
             if result is None:
+                if _put_to_them(asked, given, follow_ups, results) >= cap:
+                    diagnosis.stopped_early = f"asked the maximum of {cap} questions"
+                    diagnosis.unchecked += [
+                        later for later in candidates[position:]
+                        if later not in results
+                    ]
+                    break
                 needed = skill_id
                 parents.setdefault(skill_id, parent)
                 break
@@ -546,6 +577,13 @@ def step(
             asked += 1
 
             dont_knows_running = dont_knows_running + 1 if result.dont_know else 0
+
+            # Wrong the first time, right on a second question with different
+            # numbers. Read as holding from here on, so the walk goes on
+            # exactly as it would have if they had got it right first time -
+            # on to the rest of this level, and whatever else is unchecked.
+            if skill_id in unsure:
+                continue
 
             if not result.held:
                 diagnosis.deepest_failure = skill_id
@@ -603,8 +641,24 @@ def step(
         and not (skill_id in seen_unchecked or seen_unchecked.add(skill_id))
     ]
 
-    diagnosis.root_gaps = _root_gaps(results)
+    diagnosis.unsure = list(unsure)
+    diagnosis.root_gaps = _root_gaps(results, frozenset(unsure))
     diagnosis.chains = [_chain_to(gap, entry.id, parents) for gap in diagnosis.root_gaps]
+
+    # About to name a gap. One wrong answer is not enough to name it on, so
+    # unless there is already more evidence than that, ask once more with a
+    # different question before saying so. Only on a walk that finished on its
+    # own terms: stopping early names nothing as confirmed anyway.
+    if needed is None and not diagnosis.stopped_early:
+        for gap in diagnosis.root_gaps:
+            if not _worth_asking_again(gap, results[gap], follow_ups, reading, entry):
+                continue
+            # The follow-up is a question like any other and counts towards
+            # the cap. With no room left the gap is named as it always was.
+            if _put_to_them(asked, given, follow_ups, results) < cap:
+                needed = gap
+                asking_again = True
+            break
 
     if diagnosis.narrowed_to is not None:
         diagnosis.widened = any(
@@ -614,7 +668,52 @@ def step(
             if result.asked
         )
 
-    return Step(ask=needed, diagnosis=diagnosis)
+    # Every second question, for the report, in the order they were asked.
+    diagnosis.follow_ups = [a for a in answers if a.follow_up]
+
+    # Answers the walk no longer stands on. Treating a slip as holding sends
+    # the walk back up, past questions it asked on the way down beneath the
+    # skill. They were really asked and really answered, so they stay in the
+    # record - just not as anything the walk decided with.
+    diagnosis.results += [
+        answer for answer in given.values()
+        if answer.skill_id not in results and not answer.reused
+    ]
+
+    return Step(ask=needed, diagnosis=diagnosis, follow_up=asking_again)
+
+
+def _put_to_them(asked: int, given: dict, follow_ups: dict, results: dict) -> int:
+    """How many questions the student has actually been asked so far.
+
+    Counted from what was asked rather than from what the walk has used,
+    because they stop being the same thing once a slip sends the walk back
+    up: the questions beneath it were still sat through.
+    """
+    unused = [a for a in given.values() if a.skill_id not in results and not a.reused]
+    return asked + len(follow_ups) + len(unused)
+
+
+def _worth_asking_again(skill_id: str, result: SkillResult, follow_ups: dict,
+                        reading: Reading, entry: Skill) -> bool:
+    """Whether a gap about to be named should get a second question first."""
+    # The question they came in stuck on is the premise, not an answer.
+    if not result.asked:
+        return False
+    # "I don't know" is not a slip. Nobody mis-taps their way into it.
+    if result.dont_know:
+        return False
+    # Already asked again, and wrong again - that is the confirmation.
+    if skill_id in follow_ups:
+        return False
+    # Their own working already went wrong at this exact skill, which is the
+    # second piece of evidence a follow-up would be looking for. Only trusted
+    # when the reading picked this one skill out of several: a reading that
+    # named more than one, or that only had one to choose from, is not sure
+    # where it broke, and then asking again is the safe side.
+    if (reading.narrowed_to == [skill_id] and len(entry.needs) > 1):
+        return False
+    return True
 
 
 def diagnose(
@@ -653,23 +752,31 @@ def diagnose(
         )
         if current.finished:
             return current.diagnosis
-        answers.append(check(SKILLS[current.ask]))
+        result = check(SKILLS[current.ask])
+        if current.follow_up:
+            result = replace(result, follow_up=True)
+        answers.append(result)
 
 
-def _root_gaps(results: dict[str, SkillResult]) -> list[str]:
+def _root_gaps(results: dict[str, SkillResult], unsure=frozenset()) -> list[str]:
     """The failed skills that aren't explained by something below them.
 
     A skill they failed whose prerequisites they all hold is the bottom of that
     branch - nothing further down accounts for it, so it is the thing to teach.
     A failed floor node with no prerequisites qualifies the same way.
+
+    A possible slip counts as holding on both sides: it is not a gap itself,
+    and it does not stop the skill above it being one.
     """
+    def holds(skill_id: str) -> bool:
+        return results[skill_id].held or skill_id in unsure
+
     gaps = []
-    for skill_id, result in results.items():
-        if result.held:
+    for skill_id in results:
+        if holds(skill_id):
             continue
         needs = SKILLS[skill_id].needs
-        if all(skill_id_below in results and results[skill_id_below].held
-               for skill_id_below in needs):
+        if all(below in results and holds(below) for below in needs):
             gaps.append(skill_id)
     return gaps
 

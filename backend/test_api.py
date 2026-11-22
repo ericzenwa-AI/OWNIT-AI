@@ -45,13 +45,17 @@ def client(tmp_path, monkeypatch):
         ),
     )
     monkeypatch.setattr(bank, "question_for", lambda skill_id, connection=None: (None, _question(skill_id)))
+    monkeypatch.setattr(
+        bank, "another_question_for",
+        lambda skill_id, session_id, connection=None:
+            (None, _question(skill_id, again=True)))
 
     return TestClient(api.app)
 
 
-def _question(skill_id):
+def _question(skill_id, again=False):
     return MultipleChoiceQuestion(
-        question=f"A question about {skill_id}",
+        question=f"{'Another' if again else 'A'} question about {skill_id}",
         correct_option="right",
         distractors=[
             Distractor(option="wrong one", mistake="first mistake"),

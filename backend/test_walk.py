@@ -594,7 +594,8 @@ def test_stepping_reaches_the_same_diagnosis_as_running_it_all_at_once():
         if current.finished:
             break
         answers.append(
-            answer(current.ask, held=current.ask not in fails, mistake="muddled")
+            answer(current.ask, held=current.ask not in fails, mistake="muddled",
+                   follow_up=current.follow_up)
         )
 
     assert current.diagnosis.root_gaps == at_once.root_gaps

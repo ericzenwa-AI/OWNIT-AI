@@ -132,7 +132,7 @@ def test_the_finding_opens_on_what_they_got_right():
 def test_it_only_says_that_when_it_is_true():
     """A student who got nothing right must not be told they did."""
     text = diagnostic()
-    assert "gap && heldUp.length ?" in text, (
+    assert "gap && heldUp.length &&" in text, (
         "the credit must be conditional on there being some")
 
 
