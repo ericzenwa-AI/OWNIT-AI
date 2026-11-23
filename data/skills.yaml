@@ -503,6 +503,7 @@ nodes:
     name: Solving quadratics
     level: 4
     topic: quadratics
+    stage: gcse
     kind: procedure
     probe: Solve a quadratic and give both roots.
     needs: [factorise_quadratic, null_factor]
@@ -511,6 +512,7 @@ nodes:
     name: Equation of a straight line
     level: 4
     topic: coordinate geometry
+    stage: gcse
     kind: procedure
     probe: Write the line through a given point with a given gradient.
     needs: [gradient_straight_line, substitute_expr]
@@ -543,6 +545,7 @@ nodes:
     name: Simplify an expression with roots and powers
     level: 0
     topic: indices and surds
+    stage: gcse
     kind: procedure
     probe: Turn an expression containing roots, fractions and powers into a single simplified index form.
     needs: [rewrite_index_form, index_laws, algebraic_fractions]
@@ -551,6 +554,7 @@ nodes:
     name: Evaluate a negative, fractional or zero power
     level: 0
     topic: indices and surds
+    stage: gcse
     kind: procedure
     probe: Work out the value of a number raised to a negative, fractional or zero index.
     needs: [index_laws, fractions_arith, negatives]
@@ -567,6 +571,7 @@ nodes:
     name: Clear a surd from a denominator
     level: 0
     topic: indices and surds
+    stage: gcse
     kind: procedure
     probe: Rewrite a fraction so that no surd is left in the denominator.
     needs: [surds, algebraic_fractions, expand_brackets]
@@ -605,6 +610,7 @@ nodes:
     name: Completing the square
     level: 0
     topic: quadratics
+    stage: gcse
     kind: procedure
     probe: Write a quadratic in completed-square form and read off the turning point.
     needs: [expand_brackets, factorise_common, fractions_arith, negatives]
@@ -623,6 +629,7 @@ nodes:
     name: Equation of a line through two points
     level: 0
     topic: coordinate geometry
+    stage: gcse
     kind: procedure
     probe: Find the equation of the straight line passing through two given points.
     needs: [gradient_straight_line, straight_line_equation, fractions_arith]
@@ -631,6 +638,7 @@ nodes:
     name: Equation of a perpendicular line
     level: 0
     topic: coordinate geometry
+    stage: gcse
     kind: procedure
     probe: Find the equation of the line perpendicular to a given line through a stated point.
     needs: [perpendicular_gradients, straight_line_equation, gradient_straight_line]
@@ -639,6 +647,7 @@ nodes:
     name: Midpoint and distance between two points
     level: 0
     topic: coordinate geometry
+    stage: gcse
     kind: procedure
     probe: Find the midpoint of two points and the distance between them, leaving the distance in exact form.
     needs: [coordinates, substitute_expr, surds, fractions_arith]
@@ -770,6 +779,7 @@ nodes:
     name: Work out a composite function
     level: 0
     topic: functions
+    stage: gcse
     kind: procedure
     probe: Evaluate fg(x) at a value, or write it as a single expression.
     needs: [compose_functions, substitute_expr]
@@ -778,6 +788,7 @@ nodes:
     name: Find an inverse function
     level: 0
     topic: functions
+    stage: gcse
     kind: procedure
     probe: Find the inverse of a function and state its domain.
     needs: [inverse_function, domain_and_range]
@@ -911,6 +922,7 @@ nodes:
     name: Arithmetic sequences
     level: 2
     topic: sequences and series
+    stage: gcse
     kind: procedure
     probe: Use the nth term rule to find a particular term, or work back to the first
       term and common difference from two given terms.
@@ -920,6 +932,7 @@ nodes:
     name: Geometric sequences
     level: 2
     topic: sequences and series
+    stage: gcse
     kind: procedure
     probe: Use the nth term rule to find a particular term, or work back to the first
       term and common ratio from two given terms.
