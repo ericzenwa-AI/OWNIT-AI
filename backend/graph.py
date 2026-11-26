@@ -92,6 +92,41 @@ def _parse_nodes(raw_nodes: list) -> dict[str, Skill]:
     return skills
 
 
+def levels_from_needs(skills: dict[str, Skill] | None = None) -> dict[str, int]:
+    """What every skill's level has to be, read off the needs.
+
+    A skill nothing else needs - an exam question at the top - is 0. Anything
+    else is one more than the deepest skill that needs it. So everything a
+    skill needs has a higher level than it does, which hand-numbering got wrong
+    130 times, until a student was asked about algebraic fractions straight
+    after failing fraction arithmetic and the numbers were checked.
+
+    Counted down from the top rather than up from the floor because the walk
+    asks about the lowest-numbered need first, and in simulation this order
+    named a gap in every walk with the fewest questions; counted from the
+    floor, it named fewer and ran into the depth limit nearly four times as
+    often.
+    """
+    skills = SKILLS if skills is None else skills
+    needed_by: dict[str, list[str]] = {skill_id: [] for skill_id in skills}
+    for skill in skills.values():
+        for need in skill.needs:
+            if need in needed_by:
+                needed_by[need].append(skill.id)
+
+    worked_out: dict[str, int] = {}
+
+    def level(skill_id: str) -> int:
+        if skill_id not in worked_out:
+            above = needed_by[skill_id]
+            worked_out[skill_id] = 1 + max(map(level, above)) if above else 0
+        return worked_out[skill_id]
+
+    for skill_id in skills:
+        level(skill_id)
+    return worked_out
+
+
 def entry_points(skills: dict[str, Skill] | None = None) -> list[Skill]:
     """The skills a question can ask for.
 

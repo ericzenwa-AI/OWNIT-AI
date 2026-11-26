@@ -226,3 +226,20 @@ def test_file_without_nodes_key_raises(tmp_path):
     path.write_text("meta: {topic: differentiation}\n", encoding="utf-8")
     with pytest.raises(SkillGraphError, match="nodes"):
         load_skills(path)
+
+
+def test_every_level_is_what_the_needs_say_it_is():
+    """Hand-numbered, 130 links pointed sideways or up. The walk asks about
+    the lowest of a skill's needs first, so a wrong number puts the wrong
+    question in front of a student. Worked out, they cannot drift."""
+    from graph import levels_from_needs
+
+    wrong = {s.id: (s.level, right) for s in SKILLS.values()
+             for right in [levels_from_needs()[s.id]] if s.level != right}
+    assert not wrong, f"level is, should be: {wrong}"
+
+
+def test_everything_a_skill_needs_is_further_down():
+    upward = [(s.id, n) for s in SKILLS.values() for n in s.needs
+              if SKILLS[n].level <= s.level]
+    assert not upward

@@ -1,4 +1,4 @@
-# A-level maths skill graph.
+# GCSE and A-level maths skill graph.
 #
 # The v2 diagnostic walks this graph downward: it starts at the skill the exam
 # question is asking for and follows `needs` until it finds a node the student
@@ -14,7 +14,13 @@ meta:
   schema:
     id: stable snake_case key, used in needs
     name: human-readable name
-    level: 0 = what an exam question asks for, 4 = assumed floor
+    level: >-
+      worked out from needs, not chosen - 0 for a skill nothing else needs
+      (an exam question), otherwise one more than the deepest skill that
+      needs it. Everything a skill needs is higher than it. test_graph.py
+      fails if one is wrong, and graph.levels_from_needs() gives the right
+      value. The walk asks about the lowest of a skill's needs first, as the
+      one nearest the question.
     topic: >-
       optional - the kind of question this is (differentiation, integration,
       trigonometry). Present ONLY on skills a paper can actually ask for, and
@@ -28,10 +34,10 @@ meta:
     note: optional — observed evidence or a warning about this node
 
   notes:
-    - Level is a hint for batching, not a strict hierarchy. Follow needs, not level numbers.
+    - Level only orders the questions. What a skill needs is in needs, and nothing else.
     - "kind matters: 'fact' nodes need recall questions, 'concept' nodes need explain-or-choose questions, 'procedure' nodes need do-it questions. Generating the same question shape for all three is the fastest way to make this useless."
     - Nodes with many dependents are load-bearing but usually intact. Use as a tiebreaker, not a starting point.
-    - Floor nodes (level 4) recur across every A-level topic. Build them once, reuse across trigonometry, integration, series.
+    - Floor nodes, with nothing in needs, recur across every topic. Build them once, reuse across trigonometry, integration, series.
     - >-
       THE RULE FOR ADDING A DOORWAY. Before it is finished, ask: if a student
       passed every one of its `needs`, could they now do the actual question -
@@ -48,11 +54,11 @@ meta:
 
 nodes:
 
-  # ---- Level 0: what an exam question actually asks for --------------------
+  # ---- What an exam question actually asks for -----------------------------
 
   - id: differentiate_function
     name: Differentiate a given function
-    level: 0
+    level: 3
     topic: differentiation
     kind: procedure
     probe: Differentiate an expression requiring at least one named rule.
@@ -60,7 +66,7 @@ nodes:
 
   - id: gradient_at_point
     name: Find the gradient at a point
-    level: 0
+    level: 2
     topic: differentiation
     kind: procedure
     probe: Differentiate, then evaluate the derivative at a given x.
@@ -68,7 +74,7 @@ nodes:
 
   - id: tangent_equation
     name: Equation of a tangent
-    level: 0
+    level: 1
     topic: differentiation
     kind: procedure
     probe: Find the tangent to a curve at a stated point, answer in exact form.
@@ -84,7 +90,7 @@ nodes:
 
   - id: set_derivative_zero
     name: Setting the derivative to zero
-    level: 1
+    level: 3
     kind: procedure
     probe: >-
       Given a derivative that has already been worked out, write the equation
@@ -101,7 +107,7 @@ nodes:
 
   - id: find_stationary_points
     name: Find stationary points
-    level: 0
+    level: 2
     topic: differentiation
     kind: procedure
     probe: Set the derivative to zero and solve for all x, then find the y-coordinates.
@@ -109,7 +115,7 @@ nodes:
 
   - id: classify_stationary
     name: Classify stationary points
-    level: 0
+    level: 1
     topic: differentiation
     kind: procedure
     probe: Decide max or min for each stationary point and state the reasoning.
@@ -155,39 +161,39 @@ nodes:
     probe: Find dy/dx from x and y both given in terms of a parameter.
     needs: [chain_rule, differentiate_function, algebraic_fractions]
 
-  # ---- Level 1: the named rules --------------------------------------------
+  # ---- The named rules -----------------------------------------------------
 
   - id: power_rule
     name: Power rule
-    level: 1
+    level: 4
     kind: procedure
     probe: Differentiate a sum of powers including a negative and a fractional index.
     needs: [deriv_polynomial, rewrite_index_form]
 
   - id: chain_rule
     name: Chain rule
-    level: 1
+    level: 4
     kind: procedure
     probe: Differentiate a function of a function, e.g. a bracket raised to a power.
     needs: [recognise_composite, deriv_polynomial]
 
   - id: product_rule
     name: Product rule
-    level: 1
+    level: 5
     kind: procedure
     probe: Differentiate two functions multiplied together.
     needs: [recognise_product, deriv_polynomial]
 
   - id: quotient_rule
     name: Quotient rule
-    level: 1
+    level: 4
     kind: procedure
     probe: Differentiate one function divided by another, and simplify the result.
     needs: [recognise_quotient, product_rule, algebraic_fractions]
 
   - id: first_principles
     name: Differentiation from first principles
-    level: 1
+    level: 0
     topic: differentiation
     kind: procedure
     probe: Derive the derivative of a simple function using the limit definition.
@@ -195,73 +201,73 @@ nodes:
 
   - id: second_derivative
     name: Second derivative
-    level: 1
+    level: 2
     topic: differentiation
     kind: procedure
     probe: Differentiate a derivative again and state what its sign tells you.
     needs: [differentiate_function, gradient_sign]
 
-  # ---- Level 2: recognition, standard results, and getting to a usable form -
+  # ---- Recognition, standard results, and getting to a usable form ---------
 
   - id: recognise_composite
     name: Spot a function inside a function
-    level: 2
+    level: 5
     kind: concept
     probe: Given several expressions, pick the ones that are composite and name the inner function.
     needs: [function_notation]
 
   - id: recognise_product
     name: Spot a product
-    level: 2
+    level: 6
     kind: concept
     probe: Given several expressions, identify which need the product rule and state u and v.
     needs: [function_notation]
 
   - id: recognise_quotient
     name: Spot a quotient
-    level: 2
+    level: 5
     kind: concept
     probe: Decide whether an expression is better handled as a quotient or rewritten as a product.
     needs: [function_notation, algebraic_fractions]
 
   - id: deriv_polynomial
     name: Derivative of x to the n
-    level: 2
+    level: 6
     kind: fact
     probe: State the derivative of x to a given power, including negative and fractional.
     needs: [index_laws, index_notation]
 
   - id: deriv_sin_cos
     name: Derivatives of sin and cos
-    level: 2
+    level: 4
     kind: fact
     probe: State the derivatives of sin x and cos x, and note the radians requirement.
     needs: [radians]
 
   - id: deriv_tan
     name: Derivative of tan
-    level: 2
+    level: 0
     kind: fact
     probe: State the derivative of tan x.
     needs: [deriv_sin_cos]
 
   - id: deriv_exp_e
     name: Derivative of e to the x
-    level: 2
+    level: 4
     kind: fact
     probe: State the derivative of e to the x and of e to the kx.
     needs: [exponential_graph]
 
   - id: deriv_ln
     name: Derivative of ln x
-    level: 2
+    level: 4
     kind: fact
     probe: State the derivative of ln x.
     needs: [log_laws]
 
   - id: deriv_a_to_x
     name: Derivative of a to the x
-    level: 2
+    level: 0
     kind: fact
     probe: Differentiate an exponential with a base other than e.
     needs: [deriv_exp_e, log_laws]
@@ -269,21 +275,21 @@ nodes:
 
   - id: simplify_derivative
     name: Tidy a derivative
-    level: 2
+    level: 4
     kind: procedure
     probe: Take an unsimplified derivative and factorise it into a usable form.
     needs: [factorise_common, algebraic_fractions]
 
   - id: limit_h_to_zero
     name: Limit as h approaches zero
-    level: 2
+    level: 1
     kind: concept
     probe: Explain what happens to a chord's gradient as the second point moves toward the first.
     needs: [chord_vs_tangent]
 
   - id: recognise_index_form
     name: Spot that an expression needs rewriting as powers
-    level: 2
+    level: 6
     kind: concept
     probe: Given several expressions, pick the ones that must be converted to index form before anything else can be done, and say why.
     needs: [index_laws, surds]
@@ -291,7 +297,7 @@ nodes:
 
   - id: rewrite_index_form
     name: Rewrite in index form
-    level: 2
+    level: 5
     kind: procedure
     probe: Turn roots and fractions such as a square root, or 3 over x squared, into powers of x.
     needs: [recognise_index_form, index_laws, surds, algebraic_fractions]
@@ -299,16 +305,16 @@ nodes:
 
   - id: form_expression_from_context
     name: Build a function from a situation
-    level: 2
+    level: 1
     kind: procedure
     probe: Turn a worded or geometric setup into a single-variable expression, eliminating the other variable.
     needs: [substitute_expr, expand_brackets, solve_linear]
 
-  # ---- Level 3: the algebra and meaning underneath --------------------------
+  # ---- The algebra and meaning underneath ----------------------------------
 
   - id: index_laws
     name: Laws of indices
-    level: 3
+    level: 8
     kind: fact
     probe: Simplify expressions using negative, fractional and zero powers.
     needs: [index_notation, fractions_arith, negatives]
@@ -316,28 +322,28 @@ nodes:
 
   - id: surds
     name: Surds
-    level: 3
+    level: 7
     kind: procedure
     probe: Convert between root form and index form and simplify.
     needs: [index_laws]
 
   - id: algebraic_fractions
     name: Algebraic fractions
-    level: 3
+    level: 6
     kind: procedure
     probe: Simplify, combine or split a fraction with algebra in the numerator or denominator.
     needs: [fractions_arith, factorise_common]
 
   - id: function_notation
     name: Function notation
-    level: 3
+    level: 7
     kind: concept
     probe: Interpret f(x), f'(x) and dy/dx, and say what each represents.
     needs: [substitute_expr]
 
   - id: derivative_meaning
     name: What a derivative is
-    level: 3
+    level: 5
     kind: concept
     probe: Explain in words what dy/dx tells you about a curve at a point.
     needs: [gradient_straight_line]
@@ -345,14 +351,14 @@ nodes:
 
   - id: chord_vs_tangent
     name: Chord versus tangent
-    level: 3
+    level: 2
     kind: concept
     probe: Distinguish average gradient between two points from gradient at a single point.
     needs: [gradient_straight_line, derivative_meaning]
 
   - id: stationary_definition
     name: What stationary means
-    level: 3
+    level: 4
     kind: concept
     probe: State the condition for a stationary point without being told to differentiate.
     needs: [derivative_meaning]
@@ -366,14 +372,14 @@ nodes:
 
   - id: radians
     name: Radians
-    level: 3
+    level: 5
     kind: fact
     probe: Convert between degrees and radians and recognise when radians are required.
     needs: [fractions_arith]
 
   - id: exponential_graph
     name: Shape of an exponential graph
-    level: 3
+    level: 5
     kind: concept
     probe: Describe the shape and behaviour of y equals a to the x.
     needs: [index_laws]
@@ -388,30 +394,30 @@ nodes:
 
   - id: log_laws
     name: Laws of logarithms
-    level: 3
+    level: 5
     kind: fact
     probe: Apply the product, quotient and power laws, and reject log of a sum as a sum of logs.
     needs: [index_laws]
 
   - id: exact_form
     name: Exact form
-    level: 3
+    level: 2
     kind: concept
     probe: Recognise when an answer must be left as a surd, fraction, or in terms of e, rather than rounded.
     needs: [surds, fractions_arith]
 
-  # ---- Level 4: the assumed floor ------------------------------------------
+  # ---- The floor -----------------------------------------------------------
 
   - id: negatives
     name: Negative number arithmetic
-    level: 4
+    level: 10
     kind: procedure
     probe: Add, subtract and multiply with negatives, including double negatives.
     needs: []
 
   - id: fractions_arith
     name: Fraction arithmetic
-    level: 4
+    level: 9
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
@@ -422,42 +428,42 @@ nodes:
 
   - id: bidmas
     name: Order of operations
-    level: 4
+    level: 9
     kind: procedure
     probe: Evaluate an expression where order changes the answer.
     needs: []
 
   - id: index_notation
     name: Index notation
-    level: 4
+    level: 10
     kind: fact
     probe: Read and write powers, and evaluate small ones.
     needs: []
 
   - id: substitute_expr
     name: Substitution
-    level: 4
+    level: 8
     kind: procedure
     probe: Put a number, including a negative, into an algebraic expression.
     needs: [bidmas, negatives]
 
   - id: coordinates
     name: Coordinates
-    level: 4
+    level: 7
     kind: procedure
     probe: Plot and read points on axes.
     needs: []
 
   - id: gradient_straight_line
     name: Gradient of a straight line
-    level: 4
+    level: 6
     kind: concept
     probe: Find the gradient between two points and say what it means.
     needs: [coordinates, fractions_arith]
 
   - id: expand_brackets
     name: Expanding brackets
-    level: 4
+    level: 5
     topic: expanding and factorising
     stage: gcse
     kind: procedure
@@ -466,7 +472,7 @@ nodes:
 
   - id: solve_linear
     name: Solving linear equations
-    level: 4
+    level: 3
     topic: linear equations
     stage: gcse
     kind: procedure
@@ -475,7 +481,7 @@ nodes:
 
   - id: factorise_common
     name: Factorising a common factor
-    level: 4
+    level: 7
     topic: expanding and factorising
     stage: gcse
     kind: procedure
@@ -503,7 +509,7 @@ nodes:
   # why a topic marks them rather than a level number.
   - id: solve_quadratic
     name: Solving quadratics
-    level: 4
+    level: 3
     topic: quadratics
     stage: gcse
     kind: procedure
@@ -512,7 +518,7 @@ nodes:
 
   - id: straight_line_equation
     name: Equation of a straight line
-    level: 4
+    level: 2
     topic: coordinate geometry
     stage: gcse
     kind: procedure
@@ -521,7 +527,7 @@ nodes:
 
   - id: perpendicular_gradients
     name: Perpendicular gradients
-    level: 4
+    level: 1
     kind: fact
     probe: Given a gradient, state the gradient perpendicular to it.
     needs: [gradient_straight_line, fractions_arith]
@@ -537,7 +543,7 @@ nodes:
 
   - id: equate_indices
     name: Compare indices on the same base
-    level: 2
+    level: 1
     kind: concept
     probe: Given an equation with the unknown in the index, say what has to be true of both sides before the indices can be compared, and why.
     needs: [index_laws, exponential_graph]
@@ -660,14 +666,14 @@ nodes:
 
   - id: integral_meaning
     name: What integration undoes
-    level: 3
+    level: 2
     kind: concept
     probe: Explain what an integral gives you, and why differentiating the answer returns the original.
     needs: [derivative_meaning]
 
   - id: constant_of_integration
     name: Why an indefinite integral needs + c
-    level: 3
+    level: 1
     kind: concept
     probe: Say why an indefinite integral carries an arbitrary constant, and when it can be pinned down.
     needs: [integral_meaning]
@@ -681,14 +687,14 @@ nodes:
 
   - id: standard_integrals
     name: Standard integrals
-    level: 2
+    level: 1
     kind: fact
     probe: State the integrals of e^x, 1/x, sin x and cos x.
     needs: [deriv_exp_e, deriv_ln, deriv_sin_cos]
 
   - id: recognise_reverse_chain
     name: Spot an integral that needs a substitution
-    level: 2
+    level: 1
     kind: concept
     probe: Given several integrals, pick the ones needing a substitution and name what to substitute.
     needs: [recognise_composite, chain_rule]
@@ -744,35 +750,35 @@ nodes:
 
   - id: modulus_meaning
     name: What the modulus of a number is
-    level: 3
+    level: 2
     kind: concept
     probe: Say what the modulus of x means, and why it leaves a positive value alone.
     needs: [negatives]
 
   - id: domain_and_range
     name: Domain and range
-    level: 3
+    level: 1
     kind: concept
     probe: Say which values a function can take in, and which values it can give out.
     needs: [function_notation, coordinates]
 
   - id: compose_functions
     name: Put one function inside another
-    level: 2
+    level: 1
     kind: procedure
     probe: Work out fg(x) by substituting one function into the other, in the right order.
     needs: [function_notation, substitute_expr, recognise_composite]
 
   - id: inverse_function
     name: Find the inverse of a function
-    level: 2
+    level: 1
     kind: procedure
     probe: Swap x and y and rearrange to make y the subject.
     needs: [function_notation, solve_linear, algebraic_fractions]
 
   - id: modulus_graph
     name: Sketch a graph containing a modulus
-    level: 2
+    level: 1
     kind: procedure
     probe: Sketch the graph of a modulus function and read off the vertex.
     needs: [modulus_meaning, coordinates, straight_line_equation]
@@ -823,7 +829,7 @@ nodes:
 
   - id: binomial_coefficients
     name: Binomial coefficients
-    level: 2
+    level: 1
     kind: procedure
     probe: >-
       Find one coefficient of a bracket raised to a positive whole power, such
@@ -843,7 +849,7 @@ nodes:
 
   - id: pascal_triangle
     name: Pascal's triangle
-    level: 3
+    level: 2
     kind: procedure
     probe: >-
       Build a row of Pascal's triangle - each number is the two above it added
@@ -854,7 +860,7 @@ nodes:
 
   - id: binomial_validity
     name: When a binomial expansion is valid
-    level: 2
+    level: 1
     topic: binomial expansion
     kind: concept
     probe: Say for which values of x an expansion with a negative or fractional index is valid, and why.
@@ -862,7 +868,7 @@ nodes:
 
   - id: power_of_a_negative_term
     name: Raising a term to a power, sign and all
-    level: 2
+    level: 1
     kind: procedure
     probe: >-
       Work out a whole term raised to a power, such as (-2x)^3 and (-2x)^4 -
@@ -906,14 +912,14 @@ nodes:
 
   - id: factor_theorem_meaning
     name: What the factor theorem says
-    level: 3
+    level: 1
     kind: concept
     probe: State what f(a) = 0 tells you about the factors of f(x), and why.
     needs: [substitute_expr, null_factor]
 
   - id: polynomial_division
     name: Divide one polynomial by another
-    level: 2
+    level: 1
     topic: polynomials
     kind: procedure
     probe: Divide a cubic by a linear factor and give the quotient.
@@ -939,14 +945,14 @@ nodes:
 
   - id: nth_term_rule
     name: What an nth term rule does
-    level: 3
+    level: 2
     kind: concept
     probe: Say what the nth term rule gives you, and how to use it to find a particular term.
     needs: [substitute_expr, solve_linear]
 
   - id: arithmetic_sequence
     name: Arithmetic sequences
-    level: 2
+    level: 1
     topic: sequences and series
     stage: gcse
     kind: procedure
@@ -956,7 +962,7 @@ nodes:
 
   - id: geometric_sequence
     name: Geometric sequences
-    level: 2
+    level: 1
     topic: sequences and series
     stage: gcse
     kind: procedure
@@ -982,7 +988,7 @@ nodes:
 
   - id: convergence_condition
     name: When a geometric series has a sum to infinity
-    level: 2
+    level: 1
     kind: concept
     probe: >-
       Say which values of the common ratio give a sum to infinity, and why a
@@ -1020,7 +1026,7 @@ nodes:
 
   - id: solve_both_sides
     name: Equations with the unknown on both sides
-    level: 4
+    level: 0
     topic: linear equations
     stage: gcse
     kind: procedure
@@ -1029,7 +1035,7 @@ nodes:
 
   - id: solve_with_brackets
     name: Equations containing brackets
-    level: 4
+    level: 0
     topic: linear equations
     stage: gcse
     kind: procedure
@@ -1038,7 +1044,7 @@ nodes:
 
   - id: form_and_solve
     name: Forming an equation from a situation
-    level: 4
+    level: 0
     topic: linear equations
     stage: gcse
     kind: procedure
@@ -1047,7 +1053,7 @@ nodes:
 
   - id: rearrange_formula
     name: Changing the subject of a formula
-    level: 4
+    level: 1
     topic: linear equations
     stage: gcse
     kind: procedure
@@ -1056,7 +1062,7 @@ nodes:
 
   - id: inverse_operations
     name: Doing the same to both sides
-    level: 5
+    level: 4
     kind: concept
     probe: Say which operation undoes another, and why it must be done to both sides.
     needs: [negatives]
@@ -1067,7 +1073,7 @@ nodes:
 
   - id: equation_meaning
     name: What the equals sign says
-    level: 5
+    level: 4
     kind: concept
     probe: Say what an equation asserts about its two sides, and what that rules out.
     needs: []
@@ -1078,14 +1084,14 @@ nodes:
 
   - id: collect_like_terms
     name: Collecting like terms
-    level: 5
+    level: 6
     kind: procedure
     probe: Simplify an expression such as 3x + 5 + 2x - 1, including negatives.
     needs: [like_terms_meaning, negatives]
 
   - id: like_terms_meaning
     name: Which terms are alike
-    level: 6
+    level: 7
     kind: concept
     probe: Say which terms in an expression can be combined, and which cannot.
     needs: []
@@ -1095,7 +1101,7 @@ nodes:
 
   - id: form_expression_words
     name: Writing an expression from words
-    level: 5
+    level: 1
     kind: procedure
     probe: Turn a sentence such as "five more than twice a number" into algebra.
     needs: [substitute_expr]
@@ -1104,7 +1110,7 @@ nodes:
 
   - id: expand_single_bracket
     name: Expanding a single bracket
-    level: 4
+    level: 8
     topic: expanding and factorising
     stage: gcse
     kind: procedure
@@ -1113,21 +1119,21 @@ nodes:
 
   - id: multiply_terms
     name: Multiplying algebraic terms
-    level: 5
+    level: 9
     kind: procedure
     probe: Work out products such as 3 times 2x, or x times x.
     needs: [index_notation, negatives]
 
   - id: highest_common_factor
     name: Highest common factor
-    level: 5
+    level: 8
     kind: procedure
     probe: Find the highest factor shared by two numbers or two terms.
     needs: [factor_pairs]
 
   - id: factor_pairs
     name: Factors of a number
-    level: 6
+    level: 12
     kind: fact
     probe: List the pairs of whole numbers that multiply to give a given number.
     needs: []
@@ -1136,7 +1142,7 @@ nodes:
 
   - id: simplify_ratio
     name: Simplifying a ratio
-    level: 4
+    level: 0
     topic: ratio and proportion
     stage: gcse
     kind: procedure
@@ -1145,7 +1151,7 @@ nodes:
 
   - id: share_in_ratio
     name: Sharing in a given ratio
-    level: 4
+    level: 0
     topic: ratio and proportion
     stage: gcse
     kind: procedure
@@ -1154,7 +1160,7 @@ nodes:
 
   - id: direct_proportion
     name: Direct proportion
-    level: 4
+    level: 0
     topic: ratio and proportion
     stage: gcse
     kind: procedure
@@ -1163,7 +1169,7 @@ nodes:
 
   - id: best_value
     name: Best value for money
-    level: 4
+    level: 0
     topic: ratio and proportion
     stage: gcse
     kind: procedure
@@ -1172,7 +1178,7 @@ nodes:
 
   - id: percentage_change
     name: Percentage increase and decrease
-    level: 4
+    level: 0
     topic: ratio and proportion
     stage: gcse
     kind: procedure
@@ -1181,7 +1187,7 @@ nodes:
 
   - id: reverse_percentage
     name: Reverse percentages
-    level: 4
+    level: 0
     topic: ratio and proportion
     stage: gcse
     kind: procedure
@@ -1194,7 +1200,7 @@ nodes:
 
   - id: multiplier_method
     name: Percentages as multipliers
-    level: 5
+    level: 1
     kind: concept
     probe: Say what single number an amount is multiplied by for a given percentage change, and what undoes it.
     needs: [percentage_as_decimal]
@@ -1205,21 +1211,21 @@ nodes:
 
   - id: ratio_meaning
     name: What a ratio says
-    level: 5
+    level: 1
     kind: concept
     probe: Say what 2:3 tells you about two quantities, and how many parts there are in total.
     needs: [fraction_meaning]
 
   - id: unit_value
     name: Finding the value of one
-    level: 5
+    level: 1
     kind: procedure
     probe: Work out the cost or size of a single item from the cost of several.
     needs: []
 
   - id: percentage_of_amount
     name: Percentage of an amount
-    level: 5
+    level: 1
     kind: procedure
     probe: Find a percentage of a quantity, with or without a calculator.
     needs: [percentage_as_decimal]
@@ -1235,7 +1241,7 @@ nodes:
 
   - id: fraction_of_amount
     name: Fraction of an amount
-    level: 4
+    level: 1
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
@@ -1246,7 +1252,7 @@ nodes:
 
   - id: combine_over_common_denominator
     name: Combining fractions once the bottoms match
-    level: 5
+    level: 3
     stage: gcse
     kind: procedure
     probe: >-
@@ -1267,7 +1273,7 @@ nodes:
 
   - id: add_subtract_fractions
     name: Adding and subtracting fractions
-    level: 4
+    level: 2
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
@@ -1278,7 +1284,7 @@ nodes:
 
   - id: multiply_divide_fractions
     name: Multiplying and dividing fractions
-    level: 4
+    level: 2
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
@@ -1298,7 +1304,7 @@ nodes:
 
   - id: order_fdp
     name: Ordering fractions, decimals and percentages
-    level: 4
+    level: 3
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
@@ -1307,7 +1313,7 @@ nodes:
 
   - id: common_denominator
     name: Finding a common denominator
-    level: 5
+    level: 10
     kind: procedure
     probe: >-
       Rewrite two fractions so they share a denominator. Plain numbers only -
@@ -1316,7 +1322,7 @@ nodes:
 
   - id: equivalent_fractions
     name: Equivalent fractions
-    level: 5
+    level: 11
     kind: procedure
     probe: >-
       Write a fraction in an equivalent form, or in its simplest form. Plain
@@ -1325,7 +1331,7 @@ nodes:
 
   - id: reciprocal
     name: What dividing by a fraction does
-    level: 5
+    level: 10
     kind: concept
     probe: >-
       Say why dividing by a fraction is the same as multiplying by its
@@ -1342,7 +1348,7 @@ nodes:
 
   - id: fraction_meaning
     name: What a fraction is
-    level: 6
+    level: 12
     kind: concept
     probe: Say what the top and bottom of a fraction each tell you.
     needs: []
@@ -1372,7 +1378,7 @@ nodes:
 
   - id: solve_simultaneous_elimination
     name: Simultaneous equations by elimination
-    level: 4
+    level: 1
     topic: simultaneous equations
     stage: gcse
     kind: procedure
@@ -1384,7 +1390,7 @@ nodes:
 
   - id: solve_simultaneous_substitution
     name: Simultaneous equations by substitution
-    level: 4
+    level: 0
     topic: simultaneous equations
     stage: gcse
     kind: procedure
@@ -1395,7 +1401,7 @@ nodes:
 
   - id: simultaneous_linear_quadratic
     name: A line and a curve together
-    level: 4
+    level: 0
     topic: simultaneous equations
     stage: gcse
     kind: procedure
@@ -1406,7 +1412,7 @@ nodes:
 
   - id: form_simultaneous_from_context
     name: Simultaneous equations from a situation
-    level: 4
+    level: 0
     topic: simultaneous equations
     stage: gcse
     kind: procedure
@@ -1417,7 +1423,7 @@ nodes:
 
   - id: pair_of_unknowns
     name: What a pair of equations is asking
-    level: 5
+    level: 2
     kind: concept
     probe: >-
       Say why two equations are needed for two unknowns, and what the answer
@@ -1430,7 +1436,7 @@ nodes:
 
   - id: match_coefficients
     name: Making the coefficients match
-    level: 5
+    level: 2
     kind: procedure
     probe: >-
       Given a pair of equations, multiply one or both through so that one
@@ -1439,7 +1445,7 @@ nodes:
 
   - id: eliminate_by_adding_or_subtracting
     name: Adding or subtracting the two equations
-    level: 5
+    level: 2
     kind: procedure
     probe: >-
       Given two equations whose coefficients already match, say whether to add
@@ -1452,7 +1458,7 @@ nodes:
 
   - id: back_substitute
     name: Putting the first answer back in
-    level: 5
+    level: 2
     kind: procedure
     probe: >-
       Given one of two unknowns and either original equation, find the other
@@ -1461,7 +1467,7 @@ nodes:
 
   - id: two_pairs_of_answers
     name: Why a line and a curve give two answers
-    level: 5
+    level: 1
     kind: concept
     probe: >-
       Say why solving a linear and a quadratic equation together usually gives
@@ -1484,7 +1490,7 @@ nodes:
 
   - id: solve_linear_inequality
     name: Solving a linear inequality
-    level: 4
+    level: 1
     topic: inequalities
     stage: gcse
     kind: procedure
@@ -1495,7 +1501,7 @@ nodes:
 
   - id: inequality_on_number_line
     name: Showing a solution on a number line
-    level: 4
+    level: 0
     topic: inequalities
     stage: gcse
     kind: procedure
@@ -1506,7 +1512,7 @@ nodes:
 
   - id: integer_solutions
     name: Listing the integers that fit
-    level: 4
+    level: 0
     topic: inequalities
     stage: gcse
     kind: procedure
@@ -1517,7 +1523,7 @@ nodes:
 
   - id: solve_quadratic_inequality
     name: Solving a quadratic inequality
-    level: 4
+    level: 0
     topic: inequalities
     stage: gcse
     kind: procedure
@@ -1528,7 +1534,7 @@ nodes:
 
   - id: inequality_meaning
     name: What the inequality signs say
-    level: 5
+    level: 3
     kind: concept
     probe: >-
       Say what each of the four signs means, and the difference between the two
@@ -1537,7 +1543,7 @@ nodes:
 
   - id: solution_is_a_range
     name: An inequality answers with a range
-    level: 5
+    level: 2
     kind: concept
     probe: >-
       Say why the answer to an inequality is every value in a range rather than
@@ -1549,7 +1555,7 @@ nodes:
 
   - id: inequality_sign_flip
     name: Dividing by a negative turns the sign
-    level: 5
+    level: 2
     kind: fact
     probe: >-
       Say what happens to the inequality sign when both sides are multiplied or
@@ -1561,7 +1567,7 @@ nodes:
 
   - id: quadratic_sign_between_roots
     name: Where a quadratic is above or below zero
-    level: 5
+    level: 1
     kind: concept
     probe: >-
       Given the roots of a quadratic and which way its curve opens, say for
@@ -1587,7 +1593,7 @@ nodes:
 
   - id: write_in_standard_form
     name: Writing a number in standard form
-    level: 4
+    level: 0
     topic: standard form
     stage: gcse
     kind: procedure
@@ -1598,7 +1604,7 @@ nodes:
 
   - id: standard_form_to_ordinary
     name: Writing it back as an ordinary number
-    level: 4
+    level: 0
     topic: standard form
     stage: gcse
     kind: procedure
@@ -1609,7 +1615,7 @@ nodes:
 
   - id: standard_form_multiply_divide
     name: Multiplying and dividing in standard form
-    level: 4
+    level: 0
     topic: standard form
     stage: gcse
     kind: procedure
@@ -1620,7 +1626,7 @@ nodes:
 
   - id: standard_form_add_subtract
     name: Adding and subtracting in standard form
-    level: 4
+    level: 0
     topic: standard form
     stage: gcse
     kind: procedure
@@ -1635,7 +1641,7 @@ nodes:
 
   - id: compare_standard_form
     name: Ordering numbers in standard form
-    level: 4
+    level: 0
     topic: standard form
     stage: gcse
     kind: procedure
@@ -1646,7 +1652,7 @@ nodes:
 
   - id: standard_form_meaning
     name: What standard form is
-    level: 5
+    level: 2
     kind: concept
     probe: >-
       Say what form a number in standard form has to take, and why the front
@@ -1655,7 +1661,7 @@ nodes:
 
   - id: power_of_ten
     name: What a power of ten is worth
-    level: 5
+    level: 2
     kind: fact
     probe: >-
       Say what 10 to a given power is worth, including a negative power, and
@@ -1664,7 +1670,7 @@ nodes:
 
   - id: back_into_standard_form
     name: Tidying the answer back into standard form
-    level: 5
+    level: 1
     kind: procedure
     probe: >-
       Given an answer such as 34 x 10^5 or 0.6 x 10^-3, rewrite it in proper
@@ -1692,7 +1698,7 @@ nodes:
 
   - id: mean_of_a_list
     name: Mean of a list of numbers
-    level: 4
+    level: 1
     topic: statistics
     stage: gcse
     kind: procedure
@@ -1703,7 +1709,7 @@ nodes:
 
   - id: median_of_a_list
     name: Median of a list of numbers
-    level: 4
+    level: 1
     topic: statistics
     stage: gcse
     kind: procedure
@@ -1714,7 +1720,7 @@ nodes:
 
   - id: mode_and_range
     name: Mode and range
-    level: 4
+    level: 0
     topic: statistics
     stage: gcse
     kind: procedure
@@ -1725,7 +1731,7 @@ nodes:
 
   - id: find_missing_value_from_mean
     name: Working backwards from a mean
-    level: 4
+    level: 0
     topic: statistics
     stage: gcse
     kind: procedure
@@ -1736,7 +1742,7 @@ nodes:
 
   - id: mean_from_frequency_table
     name: Mean from a frequency table
-    level: 4
+    level: 0
     topic: statistics
     stage: gcse
     kind: procedure
@@ -1747,7 +1753,7 @@ nodes:
 
   - id: modal_and_median_class
     name: Modal and median class
-    level: 4
+    level: 0
     topic: statistics
     stage: gcse
     kind: procedure
@@ -1758,7 +1764,7 @@ nodes:
 
   - id: choose_the_average
     name: Which average to use
-    level: 4
+    level: 0
     topic: statistics
     stage: gcse
     kind: concept
@@ -1769,7 +1775,7 @@ nodes:
 
   - id: what_an_average_is
     name: What an average is for
-    level: 5
+    level: 2
     kind: concept
     probe: >-
       Say what an average is doing: one number standing in for a whole set,
@@ -1782,7 +1788,7 @@ nodes:
 
   - id: order_a_list
     name: Putting a list in order
-    level: 5
+    level: 2
     kind: procedure
     probe: >-
       Put a short list in order of size, including decimals and negatives
@@ -1796,7 +1802,7 @@ nodes:
 
   - id: total_from_mean_and_count
     name: Getting the total back out of a mean
-    level: 5
+    level: 1
     kind: concept
     probe: >-
       Given a mean and how many values there were, say what the total of
@@ -1809,7 +1815,7 @@ nodes:
 
   - id: read_a_frequency_table
     name: Reading a frequency table
-    level: 5
+    level: 2
     kind: concept
     probe: >-
       Say what each column of a frequency table means - which number is the
@@ -1822,7 +1828,7 @@ nodes:
 
   - id: multiply_by_frequency
     name: Weighing each value by how often it happened
-    level: 5
+    level: 1
     kind: procedure
     probe: >-
       Given a frequency table, work out the total of all the values - each
@@ -1847,7 +1853,7 @@ nodes:
 
   - id: probability_of_an_event
     name: Probability of a single event
-    level: 4
+    level: 2
     topic: probability
     stage: gcse
     kind: procedure
@@ -1858,7 +1864,7 @@ nodes:
 
   - id: complement_probability
     name: The probability of it not happening
-    level: 4
+    level: 0
     topic: probability
     stage: gcse
     kind: procedure
@@ -1869,7 +1875,7 @@ nodes:
 
   - id: expected_number
     name: How many times to expect it
-    level: 4
+    level: 0
     topic: probability
     stage: gcse
     kind: procedure
@@ -1880,7 +1886,7 @@ nodes:
 
   - id: probability_from_data
     name: Probability from a table of results
-    level: 4
+    level: 0
     topic: probability
     stage: gcse
     kind: procedure
@@ -1891,7 +1897,7 @@ nodes:
 
   - id: either_event
     name: One thing or another
-    level: 4
+    level: 0
     topic: probability
     stage: gcse
     kind: procedure
@@ -1902,7 +1908,7 @@ nodes:
 
   - id: both_events_independent
     name: Two things that do not affect each other
-    level: 4
+    level: 1
     topic: probability
     stage: gcse
     kind: procedure
@@ -1913,7 +1919,7 @@ nodes:
 
   - id: without_replacement
     name: When the first pick changes the second
-    level: 4
+    level: 0
     topic: probability
     stage: gcse
     kind: procedure
@@ -1924,7 +1930,7 @@ nodes:
 
   - id: what_probability_means
     name: What a probability is
-    level: 5
+    level: 4
     kind: concept
     probe: >-
       Say what a probability of 0, of 1, and of a half each mean, and why a
@@ -1933,7 +1939,7 @@ nodes:
 
   - id: everything_adds_to_one
     name: All the chances add up to one
-    level: 5
+    level: 1
     kind: fact
     probe: >-
       Say why the probabilities of all the possible outcomes add up to 1,
@@ -1942,7 +1948,7 @@ nodes:
 
   - id: count_the_outcomes
     name: Counting how many ways
-    level: 5
+    level: 3
     kind: procedure
     probe: >-
       Given a situation in words, say how many outcomes there are altogether
@@ -1958,7 +1964,7 @@ nodes:
 
   - id: add_or_multiply
     name: Deciding whether to add or multiply
-    level: 5
+    level: 2
     kind: concept
     probe: >-
       Given two events described in words, say whether their probabilities
@@ -1973,7 +1979,7 @@ nodes:
 
   - id: the_bag_gets_smaller
     name: The second pick comes from what is left
-    level: 5
+    level: 1
     kind: concept
     probe: >-
       Say what changes about the second probability when the first thing

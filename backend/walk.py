@@ -391,8 +391,10 @@ MAX_DEPTH = 8
 def _closest_first(skill_ids) -> list[str]:
     """Nearest the student's question first, then further down.
 
-    Level 0 is what an exam asks for and level 4 is the assumed floor, so a
-    lower level number is closer to what they actually sent us.
+    Level 0 is a skill nothing else needs - what an exam asks for - and each
+    level down is one step further from it, so a lower level number is closer
+    to what they actually sent us. The levels are worked out from the needs;
+    see graph.levels_from_needs().
 
     The other order - deepest first - sounds more thorough and is worse. It
     starts by asking about something that looks unrelated, and because the walk
