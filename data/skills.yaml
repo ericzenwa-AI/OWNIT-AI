@@ -858,6 +858,24 @@ nodes:
       coefficients or nCr.
     needs: []
 
+  - id: binomial_coefficients_any_power
+    name: Binomial coefficients for any power
+    level: 1
+    kind: procedure
+    probe: >-
+      Find the coefficient of x^2 or x^3 in (1 + x)^n where n is negative or a
+      fraction, such as the coefficient of x^2 in (1 + x)^(1/2) (answer -1/8),
+      using the pattern n(n - 1)/2, n(n - 1)(n - 2)/6. The bracket is always
+      exactly (1 + x), so nothing but the pattern is tested. The answer is a
+      number. Must not ask which formula gives it, and must not use whole-number
+      powers, where Pascal's triangle and nCr already work.
+    needs: [negatives, multiply_divide_fractions]
+    note: >-
+      Split from binomial_coefficients on 2026-11-26. For a negative or
+      fractional power neither Pascal's triangle nor the nCr button works -
+      only the n(n - 1)/2 pattern does - so a student stuck there was being
+      checked on whole-number coefficients, which is not what is in their way.
+
   - id: binomial_validity
     name: When a binomial expansion is valid
     level: 1
@@ -898,7 +916,7 @@ nodes:
     topic: binomial expansion
     kind: procedure
     probe: Find the first few terms of an expansion where the index is negative or fractional.
-    needs: [binomial_coefficients, index_laws, rewrite_index_form, fractions_arith, power_of_a_negative_term]
+    needs: [binomial_coefficients_any_power, index_laws, rewrite_index_form, fractions_arith, power_of_a_negative_term]
 
   - id: binomial_approximation
     name: Use an expansion to approximate a value
@@ -906,7 +924,7 @@ nodes:
     topic: binomial expansion
     kind: procedure
     probe: Substitute a value into an expansion to approximate a root, and say whether it is allowed.
-    needs: [binomial_validity, binomial_coefficients, substitute_expr]
+    needs: [binomial_validity, substitute_expr]
 
   # ---- Polynomials ---------------------------------------------------------
 

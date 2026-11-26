@@ -57,3 +57,18 @@ def test_the_questions_that_tested_wording_are_off_the_shelf():
     recall = [r["question"] for r in live if r["skill_id"] == "binomial_coefficients"
               and "formula" in r["question"].lower()]
     assert recall == []
+
+
+def test_negative_and_fractional_powers_have_their_own_coefficients():
+    """Pascal's triangle and nCr only work for whole powers, so a student
+    stuck on (1 + x)^(-2) is checked on the n(n - 1)/2 pattern instead."""
+    needs = SKILLS["expand_binomial_fractional"].needs
+    assert "binomial_coefficients_any_power" in needs
+    assert "binomial_coefficients" not in needs
+
+
+def test_approximating_does_not_need_coefficients():
+    """Every approximation question prints the expansion for the student."""
+    needs = SKILLS["binomial_approximation"].needs
+    assert "binomial_coefficients" not in needs
+    assert "binomial_coefficients_any_power" not in needs

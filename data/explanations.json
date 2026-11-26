@@ -90,6 +90,13 @@
     "plain": "When you multiply out one plus x to a power, the number in front of each term comes from a fixed pattern. Pascal's triangle and the nCr button both hand you that pattern.",
     "like": ""
   },
+  "binomial_coefficients_any_power": {
+    "what": "For any power n, the coefficients of (1 + x)^n follow one pattern: 1, then n, then n(n - 1)/2, then n(n - 1)(n - 2)/6. For a negative or fractional n this pattern is the only way - Pascal's triangle and the nCr button only work for positive whole powers.",
+    "example": "The coefficient of x^2 in (1 + x)^(1/2) is (1/2)(-1/2)/2. Here n - 1 is 1/2 - 1 = -1/2, so the top is -1/4, and halving gives -1/8.",
+    "wrong": "Working out n - 1 wrongly when n is negative or a fraction - for n = -2, n - 1 is -3, not -1 - or losing the minus sign when two negatives multiply. For (1 + x)^(-2) the x^2 coefficient is (-2)(-3)/2 = 3, not -3.",
+    "plain": "There is a pattern that gives the number in front of each term for any power, even negative ones and fractions. You keep taking one off the power and multiplying.",
+    "like": ""
+  },
   "binomial_validity": {
     "what": "When the power in a binomial expansion is negative or a fraction, the expansion goes on forever rather than stopping, and it only actually adds up to the right value when the variable part is small enough in size - specifically when its absolute value is less than 1.",
     "example": "(1+x)^-1 = 1 - x + x^2 - x^3 + ..., valid only for |x| < 1. At x = 2: 1 - 2 + 4 - 8 + ... never settles down or matches 1/3, because |x| = 2 is too big.",
