@@ -113,3 +113,41 @@ def test_nothing_left_on_the_shelf_has_two_right_answers():
     broken = [r["question"] for r in live if not r.get("retired") and two_right_answers(
         r["question"], r["correct_option"], [d["option"] for d in r["distractors"]])]
     assert broken == []
+
+
+# ---- every option a finished answer ---------------------------------------
+
+
+from same_value import unfinished, what_is_wrong
+
+
+def test_working_left_unfinished_is_not_an_answer_even_when_it_is_wrong():
+    """6/20 + 1/2 is not equal to 4/10 - but it is still a sum, not an answer,
+    and it tells the student there is more to do."""
+    assert unfinished("Work out", "4/10", ["6/20 + 1/2", "7/19", "5/10"]) == ["6/20 + 1/2"]
+
+
+def test_single_numbers_are_finished():
+    assert unfinished("Work out", "4/10", ["7/19", "-3", "0.5"]) == []
+
+
+def test_when_the_answer_is_an_expression_options_can_be_too():
+    assert unfinished("Expand", "2x + 6", ["2x + 3", "x + 6", "2x + 5"]) == []
+    assert unfinished("Work out", "3 * 10^8", ["30 * 10^7"]) == []
+
+
+def test_the_reason_is_given_in_words():
+    assert what_is_wrong("Work out 3/4 * 2/5 + 1/10", "4/10",
+                         ["7/19", "6/20 + 1/10", "5/10"]) == "a wrong option is also right"
+    assert what_is_wrong("Work out", "4/10",
+                         ["7/19", "6/20 + 1/2", "5/10"]) == "a wrong option is working, not an answer"
+    assert what_is_wrong("Work out -4 - 5", "-9", ["-1", "9", "1"]) is None
+
+
+def test_nothing_left_on_the_shelf_offers_working_as_an_answer():
+    shelf = pathlib.Path(__file__).resolve().parent.parent / "data" / "question_bank.jsonl"
+    live = [json.loads(line) for line in shelf.read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+    broken = [r["question"] for r in live if not r.get("retired") and unfinished(
+        r["question"], r["correct_option"], [d["option"] for d in r["distractors"]])]
+    assert broken == []

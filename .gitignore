@@ -20,3 +20,6 @@ backend/explanations_checked.json
 
 # Records of one check run, not part of the product. See explain.py.
 backend/*_checked.json
+
+# Downloaded from /admin/bank.jsonl to check - the live copy, not the shelf.
+data/live_bank.jsonl

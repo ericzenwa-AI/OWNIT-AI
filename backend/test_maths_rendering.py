@@ -422,3 +422,53 @@ def test_a_power_at_the_end_of_a_sentence_keeps_its_full_stop(js):
     """The digits after the point are only swallowed when they are there."""
     latex = latex_in(render(js, "Simplify x^2."))[0]
     assert "x^{2}" in latex and "x^{2.}" not in latex
+
+
+# ---- How options are drawn, as a set ---------------------------------------
+
+
+def options(js, texts):
+    import json as _json
+    return dukpy.evaljs(js + "\noptionsHtml(dukpy['input']);", input=texts)
+
+
+def test_multiplication_is_a_times_sign(js):
+    """UK students meet x, not a dot - and on a fraction question a dot reads
+    as a decimal point."""
+    latex = " ".join(latex_in(render(js, "3/4 * 2/5 + 1/10")))
+    assert r"\times" in latex and r"\cdot" not in latex
+
+
+def test_options_that_are_all_maths_are_all_typeset(js):
+    drawn = options(js, ["4/10", "7/19", "5/10", "I don't know"])
+    assert all(latex_in(d) for d in drawn[:3])
+    assert drawn[3] == "I don't know"
+
+
+def test_i_dont_know_does_not_make_a_set_look_mixed(js):
+    """It is words and on every question; if it counted, nothing would ever
+    be typeset again."""
+    drawn = options(js, ["x^2", "x^3", "x^4", "I don't know"])
+    assert all(latex_in(d) for d in drawn[:3])
+
+
+def test_a_mix_of_sentences_and_bare_maths_is_drawn_one_way(js):
+    """The binomial question: one option a bare formula, fully typeset, the
+    rest sentences typeset in patches. A mix is drawn as plain text."""
+    drawn = options(js, [
+        "n!/(r!(n-r)!)",
+        "Using the powers of the binomial: the coefficient of x^r is n^r",
+        "Using n!/r! for each term",
+        "I don't know"])
+    assert not any(latex_in(d) for d in drawn)
+    assert "n!/(r!(n-r)!)" in drawn[0]
+
+
+def test_a_mix_still_shows_a_times_sign(js):
+    drawn = options(js, ["6 * 5", "Multiply them", "Add them", "I don't know"])
+    assert "×" in drawn[0] and "*" not in drawn[0]
+
+
+def test_options_that_are_all_sentences_keep_their_maths(js):
+    drawn = options(js, ["It doubles x^2", "It halves x^2", "It squares x", "I don't know"])
+    assert latex_in(drawn[0]) and latex_in(drawn[1])

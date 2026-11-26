@@ -891,6 +891,35 @@ def test_the_admin_page_refuses_a_wrong_password(client, monkeypatch):
     ).status_code == 401
 
 
+def test_the_live_bank_download_is_behind_the_password(client, monkeypatch):
+    monkeypatch.delenv("OWNIT_ADMIN_PASSWORD", raising=False)
+    assert client.get("/admin/bank.jsonl").status_code == 503
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "the-real-one")
+    assert client.get("/admin/bank.jsonl", auth=("me", "guessing")).status_code == 401
+
+
+def test_the_live_bank_download_is_in_the_shelf_format(client, monkeypatch):
+    """Questions written live exist only in the database. This is how they get
+    checked, so it must read exactly like data/question_bank.jsonl."""
+    import json
+
+    connection = store.connect()
+    try:
+        store.bank_question(connection, "negatives", _question("negatives"))
+    finally:
+        connection.close()
+
+    monkeypatch.setenv("OWNIT_ADMIN_PASSWORD", "letmein")
+    got = client.get("/admin/bank.jsonl", auth=("me", "letmein"))
+
+    assert got.status_code == 200
+    assert "attachment" in got.headers["content-disposition"]
+    records = [json.loads(line) for line in got.text.splitlines()]
+    assert {"skill_id", "question", "correct_option", "distractors",
+            "retired"} <= set(records[0])
+    assert any(r["question"] == "A question about negatives" for r in records)
+
+
 def test_the_admin_page_shows_both_kinds(client, monkeypatch):
     session_id, _ = _finish(client)
     client.post(

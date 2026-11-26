@@ -204,3 +204,11 @@ def test_typing_in_the_wrong_box_is_told_which_box_is_wanted():
     assert 'the box at the top' in guard
     assert "document.getElementById('attempt').value.trim()" in guard
     assert "box.focus()" in guard
+
+
+def test_maths_never_grows_scroll_arrows():
+    """Letting a question scroll sideways quietly lets it scroll up and down
+    too, and a stacked fraction is a hair taller than its line - so a
+    fraction question showed scroll arrows. Sideways only."""
+    text = diagnostic()
+    assert ".question, button.option { overflow-x: auto; overflow-y: hidden; }" in text

@@ -415,7 +415,9 @@ nodes:
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
-    probe: Add, multiply and divide fractions.
+    probe: >-
+      Add, multiply and divide fractions. Plain numbers only - no letters. The
+      algebraic version is a different skill.
     needs: [common_denominator, reciprocal, fraction_meaning]
 
   - id: bidmas
@@ -574,7 +576,7 @@ nodes:
     stage: gcse
     kind: procedure
     probe: Rewrite a fraction so that no surd is left in the denominator.
-    needs: [surds, algebraic_fractions, expand_brackets]
+    needs: [surds, equivalent_fractions, expand_brackets]
 
   # ---- Exponentials and logarithms -----------------------------------------
 
@@ -822,9 +824,33 @@ nodes:
   - id: binomial_coefficients
     name: Binomial coefficients
     level: 2
-    kind: fact
-    probe: State how the coefficients of a binomial expansion are worked out.
-    needs: [index_notation, fractions_arith]
+    kind: procedure
+    probe: >-
+      Find one coefficient of a bracket raised to a positive whole power, such
+      as the coefficient of x^2 in (1 + x)^5 (answer 10). The answer is a
+      number. Any method must work - the nCr button, Pascal's triangle or the
+      formula - so the question must not ask which formula gives it, name a
+      method, or need anything a calculator's nCr button would not give.
+    needs: [pascal_triangle]
+    note: >-
+      Was a recall question - "which formula gives the coefficient" - until a
+      test as a student on 2026-11-26. Most A-level students get coefficients
+      from the nCr button or Pascal's triangle and never use the formula, which
+      is printed in the formula booklet anyway, so they said "I don't know" and
+      were walked down into fraction arithmetic for nothing. Factorials are
+      deliberately not underneath: a student using nCr or the triangle never
+      touches them.
+
+  - id: pascal_triangle
+    name: Pascal's triangle
+    level: 3
+    kind: procedure
+    probe: >-
+      Build a row of Pascal's triangle - each number is the two above it added
+      - or give a particular number in a given row, such as the third number in
+      the row that starts 1, 5. Must not mention binomial expansion,
+      coefficients or nCr.
+    needs: []
 
   - id: binomial_validity
     name: When a binomial expansion is valid
@@ -1213,7 +1239,9 @@ nodes:
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
-    probe: Find a fraction of a quantity, such as three fifths of 45.
+    probe: >-
+      Find a fraction of a quantity, such as three fifths of 45. Plain numbers
+      only - no letters. The algebraic version is a different skill.
     needs: [fraction_meaning]
 
   - id: combine_over_common_denominator
@@ -1224,7 +1252,8 @@ nodes:
     probe: >-
       Add or subtract two fractions that ALREADY share a denominator, and
       simplify what comes out. Must not require finding the denominator - the
-      question has to hand that over, so this tests the combining alone.
+      question has to hand that over, so this tests the combining alone. Plain
+      numbers only - no letters. The algebraic version is a different skill.
     needs: [fraction_meaning, negatives, equivalent_fractions]
     note: >-
       Found by a tutor watching a student, 2026-09-02. The walk traced a
@@ -1242,7 +1271,9 @@ nodes:
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
-    probe: Add or subtract two fractions with different denominators.
+    probe: >-
+      Add or subtract two fractions with different denominators. Plain numbers
+      only - no letters. The algebraic version is a different skill.
     needs: [common_denominator, equivalent_fractions, combine_over_common_denominator]
 
   - id: multiply_divide_fractions
@@ -1251,7 +1282,9 @@ nodes:
     topic: fractions, decimals and percentages
     stage: gcse
     kind: procedure
-    probe: Multiply or divide two fractions and simplify the result.
+    probe: >-
+      Multiply or divide two fractions and simplify the result. Plain numbers
+      only - no letters. The algebraic version is a different skill.
     needs: [reciprocal, fraction_meaning, equivalent_fractions]
 
   - id: convert_fdp
@@ -1276,21 +1309,28 @@ nodes:
     name: Finding a common denominator
     level: 5
     kind: procedure
-    probe: Rewrite two fractions so they share a denominator.
+    probe: >-
+      Rewrite two fractions so they share a denominator. Plain numbers only -
+      no letters. The algebraic version is a different skill.
     needs: [equivalent_fractions]
 
   - id: equivalent_fractions
     name: Equivalent fractions
     level: 5
     kind: procedure
-    probe: Write a fraction in an equivalent form, or in its simplest form.
+    probe: >-
+      Write a fraction in an equivalent form, or in its simplest form. Plain
+      numbers only - no letters. The algebraic version is a different skill.
     needs: [factor_pairs, fraction_meaning]
 
   - id: reciprocal
     name: What dividing by a fraction does
     level: 5
     kind: concept
-    probe: Say why dividing by a fraction is the same as multiplying by its reciprocal.
+    probe: >-
+      Say why dividing by a fraction is the same as multiplying by its
+      reciprocal. Plain numbers only - no letters. The algebraic version is a
+      different skill.
     needs: [fraction_meaning]
 
   - id: fraction_to_decimal
@@ -1787,8 +1827,8 @@ nodes:
     probe: >-
       Given a frequency table, work out the total of all the values - each
       value multiplied by its frequency, added up. Must not require finding
-      the mean afterwards.
-    needs: [read_a_frequency_table, multiply_terms, bidmas]
+      the mean afterwards. Plain numbers only - no letters.
+    needs: [read_a_frequency_table, bidmas]
     note: >-
       The assembly step for the frequency-table mean, and the commonest
       error in the topic: the mean of the values is taken while the

@@ -1776,6 +1776,29 @@ def admin_email(request: Request) -> str:
 """
 
 
+@app.get("/admin/bank.jsonl")
+def admin_bank(request: Request) -> Response:
+    """Every question in the live database, as a file to download.
+
+    Questions the server writes for itself when the shelf runs dry exist only
+    here, not in data/question_bank.jsonl, so this is the only way to check
+    them. Same format as that file - one question per line, retired ones
+    included - so anything that reads the shelf reads this.
+    """
+    _admin_ok(request)
+    connection = store.connect()
+    try:
+        records = store.export_bank(connection)
+    finally:
+        connection.close()
+    body = "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n"
+                   for r in records)
+    return Response(
+        body, media_type="application/x-ndjson",
+        headers={"Content-Disposition": 'attachment; filename="live_bank.jsonl"',
+                 "Cache-Control": "no-store"})
+
+
 @app.get("/admin/numbers", response_class=HTMLResponse)
 def admin_numbers(request: Request, stage: str | None = None,
                   days: int | None = None) -> str:

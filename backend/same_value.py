@@ -1,4 +1,4 @@
-"""Catch a wrong option that is not actually wrong.
+"""Catch a wrong option that is not actually wrong, or not actually an answer.
 
 "Work out 3/4 x 2/5 + 1/10" was served with 4/10 as the answer and
 "6/20 + 1/10" as a distractor. Those are the same number. A student who
@@ -110,3 +110,35 @@ def two_right_answers(question: str, correct: str, distractors: list[str]) -> li
     repeated = [d for d in distractors if plain(d) == plain(correct)]
     equal = same_as_the_key(question, correct, distractors)
     return repeated + [d for d in equal if d not in repeated]
+
+
+# One number: a whole number, a decimal, or one fraction - the shape a
+# finished answer to "work out" takes.
+_ONE_NUMBER = re.compile(r"^\(?-?\d+(\.\d+)?\)?(/\(?-?\d+(\.\d+)?\)?)?$")
+
+
+def _one_number(text: str) -> bool:
+    return bool(_ONE_NUMBER.match(_tidy(text).replace(" ", "")))
+
+
+def unfinished(question: str, correct: str, distractors: list[str]) -> list[str]:
+    """Wrong options that are a step of working rather than an answer.
+
+    When the answer is one number, every option has to be one number too.
+    "6/20 + 1/10" beside "4/10" is not a wrong answer - it is the working,
+    stopped early - and whether or not it adds up to the key, it gives away
+    that something still needs doing, or marks a student down for stopping.
+    """
+    if not _one_number(correct):
+        return []
+    return [d for d in distractors
+            if value_of(d) is not None and not _one_number(d)]
+
+
+def what_is_wrong(question: str, correct: str, distractors: list[str]) -> str | None:
+    """Why this question cannot be asked, in a few words, or None if it can."""
+    if two_right_answers(question, correct, distractors):
+        return "a wrong option is also right"
+    if unfinished(question, correct, distractors):
+        return "a wrong option is working, not an answer"
+    return None

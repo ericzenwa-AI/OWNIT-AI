@@ -227,19 +227,22 @@ def verify(skill_id: str, questions: list, *, check=None,
 
     `check(row, task)` is the solve; tests pass their own so nothing is billed.
 
-    Before any of that, and for free: a question with two right answers goes.
+    Before any of that, and for free: a question with two right answers goes,
+    and so does one offering a step of working as if it were an answer.
     A blind solve lands on the key and passes it, never noticing that one of
     the "wrong" options is the same number written another way - see
     same_value.py for the one that was served.
     """
-    from same_value import two_right_answers
+    from same_value import what_is_wrong
 
-    two_right = [q for q in questions
-                 if two_right_answers(q.question, q.correct_option,
-                                      [d.option for d in q.distractors])]
-    for q in two_right:
-        print(f"  {skill_id}: thrown away, a wrong option is also right: "
-              f"{q.question!r}", file=sys.stderr)
+    two_right = []
+    for q in questions:
+        why = what_is_wrong(q.question, q.correct_option,
+                            [d.option for d in q.distractors])
+        if why:
+            print(f"  {skill_id}: thrown away, {why}: {q.question!r}",
+                  file=sys.stderr)
+            two_right.append(q)
     questions = [q for q in questions if q not in two_right]
 
     if not questions:

@@ -84,10 +84,10 @@
     "like": "It is like estimating how long a short trip to the shop will take by walking speed - that trick stops working if the trip is actually to another country, even though you could still do the sum."
   },
   "binomial_coefficients": {
-    "what": "The coefficients in a binomial expansion come from 'n choose r', worked out as n! / (r!(n-r)!) - the same numbers you'd read off Pascal's triangle - and each term is that coefficient times the two parts raised to powers that add up to n.",
-    "example": "(1+x)^4: coefficients are 4C0, 4C1, 4C2, 4C3, 4C4 = 1, 4, 6, 4, 1. So expansion is 1 + 4x + 6x^2 + 4x^3 + x^4.",
-    "wrong": "They compute nCr correctly but forget that when it's (a+b)^n rather than (1+x)^n, each term also needs a^(n-r) attached, not just the coefficient and b^r - so terms like a^3 get dropped entirely, especially when a isn't 1.",
-    "plain": "When you expand something like one plus x raised to a power, the numbers in front of each term come from a set pattern - the same pattern you get from Pascal's triangle - and each term's two parts always add up in power to the original power you started with.",
+    "what": "The number in front of each term of (1 + x)^n is n choose r, where r is the power of x in that term. The nCr button, row n of Pascal's triangle and the formula all give the same number, so use whichever you are quickest with.",
+    "example": "The coefficient of x^2 in (1 + x)^5 is 5C2 = 10. Row 5 of Pascal's triangle is 1, 5, 10, 10, 5, 1, and its third number is 10 as well.",
+    "wrong": "Counting along the row from the wrong place. The first number in a row goes with x^0, not x^1, so the coefficient of x^2 is the third number in the row, not the second - taking the second gives 5 instead of 10.",
+    "plain": "When you multiply out one plus x to a power, the number in front of each term comes from a fixed pattern. Pascal's triangle and the nCr button both hand you that pattern.",
     "like": ""
   },
   "binomial_validity": {
@@ -866,6 +866,13 @@
     "wrong": "Students divide the wrong way round, computing dx/dt over dy/dt instead, getting t instead of 1/t - this survives because both look like plausible answers and nothing in the question flags which is upside down. Others try to eliminate t first to get y in terms of x directly, which works sometimes but wastes time and often goes wrong on messier equations.",
     "plain": "Sometimes x and y are both being steered by a hidden third number, like a dial being turned, rather than being linked to each other directly. To see how y changes compared to x, you look at how each one changes with the dial, then compare those two changes.",
     "like": "It's like two cars whose speeds both depend on the same accelerator pedal - you can't compare the pedal to each car directly, but you can work out how the cars compare to each other through it."
+  },
+  "pascal_triangle": {
+    "what": "Pascal's triangle starts with a 1 at the top. Every row starts and ends with 1, and each number in between is the two numbers just above it added together.",
+    "example": "Row 4 is 1, 4, 6, 4, 1. The row after it is 1, then 1 + 4 = 5, 4 + 6 = 10, 6 + 4 = 10, 4 + 1 = 5, then 1: so 1, 5, 10, 10, 5, 1.",
+    "wrong": "Adding a number to the one beside it in the same row instead of the two above it, or leaving off the 1 at the ends, so the row comes out one number short.",
+    "plain": "It is a triangle of numbers that builds itself: a 1 at each end of every row, and each number in the middle is the pair just above it added up.",
+    "like": ""
   },
   "percentage_as_decimal": {
     "what": "A percentage is a number out of 100, so to write it as a decimal you divide by 100, which just shifts the digits two places. Going back, you multiply by 100.",

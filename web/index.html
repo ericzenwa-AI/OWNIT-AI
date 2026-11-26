@@ -718,8 +718,12 @@
   /* Sits a touch up on Outfit, which has a taller x-height than the serif
      this used to be set in. For the notation only. */
   .katex { font-size: 1.05em; }
-  /* A long quotient must not push the card sideways on a phone. */
-  .question, button.option { overflow-x: auto; }
+  /* A long quotient must not push the card sideways on a phone. Only
+     sideways, though: allowing one direction quietly allows the other, and
+     a stacked fraction is a hair taller than its line, so the box grew
+     scroll arrows. Inline-block makes the line as tall as the maths. */
+  .question, button.option { overflow-x: auto; overflow-y: hidden; }
+  .question .katex, button.option .katex { display: inline-block; padding: 0.12em 0; }
 
   .counter {
     color: var(--faint); font-size: 0.8rem; text-align: right;
@@ -1296,10 +1300,11 @@ function question() {
       ? ' &middot; nothing here is marked' : ''}</p>`;
 
   const box = document.getElementById('options');
-  q.options.forEach(o => {
+  const drawn = optionsHtml(q.options.map(o => o.text));
+  q.options.forEach((o, i) => {
     const button = document.createElement('button');
     button.className = 'option';
-    button.innerHTML = `<span class="letter">${o.label}</span>${mathHtml(o.text)}`;
+    button.innerHTML = `<span class="letter">${o.label}</span>${drawn[i]}`;
     button.onclick = () => answer(o.label);
     box.appendChild(button);
   });
@@ -1512,9 +1517,10 @@ function checkHtml() {
         '<p><button class="plain" id="check-me">Try another one</button></p>'}
     </div>`;
   }
-  const options = check.options.map(o =>
+  const drawn = optionsHtml(check.options.map(o => o.text));
+  const options = check.options.map((o, i) =>
     `<button class="option" data-check="${o.label}">
-       <span class="letter">${o.label}</span>${mathHtml(o.text)}</button>`).join('');
+       <span class="letter">${o.label}</span>${drawn[i]}</button>`).join('');
   return `<div class="card-inset">
     <p class="label">On your own &mdash; ${escape(check.skill)}</p>
     <div class="question">${mathHtml(check.question)}</div>
@@ -2196,7 +2202,9 @@ function toLatex(run) {
   // sign means. KaTeX refuses a subscript with nothing under it, so it
   // gets escaped into the underscore it was always meant to be.
   out = out.replace(/_(?!\{)/g, '\\_');
-  out = out.replace(/\*/g, ' \\cdot ');
+  // A times sign, not a dot: the dot is what UK students meet last, if at
+  // all, and on a fraction question it reads as a decimal point.
+  out = out.replace(/\*/g, ' \\times ');
   out = out.replace(/<=/g, ' \\le ').replace(/>=/g, ' \\ge ');
   out = out.replace(/!=/g, ' \\ne ');
   // Whatever angle brackets are left are inequalities, and LaTeX has words for
@@ -2292,6 +2300,42 @@ function normalise(text) {
     out = out.replace(SYMBOLS[i][0], SYMBOLS[i][1]);
   }
   return out.replace(/[ \t]{2,}/g, ' ');
+}
+
+// Whether a piece of text is nothing but notation - an answer like
+// 3/10 or 2x + 6, with no words in it.
+function allNotation(text) {
+  var parts = pieces(normalise(text));
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i].word && !canJoin(parts[i].text)) return false;
+  }
+  return true;
+}
+
+// The options of one question, drawn in one style. Typeset one by one, a
+// set that mixed sentences with bare expressions came out with one option
+// fully typeset and the rest in patches. All maths, or all sentences, look
+// alike already; a mix is shown as plain text throughout, times signs and
+// all, so no option stands out from the others for how it looks.
+// "I don't know" is on every question and is words, so it does not get a
+// say - otherwise every set would count as a mix.
+var WAY_OUT = /^i don.?t know$/i;
+
+function optionsHtml(texts) {
+  var maths = 0, real = 0;
+  for (var i = 0; i < texts.length; i++) {
+    if (WAY_OUT.test(String(texts[i]).trim())) continue;
+    real++;
+    if (allNotation(texts[i])) maths++;
+  }
+  var mixed = maths > 0 && maths < real;
+  var out = [];
+  for (var j = 0; j < texts.length; j++) {
+    out.push(mixed && !WAY_OUT.test(String(texts[j]).trim())
+      ? escape(normalise(texts[j]).replace(/\s*\*\s*/g, ' \u00d7 '))
+      : mathHtml(texts[j]));
+  }
+  return out;
 }
 
 function mathHtml(text) {
