@@ -226,9 +226,24 @@ def verify(skill_id: str, questions: list, *, check=None,
     either, the question goes.
 
     `check(row, task)` is the solve; tests pass their own so nothing is billed.
+
+    Before any of that, and for free: a question with two right answers goes.
+    A blind solve lands on the key and passes it, never noticing that one of
+    the "wrong" options is the same number written another way - see
+    same_value.py for the one that was served.
     """
+    from same_value import two_right_answers
+
+    two_right = [q for q in questions
+                 if two_right_answers(q.question, q.correct_option,
+                                      [d.option for d in q.distractors])]
+    for q in two_right:
+        print(f"  {skill_id}: thrown away, a wrong option is also right: "
+              f"{q.question!r}", file=sys.stderr)
+    questions = [q for q in questions if q not in two_right]
+
     if not questions:
-        return Verified([], [], [])
+        return Verified([], list(two_right), [])
 
     if check is None:
         client = Anthropic()
@@ -254,7 +269,7 @@ def verify(skill_id: str, questions: list, *, check=None,
             pool.map(lambda row: safely(row, SECOND_PASS), disputed),
         ))
 
-    result = Verified([], [], [])
+    result = Verified([], list(two_right), [])
     for row, verdict in zip(rows, first):
         question = questions[row["id"]]
         if verdict.agrees:
